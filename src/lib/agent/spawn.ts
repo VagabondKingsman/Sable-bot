@@ -17,11 +17,18 @@ const CHILD_OUTPUT = 12_000;
 
 export type SpawnTurn = { adapter: ProviderAdapter; transport: Transport; opts: CallOpts; functions: FunctionTool[] };
 export type SpawnLimits = { maxChildren: number; maxSteps: number; timeoutMs: number };
+export type SpawnProfileSpec = { tools: readonly string[]; brief: string };
 
-export function createSpawner(turn: SpawnTurn, active: ToolDef[], emit: (event: ClientEvent) => void, limits: SpawnLimits): SpawnFn {
+export function createSpawner(
+  turn: SpawnTurn,
+  active: ToolDef[],
+  emit: (event: ClientEvent) => void,
+  limits: SpawnLimits,
+  resolveProfile?: (id: string) => SpawnProfileSpec | null,
+): SpawnFn {
   let used = 0;
   return async ({ task, profile, context }, ctx: ToolContext) => {
-    const spec = SPAWN_PROFILES[profile];
+    const spec = SPAWN_PROFILES[profile as keyof typeof SPAWN_PROFILES] ?? resolveProfile?.(profile) ?? null;
     if (!spec) return { ok: false, output: `unknown profile: ${profile}` };
     if (used >= limits.maxChildren) return { ok: false, output: `refused: at most ${limits.maxChildren} sub-agents per turn; finish the work yourself` };
     used += 1;

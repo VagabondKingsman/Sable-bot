@@ -44,7 +44,8 @@ export type ToolContext = {
   skills?: { load(name: string): string | null; names(): string[] };
 };
 
-export type SpawnProfile = "research" | "writer" | "coder";
+/** Builtin research|writer|coder, or a custom profile id from Settings → Profiles. */
+export type SpawnProfile = string;
 export type SpawnFn = (req: { task: string; profile: SpawnProfile; context?: string }, ctx: ToolContext) => Promise<ToolResult>;
 
 export type MemoryAccess = {

@@ -19,6 +19,7 @@ import { Route as ApiJobsRouteImport } from './routes/api/jobs'
 import { Route as ApiMcpRouteImport } from './routes/api/mcp'
 import { Route as ApiMediaRouteImport } from './routes/api/media'
 import { Route as ApiMemoryRouteImport } from './routes/api/memory'
+import { Route as ApiProfilesRouteImport } from './routes/api/profiles'
 import { Route as ApiRoutinesRouteImport } from './routes/api/routines'
 import { Route as ApiSkillsRouteImport } from './routes/api/skills'
 import { Route as ApiToolsRouteImport } from './routes/api/tools'
@@ -77,6 +78,11 @@ const ApiMemoryRoute = ApiMemoryRouteImport.update({
   path: '/api/memory',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiProfilesRoute = ApiProfilesRouteImport.update({
+  id: '/api/profiles',
+  path: '/api/profiles',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiRoutinesRoute = ApiRoutinesRouteImport.update({
   id: '/api/routines',
   path: '/api/routines',
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/api/mcp': typeof ApiMcpRoute
   '/api/media': typeof ApiMediaRoute
   '/api/memory': typeof ApiMemoryRoute
+  '/api/profiles': typeof ApiProfilesRoute
   '/api/routines': typeof ApiRoutinesRoute
   '/api/skills': typeof ApiSkillsRoute
   '/api/tools': typeof ApiToolsRoute
@@ -143,6 +150,7 @@ export interface FileRoutesByTo {
   '/api/mcp': typeof ApiMcpRoute
   '/api/media': typeof ApiMediaRoute
   '/api/memory': typeof ApiMemoryRoute
+  '/api/profiles': typeof ApiProfilesRoute
   '/api/routines': typeof ApiRoutinesRoute
   '/api/skills': typeof ApiSkillsRoute
   '/api/tools': typeof ApiToolsRoute
@@ -163,6 +171,7 @@ export interface FileRoutesById {
   '/api/mcp': typeof ApiMcpRoute
   '/api/media': typeof ApiMediaRoute
   '/api/memory': typeof ApiMemoryRoute
+  '/api/profiles': typeof ApiProfilesRoute
   '/api/routines': typeof ApiRoutinesRoute
   '/api/skills': typeof ApiSkillsRoute
   '/api/tools': typeof ApiToolsRoute
@@ -184,6 +193,7 @@ export interface FileRouteTypes {
     | '/api/mcp'
     | '/api/media'
     | '/api/memory'
+    | '/api/profiles'
     | '/api/routines'
     | '/api/skills'
     | '/api/tools'
@@ -203,6 +213,7 @@ export interface FileRouteTypes {
     | '/api/mcp'
     | '/api/media'
     | '/api/memory'
+    | '/api/profiles'
     | '/api/routines'
     | '/api/skills'
     | '/api/tools'
@@ -222,6 +233,7 @@ export interface FileRouteTypes {
     | '/api/mcp'
     | '/api/media'
     | '/api/memory'
+    | '/api/profiles'
     | '/api/routines'
     | '/api/skills'
     | '/api/tools'
@@ -242,6 +254,7 @@ export interface RootRouteChildren {
   ApiMcpRoute: typeof ApiMcpRoute
   ApiMediaRoute: typeof ApiMediaRoute
   ApiMemoryRoute: typeof ApiMemoryRoute
+  ApiProfilesRoute: typeof ApiProfilesRoute
   ApiRoutinesRoute: typeof ApiRoutinesRoute
   ApiSkillsRoute: typeof ApiSkillsRoute
   ApiToolsRoute: typeof ApiToolsRoute
@@ -322,6 +335,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMemoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/profiles': {
+      id: '/api/profiles'
+      path: '/api/profiles'
+      fullPath: '/api/profiles'
+      preLoaderRoute: typeof ApiProfilesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/routines': {
       id: '/api/routines'
       path: '/api/routines'
@@ -397,6 +417,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMcpRoute: ApiMcpRoute,
   ApiMediaRoute: ApiMediaRoute,
   ApiMemoryRoute: ApiMemoryRoute,
+  ApiProfilesRoute: ApiProfilesRoute,
   ApiRoutinesRoute: ApiRoutinesRoute,
   ApiSkillsRoute: ApiSkillsRoute,
   ApiToolsRoute: ApiToolsRoute,

@@ -32,6 +32,7 @@ import {
 import { LearnedMemory } from "@/components/sable/memory-panel";
 import { DeskSyncPanel } from "@/components/sable/desk-sync-panel";
 import { SkillsPanel } from "@/components/sable/skills-panel";
+import { ProfilesPanel } from "@/components/sable/profiles-panel";
 import { McpPanel } from "@/components/sable/mcp-panel";
 import { startDeskSync } from "@/lib/agent/desk/client";
 import { decideApproval, generateImage, generateVideo, modelInfo, streamReply, voiceStt, voiceTts, type ModelCaps } from "@/lib/agent/client";
@@ -1386,6 +1387,7 @@ function Settings({
           />
         </label>
         <DeskSyncPanel />
+        <ProfilesPanel settings={settings} onChange={onChange} />
         <SkillsPanel />
         <McpPanel />
         <LearnedMemory noMemory={noMemory} onNoMemory={onNoMemory} />

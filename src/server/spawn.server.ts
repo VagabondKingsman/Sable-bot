@@ -1,8 +1,10 @@
 /** Env knobs for spawn_agent; the runner itself is src/lib/agent/spawn.ts. */
 import { createSpawner as create } from "@/lib/agent/spawn";
 import type { ClientEvent } from "@/lib/agent/harness";
+import { spawnToolsFor } from "@/lib/agent/profiles";
 import type { ToolDef } from "@/lib/agent/tools/types";
 import type { PreparedTurn } from "@/server/chat.server";
+import { loadProfiles } from "@/server/profiles.server";
 
 export const spawnOn = () => (process.env.SABLE_SPAWN ?? "1").trim() !== "0";
 
@@ -20,5 +22,11 @@ export function spawnLimits() {
 }
 
 export function createSpawner(turn: PreparedTurn, active: ToolDef[], emit: (event: ClientEvent) => void) {
-  return create(turn, active, emit, spawnLimits());
+  return create(turn, active, emit, spawnLimits(), (id) => {
+    try {
+      return spawnToolsFor(loadProfiles(), id);
+    } catch {
+      return null;
+    }
+  });
 }

@@ -27,12 +27,12 @@ export const spawnAgent: FunctionTool<SpawnArgs> = {
   kind: "function",
   name: "spawn_agent",
   description:
-    "Delegate one self-contained sub-task to a focused sub-agent and get its final report back. Profiles: research (web/fetch/read), writer (read + write files), coder (files + fetch + code). The sub-agent sees only `task` and `context` (not this chat), cannot ask questions, cannot spawn more agents, and its file writes still need the user's approval. Use it for parallelisable or long side-tasks; do simple things yourself.",
+    "Delegate one self-contained sub-task to a focused sub-agent and get its final report back. Profiles: research / writer / coder builtins, or a custom profile id (Settings → Profiles). The sub-agent sees only `task` and `context` (not this chat), cannot ask questions, cannot spawn more agents, and its file writes still need the user's approval. Use it for parallelisable or long side-tasks; do simple things yourself.",
   parameters: {
     type: "object",
     properties: {
       task: { type: "string", description: "Complete instructions for the sub-agent, including the expected output.", maxLength: 8000 },
-      profile: { type: "string", enum: ["research", "writer", "coder"], description: "Which tool set the sub-agent gets." },
+      profile: { type: "string", description: "Builtin research|writer|coder, or a custom multi-agent profile id from Settings → Profiles." },
       context: { type: "string", description: "Optional facts/data from this chat the sub-agent needs.", maxLength: 8000 },
     },
     required: ["task", "profile"],
