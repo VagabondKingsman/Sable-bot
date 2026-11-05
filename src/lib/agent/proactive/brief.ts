@@ -10,6 +10,8 @@ import type { BriefConfig } from "./store.ts";
 
 export type BriefTask = { id: string; goal: string; status: string; done: number; total: number; waiting: number };
 export type BriefBudget = { totalTokens: number; usd: number; maxTokens?: number; maxUsd?: number };
+/** W2b: today's calendar events (from Google Calendar when connected). */
+export type BriefEvent = { summary: string; start: string; end?: string; allDay?: boolean; location?: string };
 export type BriefApproval = { id: string; title: string; summary: string; initiatorKind?: string };
 
 export type BriefInput = {
@@ -21,6 +23,8 @@ export type BriefInput = {
   budget: BriefBudget | null;
   /** Only items newer than this (epoch ms) count as new; older open asks still show. */
   since?: number;
+  /** null/undefined → section omitted (Calendar not connected). */
+  events?: BriefEvent[] | null;
 };
 
 export type Brief = { title: string; text: string; counts: Record<string, number> };
@@ -28,6 +32,11 @@ export type Brief = { title: string; text: string; counts: Record<string, number
 const clip = (s: string, n = 90) => {
   const one = s.replace(/\s+/g, " ").trim();
   return one.length > n ? `${one.slice(0, n - 1)}…` : one;
+};
+
+const hm = (iso: string, tz: string) => {
+  const t = Date.parse(iso);
+  return Number.isFinite(t) ? localParts(new Date(t), tz).time : clip(iso, 16);
 };
 
 export function localParts(now: Date, tz: string) {
@@ -60,6 +69,13 @@ export function composeBrief(input: BriefInput): Brief {
   lines.push(`Bản tin sáng · ${date} ${time} (${input.tz})`);
   lines.push("");
 
+  if (input.events) {
+    lines.push(`Lịch hôm nay (${input.events.length})`);
+    if (!input.events.length) lines.push("- Không có sự kiện.");
+    for (const e of input.events.slice(0, 12)) lines.push(`- ${e.allDay ? "cả ngày" : `${hm(e.start, input.tz)}${e.end ? `–${hm(e.end, input.tz)}` : ""}`} ${clip(e.summary, 70)}${e.location ? ` @ ${clip(e.location, 40)}` : ""}`);
+    lines.push("");
+  }
+
   lines.push(`Cần duyệt (${input.approvals.length})`);
   if (!input.approvals.length) lines.push("- Không có gì chờ duyệt.");
   for (const a of input.approvals.slice(0, 10)) lines.push(`- ${clip(a.title, 60)}: ${clip(a.summary)}${a.initiatorKind ? ` [${a.initiatorKind}]` : ""}`);
@@ -89,7 +105,7 @@ export function composeBrief(input: BriefInput): Brief {
   lines.push("");
   lines.push("Mọi gửi đi vẫn cần bạn duyệt. Gợi ý trả lời chỉ mở bản nháp.");
 
-  const counts = { approvals: input.approvals.length, needs_reply: reply.length, fyi: fyi.length, ignored, tasks: activeTasks.length };
+  const counts = { ...(input.events ? { events: input.events.length } : {}), approvals: input.approvals.length, needs_reply: reply.length, fyi: fyi.length, ignored, tasks: activeTasks.length };
   const title = `Bản tin sáng ${date}: ${counts.approvals} chờ duyệt · ${counts.needs_reply} cần trả lời`;
   return { title, text: lines.join("\n").replace(/\n{3,}/g, "\n\n").trim(), counts };
 }

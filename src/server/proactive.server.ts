@@ -138,7 +138,9 @@ export async function previewBrief(now = new Date()) {
   const approvals = feed.items
     .filter((it) => it.result.bucket === "needs_approval")
     .map((it) => ({ id: it.input.meta?.approvalId ?? it.input.id, title: it.input.title, summary: it.input.body.replace(/^Cần duyệt:\s*/, "") }));
-  return composeBrief({ now, tz: cfg.tz, triaged: feed.items, approvals, tasks: briefTasks(), budget: briefBudget(), since: cfg.lastRunAt ?? now.getTime() - 86_400_000 });
+  const { todaysEvents } = await import("@/server/connectors.server");
+  const events = await todaysEvents(now, cfg.tz);
+  return composeBrief({ now, tz: cfg.tz, triaged: feed.items, approvals, tasks: briefTasks(), budget: briefBudget(), since: cfg.lastRunAt ?? now.getTime() - 86_400_000, events });
 }
 
 /** Compose + deliver to the in-app inbox (and the owner's Telegram when configured). */
@@ -147,6 +149,13 @@ export async function runBrief(opts: { manual: boolean; slot?: string; now?: Dat
   const now = opts.now ?? new Date();
   const store = proactiveStore();
   const cfg = store.brief();
+  // W2b: pull fresh mail into triage first (best effort; Gmail not connected → skipped).
+  try {
+    const { gmailFor, syncGmail } = await import("@/server/connectors.server");
+    if (gmailFor()) await syncGmail();
+  } catch (error) {
+    console.warn(`[sable-brief] gmail sync skipped: ${error instanceof Error ? error.message.slice(0, 160) : "error"}`);
+  }
   const brief = await previewBrief(now);
   const id = `brf_${now.getTime().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
   const item: InboxItem = { id, kind: "brief", jobId: "", routineId: BRIEF_ROUTINE_ID, title: brief.title, status: "done", snippet: brief.text.slice(0, 240), createdAt: now.getTime(), read: false };
