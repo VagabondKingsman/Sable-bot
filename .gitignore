@@ -16,3 +16,4 @@ screenshots/
 .DS_Store
 *.tgz
 /workspace/sable-data/
+.grok/

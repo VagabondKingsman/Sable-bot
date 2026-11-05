@@ -13,5 +13,15 @@ License: AIC is PolyForm Perimeter — designs studied, no AIC code copied. Fres
 - [x] 6. Multi-agent profiles — `src/lib/agent/profiles.ts` builtins (sable/research/writer/coder) + customs in dataDir/profiles.json; Settings panel; activate applies instructions/tools; spawn_agent resolves custom ids via spawnTools; SABLE_PROFILES=0. Unit tests.
 - [x] 7. Headless 24/7 + DEPLOY.md — `scripts/headless.mjs` watchdog (start/stop/status/restart, crash backoff, /api/jobs ping), npm `headless:*`, `docs/DEPLOY.md` (systemd, ngrok, kill switches, data dir). Jobs already auto-boot via jobsBootPlugin.
 - [x] Final · unit regression (phase5 modules): 50/50 pass; tsc clean.
-- [x] Final · restart :8080; ngrok 401 without auth / 200 with basic auth; local 200; sable-watchdog + ngrok still running.
-- [x] Final · package + secret scan (see report).
+- [x] Item 1 confirm: commit `7668981` feat(phase5): sandboxed shell_run via bubblewrap — mechanism = bubblewrap (`bwrap`) jail (unshare-all, workspace RW bind only; `.env` / sable-data / home not mounted; network off unless approved); fallback cwd-jail if bwrap missing.
+- [x] Full verification (Asia/Saigon 2026-11-05 ~14:00):
+  - Unit: scripts **197/197** + src **246/246** (was 245; +1 webhook replay).
+  - Eval: **29/29** (22 prior + shell approval reject/approve, browser click reject, webhook HMAC bad/ok, profile research/coder allowlists). Harness extended for shell_run/browser/webhook/profile cats.
+  - E2E phase1–4 (:8091 + mocks): deep-live **33/34** (known httpbin 403 on SSRF-redirect; unit covers redirect SSRF), p3-live **44/44**, p3-expiry **2/2**, p4-spawn **17/17**, p4-skills **18/18**, p4-mcp **22/22**, p4-triggers **27/27** (needs `SABLE_WATCH_TICK_S=5`), ui-deep **18/18**, ui-desk **20/20**, ui-mem **12/12**, ui-jobs **27/27**, ui-triggers **5/5**, ui2 **11/11**.
+  - Phase5 live (:8091): **19/19** — shell approval+bwrap jail denies `.env.local`/sable-data/passwd; browser SSRF 127.0.0.1 + 169.254.169.254; browser click approval reject; webhook bad sig 401 / good 200 / replay 409; voice status; profiles activate research→sable. Voice kill `SABLE_VOICE=0` → enabled:false. Headless start → `/api/jobs` 200 → stop OK.
+- [x] Bugs fixed this verification pass:
+  1. Webhook **replay**: same event `id` now returns **409** (in-process seenIds, ~10 min TTL). Docs + unit test.
+  2. Tool step **detail** now includes clipped successful tool output (so shell jail markers appear in job traces).
+  3. Eval harness + 7 new cases; scrub redact fixture.
+- [x] Final · restart :8080; ngrok **401** without auth / **200** with basic auth; local 200; sable-watchdog + ngrok still running.
+- [x] Final · package + secret scan (see report below).

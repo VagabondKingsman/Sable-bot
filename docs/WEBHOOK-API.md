@@ -71,3 +71,9 @@ curl -u sable:$SABLE_PASSWORD -H "ngrok-skip-browser-warning: 1" \
   -H "content-type: application/json" -H "X-Sable-Signature: sha256=$SIG" \
   -d "$BODY" https://…/api/channels/webhook
 ```
+
+## Replay protection
+
+Each event `id` is remembered for ~10 minutes (in-process). A second POST with the
+same `id` and a valid HMAC returns **409** (`Sự kiện trùng (replay)`). Clients must
+mint a fresh `id` per distinct event.

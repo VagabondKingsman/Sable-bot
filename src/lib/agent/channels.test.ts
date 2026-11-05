@@ -259,3 +259,14 @@ test("webhook: RateLimiter window", () => {
   assert.equal(lim.allow(1002), false);
   assert.equal(lim.allow(2100), true);
 });
+
+test("webhook: replay of same event id is rejected with 409", async () => {
+  const wh = new WebhookChannel({ secret: "test-webhook-secret-32chars!!", ownerPeerId: "owner", rate: { windowMs: 60_000, max: 30 } });
+  const body = JSON.stringify(makeEvent("ping", {}, { id: "evt_replay_1", at: 1 }));
+  const sig = `sha256=${signBody("test-webhook-secret-32chars!!", body)}`;
+  const r1 = await wh.handleInbound(body, sig);
+  assert.equal(r1.status, 200);
+  const r2 = await wh.handleInbound(body, sig);
+  assert.equal(r2.status, 409);
+  assert.match(JSON.stringify(r2.body), /replay|trùng/i);
+});

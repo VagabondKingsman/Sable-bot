@@ -136,16 +136,46 @@ export type WebhookConfig = {
   onInbound?: (event: WebhookEvent) => Promise<WebhookEvent | void> | WebhookEvent | void;
 };
 
+const REPLAY_TTL_MS = 10 * 60_000;
+const REPLAY_MAX = 2_000;
+
 export class WebhookChannel implements ChannelAdapter {
   readonly id = "webhook" as const;
   readonly config: WebhookConfig;
   private readonly limiter: RateLimiter;
+  /** Recently seen event ids -> expiry ms (replay protection). */
+  private readonly seenIds = new Map<string, number>();
   sent = 0;
   received = 0;
   lastError = "";
   constructor(config: WebhookConfig) {
     this.config = config;
     this.limiter = new RateLimiter(config.rate?.windowMs, config.rate?.max);
+  }
+
+  private remember(id: string, now = Date.now()) {
+    this.seenIds.set(id, now + REPLAY_TTL_MS);
+    if (this.seenIds.size > REPLAY_MAX) {
+      for (const [k, exp] of this.seenIds) {
+        if (exp <= now) this.seenIds.delete(k);
+        if (this.seenIds.size <= REPLAY_MAX) break;
+      }
+      while (this.seenIds.size > REPLAY_MAX) {
+        const first = this.seenIds.keys().next().value;
+        if (first === undefined) break;
+        this.seenIds.delete(first);
+      }
+    }
+  }
+
+  private isReplay(id: string, now = Date.now()) {
+    const exp = this.seenIds.get(id);
+    if (exp === undefined) return false;
+    if (exp <= now) {
+      this.seenIds.delete(id);
+      return false;
+    }
+    return true;
   }
 
   /** Verify + parse an inbound HTTP body. */
@@ -162,6 +192,12 @@ export class WebhookChannel implements ChannelAdapter {
     }
     const ev = parseEvent(parsed);
     if (!ev.ok) return { status: 422, body: { message: ev.error } };
+    const now = Date.now();
+    if (this.isReplay(ev.event.id, now)) {
+      return { status: 409, body: { message: "Sự kiện trùng (replay) — id đã xử lý." } };
+    }
+    // Remember before handling so a crash mid-handler still rejects the retry.
+    this.remember(ev.event.id, now);
     if (ev.event.type === "ping") {
       this.received += 1;
       return { status: 200, body: makeEvent("pong", { ok: true }, { peerId: ev.event.peerId }) };

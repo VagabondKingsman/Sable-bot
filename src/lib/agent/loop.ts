@@ -55,7 +55,8 @@ async function runOne(call: ToolCall, deps: LoopDeps, step: number): Promise<Too
     ? await execute(def, call.args, { ...deps.ctx, stepId })
     : { ok: false, output: `unknown tool: ${call.name}. Available: ${deps.tools.map((tool) => tool.name).join(", ") || "none"}` };
   const ms = Date.now() - started;
-  const detail = [`${result.ok ? "ok" : "lỗi"} · ${ms} ms`, result.detail ?? "", result.ok ? "" : result.output].filter(Boolean).join("\n").slice(0, 2_000);
+  // Keep a short clip of tool output on success too (shell jail markers, fetch status, ...).
+  const detail = [`${result.ok ? "ok" : "lỗi"} · ${ms} ms`, result.detail ?? "", result.output ?? ""].filter(Boolean).join("\n").slice(0, 2_000);
   deps.emit({
     event: "step",
     data: { id: stepId, kind: "tool", label, detail, state: "done", sources: result.sources?.length ? result.sources.slice(0, 8) : undefined },

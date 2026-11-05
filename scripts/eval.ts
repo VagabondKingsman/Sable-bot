@@ -14,6 +14,10 @@ import { runAgent, type Transport } from "../src/lib/agent/loop.ts";
 import { sseFrames, type Frame } from "../src/lib/agent/sse.ts";
 import { endpointFor, resolveEndpoints } from "../src/lib/agent/provider.ts";
 import { fsList, fsRead, fsWrite } from "../src/lib/agent/tools/fs.ts";
+import { shellRun } from "../src/lib/agent/tools/shell.ts";
+import { browserTool } from "../src/lib/agent/tools/browser.ts";
+import { makeEvent, signBody, WebhookChannel } from "../src/lib/agent/channels/webhook.ts";
+import { defaultState, spawnToolsFor } from "../src/lib/agent/profiles.ts";
 import { memoryRecall, memorySave, memoryForget } from "../src/lib/agent/tools/memory.ts";
 import type { FunctionTool, MemoryAccess, ToolContext } from "../src/lib/agent/tools/types.ts";
 import { MemoryStore } from "../src/lib/agent/memory/store.ts";
@@ -31,6 +35,7 @@ const VERBOSE = argv.includes("-v");
 const TOOLS: Record<string, FunctionTool<any>> = {
   fs_list: fsList, fs_read: fsRead, fs_write: fsWrite,
   memory_recall: memoryRecall, memory_save: memorySave, memory_forget: memoryForget,
+  shell_run: shellRun, browser: browserTool,
 };
 
 function loadCases(): Case[] {
@@ -139,6 +144,7 @@ async function runAgentCase(c: Case, real: ReturnType<typeof realSetup> | null):
   for (const s of x.textIncludes ?? []) if (!text.toLowerCase().includes(String(s).toLowerCase())) why.push(`text lacks "${s}"`);
   for (const s of x.textExcludes ?? []) if (text.includes(s)) why.push(`text has "${s}"`);
   for (const s of x.toolOutputExcludes ?? []) if (outputs.some((o) => o.includes(s))) why.push(`tool output has "${s}"`);
+  for (const s of x.toolOutputIncludes ?? []) if (!outputs.some((o) => o.toLowerCase().includes(String(s).toLowerCase()))) why.push(`tool output lacks "${s}" (got ${JSON.stringify(outputs).slice(0,200)})`);
   if (typeof x.approvalsAsked === "number" && (x.approvalsAsked === 0 ? asked !== 0 : asked < x.approvalsAsked)) why.push(`approvals asked ${asked}, want ${x.approvalsAsked}`);
   if (x.file) {
     const p = path.join(ws, x.file.path);
@@ -178,7 +184,28 @@ function runPure(c: Case): Outcome {
       const iso = next === null ? "null" : new Date(next).toISOString();
       if (iso !== x.next) why.push(`next ${iso} ≠ ${x.next}`);
     }
+  } else if (c.cat === "profile") {
+    const state = defaultState();
+    const spec = spawnToolsFor(state, String(c.profileId));
+    if (!spec) why.push(`unknown profile ${c.profileId}`);
+    else {
+      for (const t of x.includesTools ?? []) if (!spec.tools.includes(t)) why.push(`missing tool ${t}`);
+      for (const t of x.excludesTools ?? []) if (spec.tools.includes(t)) why.push(`unexpected tool ${t}`);
+    }
   } else why.push(`unknown cat ${c.cat}`);
+  return { pass: why.length === 0, why };
+}
+
+async function runWebhook(c: Case): Promise<Outcome> {
+  const x = c.expect ?? {};
+  const why: string[] = [];
+  const secret = String(c.secret || "test-webhook-secret-32chars!!");
+  const body = JSON.stringify(c.body ?? makeEvent("ping", {}));
+  const sig = c.sign ? `sha256=${signBody(secret, body)}` : String(c.signature || "");
+  const wh = new WebhookChannel({ secret, ownerPeerId: "owner" });
+  const out = await wh.handleInbound(body, sig);
+  if (typeof x.status === "number" && out.status !== x.status) why.push(`status ${out.status} ≠ ${x.status}`);
+  if (x.type && (out.body as any)?.type !== x.type) why.push(`type ${(out.body as any)?.type} ≠ ${x.type}`);
   return { pass: why.length === 0, why };
 }
 
@@ -190,7 +217,9 @@ const failures: string[] = [];
 for (const c of cases) {
   let o: Outcome;
   try {
-    o = ["tool", "approval", "memory"].includes(c.cat) ? await runAgentCase(c, real) : runPure(c);
+    if (["tool", "approval", "memory"].includes(c.cat)) o = await runAgentCase(c, real);
+    else if (c.cat === "webhook") o = await runWebhook(c);
+    else o = runPure(c);
   } catch (e) {
     o = { pass: false, why: [`threw: ${e instanceof Error ? e.message : e}`] };
   }
