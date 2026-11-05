@@ -272,3 +272,30 @@ export async function voiceTts(params: { text: string; voice?: string; signal?: 
   const blob = new Blob([bytes], { type: body.mime || "audio/mpeg" });
   return URL.createObjectURL(blob);
 }
+
+
+/** Approve or deny a pending ScopeGate record (same card UX as tool writes). */
+export async function decideScope(id: string, approve: boolean) {
+  const res = await fetch(withPrefix("/api/tools"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, approve, kind: "scope" }),
+  });
+  if (!res.ok) {
+    // Fallback direct scope API
+    const res2 = await fetch(withPrefix("/api/scope"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: approve ? "approve" : "deny", id }),
+    });
+    if (!res2.ok) throw new Error(await readError(res2, "Không gửi được duyệt scope."));
+    return;
+  }
+}
+
+export async function fetchPendingScopes(signal?: AbortSignal) {
+  const res = await fetch(withPrefix("/api/scope"), { signal, headers: { Accept: "application/json" } });
+  if (!res.ok) return [] as { id: string; target: string; purpose: string; status: string; expiresAt: number }[];
+  const body = (await res.json()) as { items?: { id: string; target: string; purpose: string; status: string; expiresAt: number }[] };
+  return (body.items ?? []).filter((i) => i.status === "pending");
+}

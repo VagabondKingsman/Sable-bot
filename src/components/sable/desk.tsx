@@ -36,6 +36,7 @@ import { ProfilesPanel } from "@/components/sable/profiles-panel";
 import { McpPanel } from "@/components/sable/mcp-panel";
 import { startDeskSync } from "@/lib/agent/desk/client";
 import { decideApproval, generateImage, generateVideo, modelInfo, streamReply, voiceStt, voiceTts, type ModelCaps } from "@/lib/agent/client";
+import { ScopeApprovalStrip } from "@/components/sable/scope-cards";
 import { UserButton, SignedOut } from "@/lib/auth/gates";
 import { authEnabled } from "@/lib/auth/client";
 import { Link } from "@tanstack/react-router";
@@ -739,6 +740,7 @@ export function Desk() {
                     </div>
                   </div>
                 )}
+                      <ScopeApprovalStrip />
                 {thread.messages.map((message, index) => {
                   const previous = index > 0 ? thread.messages[index - 1] : undefined;
                   const user = message.role === "user" ? message : previous?.role === "user" ? previous : undefined;

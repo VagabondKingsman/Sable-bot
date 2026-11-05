@@ -15,6 +15,8 @@ import {
   X,
 } from "lucide-react";
 import { decideApproval } from "@/lib/agent/client";
+import { tasksApi, type TaskSummary } from "@/lib/agent/tasks-client";
+import { ScopeApprovalStrip } from "@/components/sable/scope-cards";
 import { jobsApi, saigonTime, type JobsOverview, type RoutineView } from "@/lib/agent/jobs-client";
 import { DEFAULT_TZ, describeSchedule, nextRun, validateSchedule } from "@/lib/agent/jobs/schedule";
 import type { InboxItem, Job, JobStatus, Schedule } from "@/lib/agent/jobs/types";
@@ -24,7 +26,7 @@ import { EFFORTS, type ChatMessage, type Effort } from "@/lib/agent/types";
 import { RichText } from "@/components/sable/rich-text";
 import { ApprovalCard, WorkTrail } from "@/components/sable/desk";
 
-export type PanelTab = "jobs" | "routines" | "inbox";
+export type PanelTab = "jobs" | "routines" | "inbox" | "tasks";
 
 const STATUS: Record<JobStatus, { label: string; tone: string }> = {
   queued: { label: "Đang chờ", tone: "text-muted" },
@@ -108,6 +110,7 @@ export function BackgroundPanel({
   }, [onClose]);
   const tabs: { id: PanelTab; label: string }[] = [
     { id: "jobs", label: "Việc nền" },
+    { id: "tasks", label: "Tasks" },
     { id: "routines", label: "Lịch chạy" },
     { id: "inbox", label: "Hộp thư" },
   ];
@@ -159,10 +162,13 @@ export function BackgroundPanel({
           ))}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          <ScopeApprovalStrip />
           {focusJobId ? (
             <JobDetail id={focusJobId} onBack={() => onFocusJob(null)} />
           ) : tab === "jobs" ? (
             <JobsTab onOpen={onFocusJob} />
+          ) : tab === "tasks" ? (
+            <TasksTab />
           ) : tab === "routines" ? (
             <RoutinesTab models={models} onOpenJob={onFocusJob} />
           ) : (
@@ -1084,6 +1090,117 @@ function InboxTab({ onOpenJob }: { onOpenJob: (id: string) => void }) {
 }
 
 /** Sidebar entry with badges (unread inbox, jobs waiting for approval). */
+
+function TasksTab() {
+  const { data, error, refresh } = usePoll<{ enabled: boolean; items: TaskSummary[] }>((signal) => tasksApi.list(signal), 2_000, []);
+  const [focus, setFocus] = useState<string | null>(null);
+  const [detail, setDetail] = useState<{
+    plan?: {
+      id: string;
+      goal: string;
+      status: string;
+      steps: { id: string; title: string; status: string; kind: string }[];
+      currentStepId?: string;
+      usedTokens: number;
+      usedUsd: number;
+    };
+    workspace?: { root: string };
+  } | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!focus) {
+      setDetail(null);
+      return;
+    }
+    let dead = false;
+    void tasksApi.get(focus).then((d) => {
+      if (!dead) setDetail(d);
+    });
+    return () => {
+      dead = true;
+    };
+  }, [focus, data]);
+
+  async function act(body: Record<string, unknown>) {
+    setBusy(true);
+    try {
+      await tasksApi.act(body);
+      refresh();
+      if (focus) setDetail(await tasksApi.get(focus));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (error) return <p className="p-3 text-sm text-muted">{error}</p>;
+  if (!data) return <p className="p-3 text-sm text-muted">Đang tải…</p>;
+  if (focus && detail?.plan) {
+    const plan = detail.plan;
+    return (
+      <div className="space-y-3 p-3">
+        <button type="button" className="text-sm text-accent" onClick={() => setFocus(null)} disabled={busy}>
+          ← Danh sách
+        </button>
+        <h3 className="text-sm font-medium">{plan.goal}</h3>
+        <p className="text-xs text-muted">
+          {plan.status} · tokens {plan.usedTokens} · ${plan.usedUsd.toFixed(4)}
+          {detail.workspace?.root ? ` · ${detail.workspace.root}` : ""}
+        </p>
+        <ol className="space-y-1 text-sm">
+          {plan.steps.map((s) => (
+            <li key={s.id} className={s.id === plan.currentStepId ? "text-accent" : "text-muted"}>
+              <span className="font-mono text-xs">{s.status}</span> · {s.title}{" "}
+              <span className="text-xs">({s.kind})</span>
+              {s.status === "waiting_approval" && (
+                <span className="ml-2 inline-flex gap-1">
+                  <button type="button" disabled={busy} className="rounded bg-accent px-2 py-1 text-xs text-ink" onClick={() => void act({ action: "approve_step", id: plan.id, stepId: s.id, approve: true })}>
+                    Duyệt
+                  </button>
+                  <button type="button" disabled={busy} className="rounded px-2 py-1 text-xs shadow-ring" onClick={() => void act({ action: "approve_step", id: plan.id, stepId: s.id, approve: false })}>
+                    Từ chối
+                  </button>
+                </span>
+              )}
+            </li>
+          ))}
+        </ol>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" disabled={busy} className="rounded-xl px-3 py-2 text-sm shadow-ring" onClick={() => void act({ action: "pause", id: plan.id })}>
+            Tạm dừng
+          </button>
+          <button type="button" disabled={busy} className="rounded-xl px-3 py-2 text-sm shadow-ring" onClick={() => void act({ action: "resume", id: plan.id })}>
+            Tiếp tục
+          </button>
+          <button type="button" disabled={busy} className="rounded-xl px-3 py-2 text-sm shadow-ring" onClick={() => void act({ action: "cancel", id: plan.id })}>
+            Hủy
+          </button>
+          <button type="button" disabled={busy} className="rounded-xl px-3 py-2 text-sm text-muted shadow-ring" onClick={() => void act({ action: "delete", id: plan.id }).then(() => setFocus(null))}>
+            Xóa + wipe workspace
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2 p-3">
+      <p className="text-xs text-muted">
+        {data.enabled ? "Planner bật" : "SABLE_PLANNER=0"} · {data.items.length} task
+      </p>
+      {data.items.length === 0 && <p className="text-sm text-muted">Chưa có task graph. Tạo qua POST /api/tasks.</p>}
+      {data.items.map((item) => (
+        <button key={item.id} type="button" onClick={() => setFocus(item.id)} className="block w-full rounded-2xl bg-surface p-3 text-left shadow-ring hover:bg-fg/5">
+          <div className="text-sm font-medium">{item.goal.slice(0, 80)}</div>
+          <div className="mt-1 text-xs text-muted">
+            {item.status} · {item.stepCount} bước · {item.currentStepId ?? "—"} · tok {item.usedTokens}
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function BackgroundNavButton({
   unread,
   waiting,

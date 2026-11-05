@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sharedApprovals } from "@/lib/agent/tools/approvals";
+import { scopeStore } from "@/server/scope.server";
 import { jobService } from "@/server/jobs.server";
 import { guarded, methodNotAllowed, readObjectBody } from "@/server/http";
 
@@ -17,7 +18,13 @@ export const Route = createFileRoute("/api/tools")({
           }
           // Chat approvals first, then background-job approvals (same card, same endpoint).
           const found =
-            sharedApprovals().decide(body.id, body.approve) || jobService().runner.decide(body.id, body.approve);
+            sharedApprovals().decide(body.id, body.approve) ||
+              jobService().runner.decide(body.id, body.approve) ||
+              Boolean(
+                (typeof body.kind === "string" && body.kind === "scope") || String(body.id).startsWith("scope_")
+                  ? scopeStore().decide(body.id, body.approve ? "approved" : "denied", body.id)
+                  : null,
+              );
           if (!found) return Response.json({ message: "Yêu cầu duyệt đã hết hạn hoặc không còn." }, { status: 404 });
           return Response.json({ ok: true });
         }),

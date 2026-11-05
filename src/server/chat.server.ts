@@ -8,6 +8,7 @@ import { defaultRegistry, selectTools, skipNotices } from "@/lib/agent/tools/reg
 import type { ToolContext } from "@/lib/agent/tools/types";
 import type { ChatRequest } from "@/lib/agent/types";
 import { dataDir, workspaceDir } from "@/server/paths";
+import { makeAssertScope } from "@/server/scope.server";
 import { createSpawner, spawnOn } from "@/server/spawn.server";
 import { mcpToolsFor, mcpWarm } from "@/server/mcp.server";
 import { skills as skillStoreNow, skillsForTurn, skillsOn } from "@/server/skills.server";
@@ -263,6 +264,8 @@ export async function streamChat(input: ChatRequest, notices: string[], signal: 
         approve: (ask) => approvals.request(ask, emit, turnSignal),
         memory: turn.memory,
         skills: turn.skills,
+        scopeId: null,
+        assertScope: makeAssertScope(null, "interactive"),
       };
       if (turn.functions.some((tool) => tool.name === "spawn_agent")) ctx.spawn = createSpawner(turn, turn.active, emit);
       try {
