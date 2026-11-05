@@ -304,3 +304,13 @@ Backup: `/workspace/sable-backup-pre-w5-202611051225.tgz`. Sole builder. Kill sw
   - /api/recall now returns 400 without `q` (found by eval).
   - Verification: tsc clean; npm test 197 + 392 pass, 0 fail; evals w0, w1, w2 (10/0/0), w2a (11), w2b (15), w2c (12), w3 11/0/0, w4 8/0/0, w5 14/0/0. Restart OK; ngrok `/`, `/api/vector`, `/api/recall`, `/api/evals` → 401 without auth, 200 with.
   - Package: `/workspace/sable-source-w5-202611051250.tgz`, key-pattern scan clean (known test fixtures only).
+
+## W6 — Sable ↔ Grok Bot bridge (D9 signed webhook), Sable side only
+
+Backup: `/workspace/sable-backup-pre-w6-202611051251.tgz`. Sole builder. OAuth connectors already shipped in W2b. Kill switch `SABLE_BRIDGE` (`0` = off; otherwise on only once peer URL + secret are configured). Every outbound handoff needs an owner approval card; background initiators can never send; inbound content is untrusted data only.
+
+- [ ] 1. Outbound bridge: HMAC-SHA256 + timestamp + nonce + replay window; redacted, size-capped payload; owner approval card per handoff; background never sends; `SABLE_BRIDGE`
+- [ ] 2. Inbound `/api/bridge/inbound`: HMAC verify, replay → 409, rate limit, untrusted content (no instructions, no approvals, no side effects) → Tasks inbox + optional thread
+- [ ] 3. `docs/BRIDGE-PROTOCOL.md` (sable.bridge.v1 schema, signing, error codes, curl, setup for He)
+- [ ] 4. UI: Bridge panel in Settings (status, mock-peer test ping, recent handoffs)
+- [ ] 5. Tests with a local mock peer, eval:w6, tsc, npm test, evals w0..w5, restart, ngrok 401/200, package CLEAN; `docs/FULL-AGENTIC-STATUS.md`
