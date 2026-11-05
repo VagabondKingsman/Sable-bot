@@ -65,3 +65,5 @@ Cập nhật tài liệu này: khi đổi code/tính năng, sửa file `docs/vi/
 các nguồn tiếng Anh nêu trên.
 
 **Bàn giao agent:** [../HANDOFF-VI.md](../HANDOFF-VI.md) (tiếng Việt, đủ context không cần lịch sử chat).
+
+**Grok Bot agent mới (clone/cài runtime):** [../GROK-BOT-DEV-SETUP-VI.md](../GROK-BOT-DEV-SETUP-VI.md).

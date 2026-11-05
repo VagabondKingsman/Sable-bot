@@ -13,6 +13,8 @@ deploy production / đổi visibility.
 **Bản sao đọc liền:** `/workspace/Sable-Handoff-VI.md` (cùng nội dung, ngoài git
 hoặc đồng bộ khi regenerate).
 
+**Agent Grok Bot mới cần dựng runtime:** xem [GROK-BOT-DEV-SETUP-VI.md](./GROK-BOT-DEV-SETUP-VI.md) (phát hiện shared box trước khi clone).
+
 ---
 
 ## 0. Prompt ngắn để agent mới bắt đầu an toàn
