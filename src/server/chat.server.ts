@@ -14,6 +14,7 @@ import { mcpToolsFor, mcpWarm } from "@/server/mcp.server";
 import { skills as skillStoreNow, skillsForTurn, skillsOn } from "@/server/skills.server";
 import { shellOn } from "@/lib/agent/tools/shell";
 import { browserOn } from "@/lib/agent/tools/browser";
+import { canvasOn } from "@/lib/agent/tools/canvas";
 import { voiceStatus } from "@/server/voice.server";
 import { accessFor, completerFor, learnedFor, memoryOn, memoryStore, queueExtraction } from "@/server/memory.server";
 import type { MemorySource } from "@/lib/agent/memory/types";
@@ -162,7 +163,7 @@ export function prepareTurn(
   const memOn = memoryOn(store);
   // Only the interactive chat, when the user did not say "don't remember this chat", may write memory.
   const canWrite = memOn && scope.mode === "interactive" && input.remember !== false;
-  const flags = { ...input.tools, learned: memOn && functionToolsOn(), agents: spawnOn() && functionToolsOn() && scope.depth !== 1, skills: skillsOn() && functionToolsOn() && skillStoreNow().list().length > 0, shell: shellOn() && functionToolsOn(), browser: browserOn() && functionToolsOn() };
+  const flags = { ...input.tools, learned: memOn && functionToolsOn(), agents: spawnOn() && functionToolsOn() && scope.depth !== 1, skills: skillsOn() && functionToolsOn() && skillStoreNow().list().length > 0, shell: shellOn() && functionToolsOn(), browser: browserOn() && functionToolsOn(), canvas: canvasOn() && functionToolsOn() && Boolean(input.tools.files) };
   const base = selectTools(defaultRegistry(), flags, capabilitiesFor(endpoint));
   const mcpDefs = scope.mcp && functionToolsOn() && scope.depth !== 1 ? mcpToolsFor(scope.source) : [];
   const picked = mcpDefs.length ? { ...base, active: [...base.active, ...mcpDefs], functions: [...base.functions, ...mcpDefs] } : base;

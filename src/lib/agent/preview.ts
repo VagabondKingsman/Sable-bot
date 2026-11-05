@@ -13,3 +13,19 @@ export function latestPage(messages: ChatMessage[]): string | null {
   }
   return html;
 }
+
+const CANVAS_DONE = /canvas id=(c_[a-z0-9]{8,32}) version=(\d+)/;
+
+/** The newest canvas written by canvas_write in this thread (from its trace step). */
+export function latestCanvas(messages: ChatMessage[]): { id: string; version: number } | null {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const steps = messages[i]?.steps ?? [];
+    for (let j = steps.length - 1; j >= 0; j--) {
+      const step = steps[j];
+      if (step?.state !== "done" || (step.tool && step.tool !== "canvas_write")) continue;
+      const m = CANVAS_DONE.exec(step.detail ?? "");
+      if (m) return { id: m[1] as string, version: Number(m[2]) };
+    }
+  }
+  return null;
+}

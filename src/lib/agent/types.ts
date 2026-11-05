@@ -80,6 +80,8 @@ export type ToolFlags = {
   shell?: boolean;
   /** browser tool (server-set; SABLE_BROWSER=0 kills it). */
   browser?: boolean;
+  /** canvas_write (server-set: SABLE_CANVAS on and Files on). Always needs approval. */
+  canvas?: boolean;
 };
 
 export const IMAGE_MODELS = ["grok-imagine-image-2.0", "grok-imagine-image-quality", "grok-imagine-image"] as const;

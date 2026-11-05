@@ -28,6 +28,7 @@ import {
   Volume2,
   Wrench,
   X,
+  PanelRight,
 } from "lucide-react";
 import { LearnedMemory } from "@/components/sable/memory-panel";
 import { DeskSyncPanel } from "@/components/sable/desk-sync-panel";
@@ -41,7 +42,7 @@ import { UserButton, SignedOut } from "@/lib/auth/gates";
 import { authEnabled } from "@/lib/auth/client";
 import { Link } from "@tanstack/react-router";
 import { responsePdf } from "@/lib/agent/pdf";
-import { latestPage } from "@/lib/agent/preview";
+import { latestCanvas, latestPage } from "@/lib/agent/preview";
 import { activeThread, useAgent } from "@/lib/agent/store";
 import { DEFAULT_PRESET_ID, findPreset, isDefaultPreset, isDirty, modelsBoundTo } from "@/lib/agent/presets";
 import {
@@ -58,6 +59,7 @@ import {
 } from "@/lib/agent/types";
 import { RichText } from "@/components/sable/rich-text";
 import { BackgroundNavButton, BackgroundPanel, type PanelTab } from "@/components/sable/background";
+import { CANVAS_OPEN_EVENT, CanvasPane, type CanvasOpen } from "@/components/sable/canvas-panel";
 import { jobsApi, type JobsCounts } from "@/lib/agent/jobs-client";
 
 const STARTERS = [
@@ -165,6 +167,20 @@ export function Desk() {
   const field = useRef<HTMLTextAreaElement>(null);
   const thread = activeThread(threads, activeId);
   const page = latestPage(thread?.messages ?? []);
+  const [canvasView, setCanvasView] = useState<CanvasOpen>(null);
+  useEffect(() => {
+    function onOpen(event: Event) {
+      const detail = (event as CustomEvent<CanvasOpen>).detail;
+      if (detail && typeof detail.id === "string") {
+        setCanvasView(detail);
+        setMobilePane("page");
+      }
+    }
+    window.addEventListener(CANVAS_OPEN_EVENT, onOpen);
+    return () => window.removeEventListener(CANVAS_OPEN_EVENT, onOpen);
+  }, []);
+  const sidePane = Boolean(page || canvasView);
+  const threadCanvas = latestCanvas(thread?.messages ?? []);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -701,7 +717,19 @@ export function Desk() {
             )}
           </button>
           <h1 className="min-w-0 flex-1 truncate font-display text-xl">{thread.title || "Cuộc mới"}</h1>
-          {page && (
+          {threadCanvas && canvasView?.id !== threadCanvas.id && (
+            <button
+              type="button"
+              className="flex h-11 items-center gap-2 rounded-xl px-3 text-sm text-muted hover:bg-fg/5 hover:text-fg"
+              onClick={() => {
+                setCanvasView({ id: threadCanvas.id });
+                setMobilePane("page");
+              }}
+            >
+              <PanelRight className="size-4" /> Canvas
+            </button>
+          )}
+          {sidePane && (
             <button type="button" className="h-11 rounded-xl px-3 text-sm text-muted hover:bg-fg/5 hover:text-fg md:hidden" onClick={() => setMobilePane((pane) => (pane === "chat" ? "page" : "chat"))}>
               {mobilePane === "chat" ? "Xem trang" : "Chat"}
             </button>
@@ -712,7 +740,7 @@ export function Desk() {
         </header>
 
         <div className="flex min-h-0 flex-1">
-          <div className={"min-w-0 flex-1 flex-col " + (page && mobilePane === "page" ? "hidden md:flex" : "flex")}>
+          <div className={"min-w-0 flex-1 flex-col " + (sidePane && mobilePane === "page" ? "hidden md:flex" : "flex")}>
             <div
               ref={scroller}
               className="flex-1 overflow-y-auto px-4 py-6 md:px-8"
@@ -913,7 +941,11 @@ export function Desk() {
               </div>
             </form>
           </div>
-          {page && <PagePane html={page} mobile={mobilePane === "page"} />}
+          {canvasView ? (
+            <CanvasPane open={canvasView} mobile={mobilePane === "page"} onClose={() => { setCanvasView(null); setMobilePane("chat"); }} />
+          ) : (
+            page && <PagePane html={page} mobile={mobilePane === "page"} />
+          )}
         </div>
       </section>
 

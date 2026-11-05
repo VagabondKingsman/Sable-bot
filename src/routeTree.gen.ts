@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ApiBudgetRouteImport } from './routes/api/budget'
+import { Route as ApiCanvasRouteImport } from './routes/api/canvas'
 import { Route as ApiChannelsRouteImport } from './routes/api/channels'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiDeskRouteImport } from './routes/api/desk'
@@ -34,8 +35,10 @@ import { Route as ApiTracesRouteImport } from './routes/api/traces'
 import { Route as ApiVaultRouteImport } from './routes/api/vault'
 import { Route as ApiVoiceRouteImport } from './routes/api/voice'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiCanvasIdRouteImport } from './routes/api/canvas_.$id'
 import { Route as ApiChannelsWebhookRouteImport } from './routes/api/channels.webhook'
 import { Route as ApiTracesIdRouteImport } from './routes/api/traces_.$id'
+import { Route as ApiCanvasIdViewRouteImport } from './routes/api/canvas_.$id_.view'
 import { Route as ApiMediaFileIdRouteImport } from './routes/api/media_.file.$id'
 import { Route as ApiRoutinesIdFireRouteImport } from './routes/api/routines_.$id.fire'
 
@@ -52,6 +55,11 @@ const LoginRoute = LoginRouteImport.update({
 const ApiBudgetRoute = ApiBudgetRouteImport.update({
   id: '/api/budget',
   path: '/api/budget',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCanvasRoute = ApiCanvasRouteImport.update({
+  id: '/api/canvas',
+  path: '/api/canvas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiChannelsRoute = ApiChannelsRouteImport.update({
@@ -164,6 +172,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCanvasIdRoute = ApiCanvasIdRouteImport.update({
+  id: '/api/canvas_/$id',
+  path: '/api/canvas/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiChannelsWebhookRoute = ApiChannelsWebhookRouteImport.update({
   id: '/webhook',
   path: '/webhook',
@@ -172,6 +185,11 @@ const ApiChannelsWebhookRoute = ApiChannelsWebhookRouteImport.update({
 const ApiTracesIdRoute = ApiTracesIdRouteImport.update({
   id: '/api/traces_/$id',
   path: '/api/traces/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCanvasIdViewRoute = ApiCanvasIdViewRouteImport.update({
+  id: '/api/canvas_/$id_/view',
+  path: '/api/canvas/$id/view',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMediaFileIdRoute = ApiMediaFileIdRouteImport.update({
@@ -189,6 +207,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/api/budget': typeof ApiBudgetRoute
+  '/api/canvas': typeof ApiCanvasRoute
   '/api/channels': typeof ApiChannelsRouteWithChildren
   '/api/chat': typeof ApiChatRoute
   '/api/desk': typeof ApiDeskRoute
@@ -211,8 +230,10 @@ export interface FileRoutesByFullPath {
   '/api/vault': typeof ApiVaultRoute
   '/api/voice': typeof ApiVoiceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/canvas/$id': typeof ApiCanvasIdRoute
   '/api/channels/webhook': typeof ApiChannelsWebhookRoute
   '/api/traces/$id': typeof ApiTracesIdRoute
+  '/api/canvas/$id/view': typeof ApiCanvasIdViewRoute
   '/api/media/file/$id': typeof ApiMediaFileIdRoute
   '/api/routines/$id/fire': typeof ApiRoutinesIdFireRoute
 }
@@ -220,6 +241,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/api/budget': typeof ApiBudgetRoute
+  '/api/canvas': typeof ApiCanvasRoute
   '/api/channels': typeof ApiChannelsRouteWithChildren
   '/api/chat': typeof ApiChatRoute
   '/api/desk': typeof ApiDeskRoute
@@ -242,8 +264,10 @@ export interface FileRoutesByTo {
   '/api/vault': typeof ApiVaultRoute
   '/api/voice': typeof ApiVoiceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/canvas/$id': typeof ApiCanvasIdRoute
   '/api/channels/webhook': typeof ApiChannelsWebhookRoute
   '/api/traces/$id': typeof ApiTracesIdRoute
+  '/api/canvas/$id/view': typeof ApiCanvasIdViewRoute
   '/api/media/file/$id': typeof ApiMediaFileIdRoute
   '/api/routines/$id/fire': typeof ApiRoutinesIdFireRoute
 }
@@ -252,6 +276,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/api/budget': typeof ApiBudgetRoute
+  '/api/canvas': typeof ApiCanvasRoute
   '/api/channels': typeof ApiChannelsRouteWithChildren
   '/api/chat': typeof ApiChatRoute
   '/api/desk': typeof ApiDeskRoute
@@ -274,8 +299,10 @@ export interface FileRoutesById {
   '/api/vault': typeof ApiVaultRoute
   '/api/voice': typeof ApiVoiceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/canvas_/$id': typeof ApiCanvasIdRoute
   '/api/channels/webhook': typeof ApiChannelsWebhookRoute
   '/api/traces_/$id': typeof ApiTracesIdRoute
+  '/api/canvas_/$id_/view': typeof ApiCanvasIdViewRoute
   '/api/media_/file/$id': typeof ApiMediaFileIdRoute
   '/api/routines_/$id/fire': typeof ApiRoutinesIdFireRoute
 }
@@ -285,6 +312,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/api/budget'
+    | '/api/canvas'
     | '/api/channels'
     | '/api/chat'
     | '/api/desk'
@@ -307,8 +335,10 @@ export interface FileRouteTypes {
     | '/api/vault'
     | '/api/voice'
     | '/api/auth/$'
+    | '/api/canvas/$id'
     | '/api/channels/webhook'
     | '/api/traces/$id'
+    | '/api/canvas/$id/view'
     | '/api/media/file/$id'
     | '/api/routines/$id/fire'
   fileRoutesByTo: FileRoutesByTo
@@ -316,6 +346,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/api/budget'
+    | '/api/canvas'
     | '/api/channels'
     | '/api/chat'
     | '/api/desk'
@@ -338,8 +369,10 @@ export interface FileRouteTypes {
     | '/api/vault'
     | '/api/voice'
     | '/api/auth/$'
+    | '/api/canvas/$id'
     | '/api/channels/webhook'
     | '/api/traces/$id'
+    | '/api/canvas/$id/view'
     | '/api/media/file/$id'
     | '/api/routines/$id/fire'
   id:
@@ -347,6 +380,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/api/budget'
+    | '/api/canvas'
     | '/api/channels'
     | '/api/chat'
     | '/api/desk'
@@ -369,8 +403,10 @@ export interface FileRouteTypes {
     | '/api/vault'
     | '/api/voice'
     | '/api/auth/$'
+    | '/api/canvas_/$id'
     | '/api/channels/webhook'
     | '/api/traces_/$id'
+    | '/api/canvas_/$id_/view'
     | '/api/media_/file/$id'
     | '/api/routines_/$id/fire'
   fileRoutesById: FileRoutesById
@@ -379,6 +415,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   ApiBudgetRoute: typeof ApiBudgetRoute
+  ApiCanvasRoute: typeof ApiCanvasRoute
   ApiChannelsRoute: typeof ApiChannelsRouteWithChildren
   ApiChatRoute: typeof ApiChatRoute
   ApiDeskRoute: typeof ApiDeskRoute
@@ -401,7 +438,9 @@ export interface RootRouteChildren {
   ApiVaultRoute: typeof ApiVaultRoute
   ApiVoiceRoute: typeof ApiVoiceRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiCanvasIdRoute: typeof ApiCanvasIdRoute
   ApiTracesIdRoute: typeof ApiTracesIdRoute
+  ApiCanvasIdViewRoute: typeof ApiCanvasIdViewRoute
   ApiMediaFileIdRoute: typeof ApiMediaFileIdRoute
   ApiRoutinesIdFireRoute: typeof ApiRoutinesIdFireRoute
 }
@@ -427,6 +466,13 @@ declare module '@tanstack/react-router' {
       path: '/api/budget'
       fullPath: '/api/budget'
       preLoaderRoute: typeof ApiBudgetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/canvas': {
+      id: '/api/canvas'
+      path: '/api/canvas'
+      fullPath: '/api/canvas'
+      preLoaderRoute: typeof ApiCanvasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/channels': {
@@ -583,6 +629,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/canvas_/$id': {
+      id: '/api/canvas_/$id'
+      path: '/api/canvas/$id'
+      fullPath: '/api/canvas/$id'
+      preLoaderRoute: typeof ApiCanvasIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/channels/webhook': {
       id: '/api/channels/webhook'
       path: '/webhook'
@@ -595,6 +648,13 @@ declare module '@tanstack/react-router' {
       path: '/api/traces/$id'
       fullPath: '/api/traces/$id'
       preLoaderRoute: typeof ApiTracesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/canvas_/$id_/view': {
+      id: '/api/canvas_/$id_/view'
+      path: '/api/canvas/$id/view'
+      fullPath: '/api/canvas/$id/view'
+      preLoaderRoute: typeof ApiCanvasIdViewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/media_/file/$id': {
@@ -630,6 +690,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   ApiBudgetRoute: ApiBudgetRoute,
+  ApiCanvasRoute: ApiCanvasRoute,
   ApiChannelsRoute: ApiChannelsRouteWithChildren,
   ApiChatRoute: ApiChatRoute,
   ApiDeskRoute: ApiDeskRoute,
@@ -652,7 +713,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiVaultRoute: ApiVaultRoute,
   ApiVoiceRoute: ApiVoiceRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiCanvasIdRoute: ApiCanvasIdRoute,
   ApiTracesIdRoute: ApiTracesIdRoute,
+  ApiCanvasIdViewRoute: ApiCanvasIdViewRoute,
   ApiMediaFileIdRoute: ApiMediaFileIdRoute,
   ApiRoutinesIdFireRoute: ApiRoutinesIdFireRoute,
 }

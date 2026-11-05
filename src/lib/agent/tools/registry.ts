@@ -11,6 +11,7 @@ import { spawnAgent } from "./spawn.ts";
 import { loadSkill } from "./skill.ts";
 import { shellRun } from "./shell.ts";
 import { browserTool } from "./browser.ts";
+import { canvasWrite } from "./canvas.ts";
 import { SERVER_TOOLS } from "./server-tools.ts";
 import type { FunctionTool, ToolDef } from "./types.ts";
 
@@ -35,6 +36,7 @@ export const FLAG_OF: Record<string, keyof ToolFlags> = {
   load_skill: "skills",
   shell_run: "shell",
   browser: "browser",
+  canvas_write: "canvas",
 };
 
 export type Registry = {
@@ -57,7 +59,7 @@ export function createRegistry(defs: ToolDef[]): Registry {
 }
 
 export function builtinTools(): ToolDef[] {
-  return [...SERVER_TOOLS, fsList, fsRead, fsWrite, createHttpFetch(), ...MEMORY_TOOLS, spawnAgent, loadSkill, shellRun, browserTool];
+  return [...SERVER_TOOLS, fsList, fsRead, fsWrite, createHttpFetch(), ...MEMORY_TOOLS, spawnAgent, loadSkill, shellRun, browserTool, canvasWrite];
 }
 
 let shared: Registry | null = null;

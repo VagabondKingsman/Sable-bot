@@ -27,6 +27,7 @@ import { RichText } from "@/components/sable/rich-text";
 import { ApprovalCard, WorkTrail } from "@/components/sable/desk";
 import { TracesTab } from "@/components/sable/traces-panel";
 import { MediaTab } from "@/components/sable/media-panel";
+import { CanvasTab } from "@/components/sable/canvas-panel";
 
 export type PanelTab = "jobs" | "routines" | "inbox" | "tasks" | "traces" | "media" | "canvas";
 
@@ -117,6 +118,7 @@ export function BackgroundPanel({
     { id: "inbox", label: "Hộp thư" },
     { id: "traces", label: "Trace" },
     { id: "media", label: "Media" },
+    { id: "canvas", label: "Canvas" },
   ];
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-bg/70">
@@ -177,6 +179,8 @@ export function BackgroundPanel({
             <TracesTab />
           ) : tab === "media" ? (
             <MediaTab />
+          ) : tab === "canvas" ? (
+            <CanvasTab onOpened={onClose} />
           ) : tab === "routines" ? (
             <RoutinesTab models={models} onOpenJob={onFocusJob} />
           ) : (
