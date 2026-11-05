@@ -229,6 +229,10 @@ export function jobService(): Service {
   void import("@/server/connectors.server")
     .then((mod) => mod.startConnectorTicker())
     .catch((error) => console.warn(`[sable-connectors] ticker not started: ${error instanceof Error ? error.message : String(error)}`));
+  // W5: local vector index (incremental sync ticker; SABLE_VECTOR=0 → off).
+  void import("@/server/vector.server")
+    .then((mod) => mod.startVectorTicker())
+    .catch((error) => console.warn(`[sable-vector] ticker not started: ${error instanceof Error ? error.message : String(error)}`));
   return service;
 }
 

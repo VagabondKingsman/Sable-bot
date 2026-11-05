@@ -40,6 +40,7 @@ import { Route as ApiToolsRouteImport } from './routes/api/tools'
 import { Route as ApiTracesRouteImport } from './routes/api/traces'
 import { Route as ApiTriageRouteImport } from './routes/api/triage'
 import { Route as ApiVaultRouteImport } from './routes/api/vault'
+import { Route as ApiVectorRouteImport } from './routes/api/vector'
 import { Route as ApiVoiceRouteImport } from './routes/api/voice'
 import { Route as STokenRouteImport } from './routes/s.$token'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -209,6 +210,11 @@ const ApiVaultRoute = ApiVaultRouteImport.update({
   path: '/api/vault',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiVectorRoute = ApiVectorRouteImport.update({
+  id: '/api/vector',
+  path: '/api/vector',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiVoiceRoute = ApiVoiceRouteImport.update({
   id: '/api/voice',
   path: '/api/voice',
@@ -307,6 +313,7 @@ export interface FileRoutesByFullPath {
   '/api/traces': typeof ApiTracesRoute
   '/api/triage': typeof ApiTriageRoute
   '/api/vault': typeof ApiVaultRoute
+  '/api/vector': typeof ApiVectorRoute
   '/api/voice': typeof ApiVoiceRoute
   '/s/$token': typeof STokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -353,6 +360,7 @@ export interface FileRoutesByTo {
   '/api/traces': typeof ApiTracesRoute
   '/api/triage': typeof ApiTriageRoute
   '/api/vault': typeof ApiVaultRoute
+  '/api/vector': typeof ApiVectorRoute
   '/api/voice': typeof ApiVoiceRoute
   '/s/$token': typeof STokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -400,6 +408,7 @@ export interface FileRoutesById {
   '/api/traces': typeof ApiTracesRoute
   '/api/triage': typeof ApiTriageRoute
   '/api/vault': typeof ApiVaultRoute
+  '/api/vector': typeof ApiVectorRoute
   '/api/voice': typeof ApiVoiceRoute
   '/s/$token': typeof STokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -448,6 +457,7 @@ export interface FileRouteTypes {
     | '/api/traces'
     | '/api/triage'
     | '/api/vault'
+    | '/api/vector'
     | '/api/voice'
     | '/s/$token'
     | '/api/auth/$'
@@ -494,6 +504,7 @@ export interface FileRouteTypes {
     | '/api/traces'
     | '/api/triage'
     | '/api/vault'
+    | '/api/vector'
     | '/api/voice'
     | '/s/$token'
     | '/api/auth/$'
@@ -540,6 +551,7 @@ export interface FileRouteTypes {
     | '/api/traces'
     | '/api/triage'
     | '/api/vault'
+    | '/api/vector'
     | '/api/voice'
     | '/s/$token'
     | '/api/auth/$'
@@ -587,6 +599,7 @@ export interface RootRouteChildren {
   ApiTracesRoute: typeof ApiTracesRoute
   ApiTriageRoute: typeof ApiTriageRoute
   ApiVaultRoute: typeof ApiVaultRoute
+  ApiVectorRoute: typeof ApiVectorRoute
   ApiVoiceRoute: typeof ApiVoiceRoute
   STokenRoute: typeof STokenRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -820,6 +833,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiVaultRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/vector': {
+      id: '/api/vector'
+      path: '/api/vector'
+      fullPath: '/api/vector'
+      preLoaderRoute: typeof ApiVectorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/voice': {
       id: '/api/voice'
       path: '/api/voice'
@@ -958,6 +978,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTracesRoute: ApiTracesRoute,
   ApiTriageRoute: ApiTriageRoute,
   ApiVaultRoute: ApiVaultRoute,
+  ApiVectorRoute: ApiVectorRoute,
   ApiVoiceRoute: ApiVoiceRoute,
   STokenRoute: STokenRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
