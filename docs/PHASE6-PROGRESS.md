@@ -1,4 +1,7 @@
-# Phase 6 progress (times Asia/Saigon UTC+7)
+# Phase 6 progress
+
+**Last updated:** 2026-11-05 15:31 Asia/Saigon
+ (times Asia/Saigon UTC+7)
 
 Backup: `/workspace/sable-backup-pre-w0-202611050822.tgz`
 
@@ -15,7 +18,7 @@ Accepted Full Agentic defaults: D1–D10 as on plan Page.
 - [x] 4. ScopeGate fail-closed (`SABLE_SCOPE=0` deny-all ACT; execute.ts hook)
 - [x] 5. field-journal → memory journal (`/api/field-journal`)
 - [x] 6. tool-index scan + propose install (never auto; no RE tools)
-- [ ] 7. Unit tests + eval:w0; tsc; restart; ngrok 401/200; package `sable-source-w0-<stamp>.tgz`
+- [x] 7. Unit tests + eval:w0; tsc; restart; ngrok 401/200; package `sable-source-w0-202611050831.tgz` SECRET_SCAN=CLEAN
 
 ## Notes
 
@@ -34,3 +37,9 @@ Accepted Full Agentic defaults: D1–D10 as on plan Page.
 - Unit: 13/13; `npm run eval:w0` pass; `tsc --noEmit` clean
 - HARD SCOPE held: no apk/binary/js-reverse/pentest/CTF/exploit skills or auto RE installers
 - Package: `/workspace/sable-source-w0-202611050831.tgz` SECRET_SCAN=CLEAN
+
+## Known gaps / bugs (W0)
+- ScopeGate approve/deny is **API-only** (`POST /api/scope`); no dedicated React approval card UI yet — wire into existing approval UX in W1.
+- Git commits collapsed: most W0 code landed in `d2e5dcb` (intended per-item commits partially collapsed after early `git add -A`).
+- Vault `configured=false` until `SABLE_VAULT_KEY` set; `.env.local` migrate path documented in DEPLOY.md, not auto-run.
+- Watchdog restarted (pid refreshed) so POST `/api/health` tick is live.
