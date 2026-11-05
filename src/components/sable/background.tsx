@@ -29,9 +29,11 @@ import { TracesTab } from "@/components/sable/traces-panel";
 import { MediaTab } from "@/components/sable/media-panel";
 import { CanvasTab } from "@/components/sable/canvas-panel";
 import { DesktopTab } from "@/components/sable/desktop-panel";
+import { ResearchTab } from "@/components/sable/research-panel";
+import { CodeTab } from "@/components/sable/code-panel";
 import { BriefCard, TasksInbox } from "@/components/sable/proactive-panel";
 
-export type PanelTab = "jobs" | "routines" | "inbox" | "tasks" | "traces" | "media" | "canvas" | "desktop";
+export type PanelTab = "jobs" | "routines" | "inbox" | "tasks" | "traces" | "media" | "canvas" | "desktop" | "research" | "code";
 
 const STATUS: Record<JobStatus, { label: string; tone: string }> = {
   queued: { label: "Đang chờ", tone: "text-muted" },
@@ -123,6 +125,8 @@ export function BackgroundPanel({
     { id: "media", label: "Media" },
     { id: "canvas", label: "Canvas" },
     { id: "desktop", label: "Desktop" },
+    { id: "research", label: "Research" },
+    { id: "code", label: "Code" },
   ];
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-bg/70">
@@ -190,6 +194,10 @@ export function BackgroundPanel({
             <MediaTab />
           ) : tab === "desktop" ? (
             <DesktopTab />
+          ) : tab === "research" ? (
+            <ResearchTab onOpened={onClose} />
+          ) : tab === "code" ? (
+            <CodeTab />
           ) : tab === "canvas" ? (
             <CanvasTab onOpened={onClose} />
           ) : tab === "routines" ? (
