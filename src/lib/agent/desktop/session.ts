@@ -194,6 +194,9 @@ export class DesktopSession {
   }
 
   /** Kill only processes this manager recorded earlier AND whose cmdline still carries our marker. */
+  /** Xvfb pids this session recorded (pids.json) — the only locks we may clear. */
+  private ownXvfbPids = new Set<number>();
+
   cleanupStale(): number {
     let recs: PidRec[] = [];
     try {
@@ -204,6 +207,7 @@ export class DesktopSession {
     let n = 0;
     for (const r of Array.isArray(recs) ? recs : []) {
       if (typeof r?.pid !== "number" || typeof r.marker !== "string" || !r.marker) continue;
+      if (r.name === "xvfb") this.ownXvfbPids.add(r.pid);
       if (this.procs.some((p) => p.child.pid === r.pid)) continue;
       if (alive(r.pid) && cmdline(r.pid).includes(r.marker)) {
         try {
@@ -227,6 +231,15 @@ export class DesktopSession {
     const lock = `/tmp/.X${DESKTOP_DISPLAY_NUM}-lock`;
     if (!fs.existsSync(lock)) return null;
     const pid = Number(fs.readFileSync(lock, "utf8").trim());
+    if (Number.isFinite(pid) && !alive(pid) && this.ownXvfbPids.has(pid)) {
+      // Our own Xvfb (recorded in pids.json) died without cleaning up (e.g. server restart): safe to clear.
+      try {
+        fs.rmSync(lock, { force: true });
+        return null;
+      } catch {
+        return `cannot remove our stale ${lock}`;
+      }
+    }
     if (!Number.isFinite(pid) || !alive(pid)) return `stale ${lock} (pid ${pid} not running) — not removing a lock Sable did not create`;
     return `display ${DESKTOP_DISPLAY} is in use by another process (pid ${pid}); Sable never touches other displays`;
   }

@@ -223,5 +223,8 @@ Checklist:
 - [x] 3. Vision loop (screenshot → grok-4.7 proposes → approval card → execute → verify; step cap + budget; heavy-slot limit)
   - `src/lib/agent/desktop/{agent,heavy}.ts` (pure), server `startRun/cancelRun/decideDesktop`, POST `/api/desktop` actions run|cancel|decide. Budget scope "desktop" (per-run cap `SABLE_DESKTOP_RUN_USD`, default $0.5, + global meter check before each model call). Heavy slots (≤2) shared with spawned subagents (spawn waits ≤30 s then refuses).
   - Live (local test page, grok-4.7): 4 steps, 3 owner approvals, page turned green, done, $0.036.
-- [ ] 4. UI: Desktop panel (live view, pending action card, Stop)
+- [x] 4. UI: Desktop panel (live view, pending action card, Stop)
+  - `src/components/sable/desktop-panel.tsx` (tab "Desktop" in Chạy nền): status, Bật/Dừng, live noVNC iframe (view-only; "Tôi tự điều khiển" toggles take-over), pending action cards (screenshot + red mark, Đồng ý/Từ chối), goal → Chạy / Dừng agent, run steps + cost. Chat approval cards also render the screenshot (`desktop-shot.tsx`). noVNC inline script allowed by CSP sha256 hash (no unsafe-inline); WS path fixed to absolute `/api/desktop/vnc`.
+  - Own stale `/tmp/.X99-lock` (pid recorded in our pids.json) is cleared; Xvfb gets SIGTERM on server exit. Chrome crash-restore bubble disabled.
+  - Verified with headless Chrome: noVNC "Connected … :99", pending card screenshot, approve click → run done (page green).
 - [ ] 5. Tests: unit + E2E on :99 with a local test page; eval:w3; full verification; package CLEAN

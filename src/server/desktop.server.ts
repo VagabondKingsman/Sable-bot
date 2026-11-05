@@ -50,7 +50,7 @@ export function desktopState(): State {
     g[KEY] = { session, viewers: 0, idleTimer: null, busy: () => false, shots: new Map(), pending: new Map() };
     // Server exit: take the desktop down with us (Chrome already dies with its bwrap parent).
     process.once("exit", () => {
-      for (const p of session.procs) p.child.kill("SIGKILL");
+      for (const p of session.procs) p.child.kill(p.name === "xvfb" ? "SIGTERM" : "SIGKILL"); // Xvfb removes its own lock on TERM
     });
     setVncTarget({
       port: desktopConfig().wsPort,
@@ -115,7 +115,7 @@ export function desktopStatus() {
     // Owner-only (behind the desk auth) and no-store; the VNC password is per session and lives in the URL hash.
     viewUrl:
       s.state === "running" && pw
-        ? `/api/desktop/novnc/vnc.html#autoconnect=1&resize=scale&reconnect=1&view_only=1&path=api/desktop/vnc&password=${encodeURIComponent(pw)}`
+        ? `/api/desktop/novnc/vnc.html#autoconnect=1&resize=scale&reconnect=1&view_only=1&path=/api/desktop/vnc&password=${encodeURIComponent(pw)}`
         : null,
   };
 }

@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import { createFileRoute } from "@tanstack/react-router";
 import { guarded, methodNotAllowed } from "@/server/http";
 import { desktopOn } from "@/server/desktop.server";
@@ -26,6 +27,14 @@ function novncFile(rel: string): string | null {
   }
 }
 
+/** CSP hashes for the inline module script(s) in noVNC's own html (no 'unsafe-inline'). */
+function inlineHashes(html: string): string {
+  const out: string[] = [];
+  for (const m of html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g))
+    out.push(`'sha256-${crypto.createHash("sha256").update(m[1]!, "utf8").digest("base64")}'`);
+  return out.join(" ");
+}
+
 export const Route = createFileRoute("/api/desktop_/novnc/$")({
   server: {
     handlers: {
@@ -36,13 +45,14 @@ export const Route = createFileRoute("/api/desktop_/novnc/$")({
           const file = novncFile(rel);
           if (!file) return new Response("Not found", { status: 404 });
           const bytes = fs.readFileSync(file);
+          const hashes = file.endsWith(".html") ? inlineHashes(bytes.toString("utf8")) : "";
           return new Response(bytes, {
             headers: {
               "Content-Type": TYPES[path.extname(file).toLowerCase()]!,
               "Cache-Control": "private, max-age=3600",
               "X-Content-Type-Options": "nosniff",
               "X-Frame-Options": "SAMEORIGIN",
-              "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ws: wss:; frame-ancestors 'self'; base-uri 'none'; form-action 'none'",
+              "Content-Security-Policy": `default-src 'self'; script-src 'self' ${hashes}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ws: wss:; frame-ancestors 'self'; base-uri 'none'; form-action 'none'`,
               "Referrer-Policy": "no-referrer",
             },
           });

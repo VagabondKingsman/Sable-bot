@@ -28,9 +28,10 @@ import { ApprovalCard, WorkTrail } from "@/components/sable/desk";
 import { TracesTab } from "@/components/sable/traces-panel";
 import { MediaTab } from "@/components/sable/media-panel";
 import { CanvasTab } from "@/components/sable/canvas-panel";
+import { DesktopTab } from "@/components/sable/desktop-panel";
 import { BriefCard, TasksInbox } from "@/components/sable/proactive-panel";
 
-export type PanelTab = "jobs" | "routines" | "inbox" | "tasks" | "traces" | "media" | "canvas";
+export type PanelTab = "jobs" | "routines" | "inbox" | "tasks" | "traces" | "media" | "canvas" | "desktop";
 
 const STATUS: Record<JobStatus, { label: string; tone: string }> = {
   queued: { label: "Đang chờ", tone: "text-muted" },
@@ -121,6 +122,7 @@ export function BackgroundPanel({
     { id: "traces", label: "Trace" },
     { id: "media", label: "Media" },
     { id: "canvas", label: "Canvas" },
+    { id: "desktop", label: "Desktop" },
   ];
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-bg/70">
@@ -186,6 +188,8 @@ export function BackgroundPanel({
             <TracesTab />
           ) : tab === "media" ? (
             <MediaTab />
+          ) : tab === "desktop" ? (
+            <DesktopTab />
           ) : tab === "canvas" ? (
             <CanvasTab onOpened={onClose} />
           ) : tab === "routines" ? (
