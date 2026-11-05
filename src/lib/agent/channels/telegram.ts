@@ -10,7 +10,9 @@ export const TG_MAX_TEXT = 3_900;
 
 export type TgUser = { id: number; is_bot?: boolean; username?: string };
 export type TgChat = { id: number; type: string };
-export type TgMessage = { message_id: number; date: number; chat: TgChat; from?: TgUser; text?: string };
+export type TgMessage = { message_id: number; date: number; chat: TgChat; from?: TgUser; text?: string; reply_to_message?: TgMessage };
+/** W7: the message an owner message replies to (Telegram `reply_to_message`). */
+export type TgReplyRef = { messageId: number; text: string; fromBot: boolean };
 export type TgCallback = { id: string; from: TgUser; data?: string; message?: TgMessage };
 export type TgUpdate = { update_id: number; message?: TgMessage; edited_message?: TgMessage; callback_query?: TgCallback; [key: string]: unknown };
 
@@ -31,7 +33,7 @@ export type TelegramOptions = {
   /** Last processed update id, so a restart does not replay. */
   offset?: number;
   saveOffset?: (offset: number) => void;
-  onMessage: (msg: { chatId: number; userId: number; text: string; messageId: number }) => Promise<void> | void;
+  onMessage: (msg: { chatId: number; userId: number; text: string; messageId: number; replyTo?: TgReplyRef }) => Promise<void> | void;
   onCallback: (cb: { chatId: number; userId: number; data: string; messageId?: number }) => Promise<string> | string;
   log?: (line: string) => void;
 };
@@ -101,12 +103,14 @@ export class TelegramChannel {
     return data.result as T;
   }
 
-  send(chatId: number, text: string, buttons?: Button[][]) {
+  send(chatId: number, text: string, buttons?: Button[][], replyTo?: number) {
     if (!this.opts.owners.has(chatId)) return Promise.reject(new Error("refusing to send outside the owner allowlist"));
     return this.api<TgMessage>("sendMessage", {
       chat_id: chatId,
       text: clipText(text),
       disable_web_page_preview: true,
+      // W7: answer as a threaded reply to the originating owner message.
+      ...(typeof replyTo === "number" && replyTo > 0 ? { reply_parameters: { message_id: replyTo, allow_sending_without_reply: true } } : {}),
       ...(buttons ? { reply_markup: { inline_keyboard: buttons.map((row) => row.map((b) => ({ text: b.text, callback_data: b.data.slice(0, 64) }))) } } : {}),
     });
   }
@@ -148,7 +152,37 @@ export class TelegramChannel {
       return;
     }
     this.handled++;
-    await this.opts.onMessage({ chatId: msg.chat.id, userId: msg.from!.id, text: msg.text.slice(0, 8_000), messageId: msg.message_id });
+    const ref = msg.reply_to_message;
+    const replyTo: TgReplyRef | undefined =
+      ref && typeof ref.message_id === "number" ? { messageId: ref.message_id, text: (typeof ref.text === "string" ? ref.text : "").slice(0, 4_000), fromBot: Boolean(ref.from?.is_bot) } : undefined;
+    const payload = { chatId: msg.chat.id, userId: msg.from!.id, text: msg.text.slice(0, 8_000), messageId: msg.message_id, ...(replyTo ? { replyTo } : {}) };
+    // W7: per-chat async chain — polling never waits on a turn; one chat's messages stay in order.
+    this.chain(msg.chat.id, () => this.opts.onMessage(payload));
+  }
+
+  private chains = new Map<number, Promise<void>>();
+
+  private chain(chatId: number, run: () => Promise<void> | void) {
+    const prev = this.chains.get(chatId);
+    const start = (): Promise<void> => {
+      try {
+        return Promise.resolve(run());
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    };
+    const next: Promise<void> = (prev ? prev.then(start) : start()).catch((error) => {
+      this.log(`message failed: ${error instanceof Error ? error.message : String(error)}`);
+    });
+    this.chains.set(chatId, next);
+    void next.finally(() => {
+      if (this.chains.get(chatId) === next) this.chains.delete(chatId);
+    });
+  }
+
+  /** Wait until every chat's pending messages are handled (tests, shutdown). */
+  async idle() {
+    while (this.chains.size) await Promise.all([...this.chains.values()]);
   }
 
   /** One getUpdates round. Returns how many updates came back. */

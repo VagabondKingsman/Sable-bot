@@ -18,6 +18,12 @@ import { isActive, type Job, type JobApproval } from "@/lib/agent/jobs/types";
 import { onJobEvents } from "@/server/channel-bus";
 import { dataDir } from "@/server/paths";
 import { jobConfig, jobService } from "@/server/jobs.server";
+import { leftoverJobSteer, steerJob } from "@/server/job-steer";
+import { withReference } from "@/lib/agent/turns/reply";
+import type { TgReplyRef } from "@/lib/agent/channels/telegram";
+
+/** W7: send the short "received" ack only when the turn is still running after this long. */
+const ACK_MS = Number(process.env.SABLE_CHANNEL_ACK_MS) || 5_000;
 
 const KEY = Symbol.for("sable.channels.v1");
 const HISTORY = 8;
@@ -37,6 +43,8 @@ type State = {
   /** approvalId → the Telegram message holding its buttons. */
   cards: Map<string, { chatId: number; messageId: number; summary: string }>;
   recent: number[];
+  /** W7: owner messages waiting for the chat's current job to finish (queue mode / leftovers). */
+  after: Map<string, { text: string; messageId?: number; replyTo?: string }[]>;
 };
 
 export function channelsOn() {
@@ -86,7 +94,25 @@ function telegramRequest(text: string, history: { role: "user" | "assistant"; co
   });
 }
 
-async function onTelegramMessage(state: State, msg: { chatId: number; text: string }) {
+function activeJob(match: (job: Job) => boolean) {
+  return jobService().db.listJobs().find((job) => isActive(job.status) && match(job));
+}
+
+/** Reply text with the quoted (replied-to) Telegram message inlined as the referenced message. */
+function quoted(text: string, ref?: TgReplyRef) {
+  return ref?.text ? withReference(text, { role: ref.fromBot ? "assistant" : "user", excerpt: ref.text }) : text;
+}
+
+function ackLater(state: State, chatId: number, messageId: number, jobId: string, steered: boolean) {
+  const timer = setTimeout(() => {
+    const job = jobService().db.getJob?.(jobId);
+    if (job && !isActive(job.status)) return;
+    void state.telegram?.send(chatId, steered ? "Đã nhận ✓ — mình đưa vào việc đang làm." : "Đã nhận ✓ — đang làm.", undefined, messageId).catch(() => undefined);
+  }, ACK_MS);
+  timer.unref?.();
+}
+
+async function onTelegramMessage(state: State, msg: { chatId: number; text: string; messageId?: number; replyTo?: TgReplyRef }) {
   const tg = state.telegram!;
   const text = msg.text.trim();
   const history = state.history.get(msg.chatId) ?? [];
@@ -116,23 +142,59 @@ async function onTelegramMessage(state: State, msg: { chatId: number; text: stri
     await tg.send(msg.chatId, "Việc nền đang tắt trên máy chủ.");
     return;
   }
-  const parsed = telegramRequest(text, history);
-  if (!parsed.ok) {
-    await tg.send(msg.chatId, `Không chạy được: ${parsed.error}`);
+  const content = quoted(text, msg.replyTo);
+  state.recent.push(now);
+  recordIncoming({ id: `tg_${msg.chatId}_${now.toString(36)}`, source: "telegram", from: `telegram:${msg.chatId}`, title: "Telegram from you", body: text.slice(0, 2_000), at: now, meta: { kind: "message", fromOwner: true } });
+  // W7: the chat already has a job running → steer this message into it (next safe point).
+  const running = activeJob((job) => job.origin?.channel === "telegram" && job.origin.chatId === msg.chatId);
+  if (running) {
+    if (steerJob(running.id, content)) {
+      state.history.set(msg.chatId, [...history, { role: "user" as const, content }].slice(-HISTORY));
+      if (msg.messageId) ackLater(state, msg.chatId, msg.messageId, running.id, true);
+      return;
+    }
+    const list = state.after.get(`tg:${msg.chatId}`) ?? [];
+    state.after.set(`tg:${msg.chatId}`, [...list, { text: content, messageId: msg.messageId }].slice(-20));
     return;
   }
-  state.recent.push(now);
+  const job = startTelegramJob(state, msg.chatId, content, msg.messageId);
+  if (typeof job === "string") {
+    await tg.send(msg.chatId, `Không chạy được: ${job}`);
+    return;
+  }
+  if (msg.messageId) ackLater(state, msg.chatId, msg.messageId, job.id, false);
+}
+
+function startTelegramJob(state: State, chatId: number, content: string, messageId?: number): Job | string {
+  const history = state.history.get(chatId) ?? [];
+  const parsed = telegramRequest(content, history);
+  if (!parsed.ok) return parsed.error;
   const config = jobConfig();
-  recordIncoming({ id: `tg_${msg.chatId}_${now.toString(36)}`, source: "telegram", from: `telegram:${msg.chatId}`, title: "Telegram from you", body: text.slice(0, 2_000), at: now, meta: { kind: "message", fromOwner: true } });
-  runner.enqueue({
-    title: `Telegram: ${text.slice(0, 60)}`,
+  const job = jobService().runner.enqueue({
+    title: `Telegram: ${content.replace(/^\[Referenced message[^\]]*\]\s*/, "").slice(0, 60)}`,
     request: parsed.request,
     maxSteps: config.maxSteps,
     timeoutMs: config.timeoutMs,
-    origin: { channel: "telegram", chatId: msg.chatId },
+    origin: { channel: "telegram", chatId, ...(messageId ? { messageId } : {}) },
   });
-  state.history.set(msg.chatId, [...history, { role: "user" as const, content: text }].slice(-HISTORY));
-  await tg.send(msg.chatId, "Đang làm…");
+  state.history.set(chatId, [...history, { role: "user" as const, content }].slice(-HISTORY));
+  return job;
+}
+
+/** After a channel job ends: undelivered steer messages + queued ones become the next job. */
+function runAfter(state: State, job: Job) {
+  const origin = job.origin;
+  if (!origin || origin.channel === "desk") return;
+  const leftovers = leftoverJobSteer(job.id);
+  const key = origin.channel === "telegram" ? `tg:${origin.chatId}` : `wh:${origin.peerId}`;
+  const queued = state.after.get(key) ?? [];
+  state.after.delete(key);
+  const items = [...leftovers.map((text) => ({ text, messageId: undefined as number | undefined, replyTo: undefined as string | undefined })), ...queued];
+  if (!items.length || !jobService().runner.enabled()) return;
+  const text = items.map((i) => i.text).join("\n\n");
+  const last = [...items].reverse().find((i) => i.messageId || i.replyTo);
+  if (origin.channel === "telegram") startTelegramJob(state, origin.chatId, text, last?.messageId);
+  else startWebhookJob(state, origin.peerId, text, last?.replyTo);
 }
 
 async function onTelegramCallback(state: State, cb: { chatId: number; data: string }) {
@@ -179,7 +241,8 @@ function wire(state: State) {
         const peerId = webhookTarget(job);
         if (peerId) {
           const text = job.origin?.channel === "webhook" ? resultText(job) : `${job.title}\n\n${resultText(job)}`;
-          void wh.deliver(makeEvent("job.result", { text: text.slice(0, MAX_TEXT), status: job.status, title: job.title }, { peerId, ref: { jobId: job.id, routineId: job.routineId } }));
+          const replyTo = job.origin?.channel === "webhook" ? job.origin.replyTo : undefined;
+          void wh.deliver(makeEvent("job.result", { text: text.slice(0, MAX_TEXT), status: job.status, title: job.title, ...(replyTo ? { reply_to: replyTo } : {}) }, { peerId, ref: { jobId: job.id, routineId: job.routineId } }));
           if (job.origin?.channel === "webhook" && job.status === "done" && job.text.trim()) {
             const history = state.webhookHistory.get(peerId) ?? [];
             state.webhookHistory.set(peerId, [...history, { role: "assistant" as const, content: job.text.slice(0, 4_000) }].slice(-HISTORY));
@@ -191,12 +254,18 @@ function wire(state: State) {
         const chatId = telegramTarget(job);
         if (chatId !== undefined) {
           const body = job.origin ? resultText(job) : `${job.title}\n\n${resultText(job)}`;
-          void tg.send(chatId, body).catch(() => undefined);
+          const replyTo = job.origin?.channel === "telegram" ? job.origin.messageId : undefined;
+          void tg.send(chatId, body, undefined, replyTo).catch(() => undefined);
           if (job.origin?.channel === "telegram" && job.status === "done" && job.text.trim()) {
             const history = state.history.get(chatId) ?? [];
             state.history.set(chatId, [...history, { role: "assistant" as const, content: job.text.slice(0, 4_000) }].slice(-HISTORY));
           }
         }
+      }
+      try {
+        runAfter(state, job);
+      } catch (error) {
+        console.warn(`[sable-channels] follow-up failed: ${error instanceof Error ? error.message : String(error)}`);
       }
       const smtp = state.smtp;
       const mailMode = notifyMode("SABLE_SMTP_NOTIFY", "own");
@@ -248,7 +317,7 @@ function wire(state: State) {
 export function startChannels(): State {
   const existing = scope()[KEY];
   if (existing) return existing;
-  const state: State = { telegram: null, smtp: null, webhook: null, history: new Map(), webhookHistory: new Map(), cards: new Map(), recent: [] };
+  const state: State = { telegram: null, smtp: null, webhook: null, history: new Map(), webhookHistory: new Map(), cards: new Map(), recent: [], after: new Map() };
   scope()[KEY] = state;
   if (!channelsOn()) return state;
   if (jobService().foreignOwner !== null) return state;
@@ -360,23 +429,45 @@ async function onWebhookInbound(state: State, event: import("@/lib/agent/channel
   if (state.recent.length >= limit) {
     return makeEvent("message.out", { text: "Bạn đang gửi quá nhanh, chờ một chút rồi thử lại." }, { peerId });
   }
-  const history = state.webhookHistory.get(peerId) ?? [];
-  const parsed = telegramRequest(text.slice(0, 8_000), history);
-  if (!parsed.ok) return makeEvent("message.out", { text: parsed.error }, { peerId });
-  const config = jobConfig();
   if (!jobService().runner.enabled()) return makeEvent("message.out", { text: "Việc nền đang tắt trên máy chủ." }, { peerId });
+  // W7: optional reply_to (id the app uses for threading; echoed on job.result) + reply_text (quoted excerpt) + mode.
+  const replyTo = typeof event.payload.reply_to === "string" && /^[A-Za-z0-9_.:-]{1,120}$/.test(event.payload.reply_to) ? event.payload.reply_to : event.id;
+  const replyText = typeof event.payload.reply_text === "string" ? event.payload.reply_text.slice(0, 4_000) : "";
+  const mode = event.payload.mode === "queue" ? "queue" : event.payload.mode === "new" ? "new" : "steer";
+  const content = replyText ? withReference(text.slice(0, 8_000), { role: event.payload.reply_role === "assistant" ? "assistant" : "user", excerpt: replyText }) : text.slice(0, 8_000);
   state.recent.push(now);
   const ownerPeer = state.webhook?.config.ownerPeerId;
   recordIncoming({ id: `wh_${event.id}`.slice(0, 100), source: "webhook", from: `webhook:${peerId}`, title: typeof event.payload.title === "string" ? event.payload.title.slice(0, 200) : `Webhook from ${peerId}`, body: text.slice(0, 2_000), at: now, meta: { kind: "event", fromOwner: Boolean(ownerPeer && ownerPeer === peerId) } });
+  const running = mode === "new" ? undefined : activeJob((job) => job.origin?.channel === "webhook" && job.origin.peerId === peerId);
+  if (running && mode === "steer" && steerJob(running.id, content)) {
+    const history = state.webhookHistory.get(peerId) ?? [];
+    state.webhookHistory.set(peerId, [...history, { role: "user" as const, content }].slice(-HISTORY));
+    return makeEvent("pong", { ok: true, jobId: running.id, mode: "steered" }, { peerId, ref: { jobId: running.id } });
+  }
+  if (running) {
+    const list = state.after.get(`wh:${peerId}`) ?? [];
+    state.after.set(`wh:${peerId}`, [...list, { text: content, replyTo }].slice(-20));
+    return makeEvent("pong", { ok: true, jobId: running.id, mode: "queued" }, { peerId, ref: { jobId: running.id } });
+  }
+  const job = startWebhookJob(state, peerId, content, replyTo);
+  if (typeof job === "string") return makeEvent("message.out", { text: job }, { peerId });
+  return makeEvent("pong", { ok: true, jobId: job.id, mode: "started" }, { peerId, ref: { jobId: job.id } });
+}
+
+function startWebhookJob(state: State, peerId: string, content: string, replyTo?: string): Job | string {
+  const history = state.webhookHistory.get(peerId) ?? [];
+  const parsed = telegramRequest(content, history);
+  if (!parsed.ok) return parsed.error;
+  const config = jobConfig();
   const job = jobService().runner.enqueue({
-    title: `Webhook: ${text.slice(0, 60)}`,
+    title: `Webhook: ${content.replace(/^\[Referenced message[^\]]*\]\s*/, "").slice(0, 60)}`,
     request: parsed.request,
     maxSteps: config.maxSteps,
     timeoutMs: config.timeoutMs,
-    origin: { channel: "webhook", peerId },
+    origin: { channel: "webhook", peerId, ...(replyTo ? { replyTo } : {}) },
   });
-  state.webhookHistory.set(peerId, [...history, { role: "user" as const, content: text }].slice(-HISTORY));
-  return makeEvent("pong", { ok: true, jobId: job.id }, { peerId, ref: { jobId: job.id } });
+  state.webhookHistory.set(peerId, [...history, { role: "user" as const, content }].slice(-HISTORY));
+  return job;
 }
 
 /**

@@ -56,11 +56,26 @@ Set `SABLE_WEBHOOK_URL` to an `https` URL (ports 80/443). The URL is checked wit
 | `message.in` | → Sable | `{ "text": "…" }` enqueues a background job (`origin.channel=webhook`) |
 | `approval.response` | → Sable | `{ "approvalId": "…", "approve": true\|false }` or `{ "decision": "approve\|reject" }` |
 | `message.out` | ← Sable | `{ "text": "…" }` |
-| `job.result` | ← Sable | `{ "text", "status", "title" }` |
+| `job.result` | ← Sable | `{ "text", "status", "title", "reply_to"? }` — `reply_to` echoes the inbound message it answers (W7) |
 | `job.approval` | ← Sable | `{ "text", "approvals": [{ "id", "summary", "preview?" }] }` |
 | `pong` | ← Sable | ack / error |
 
 `peerId` is required on `message.in` and `approval.response` and must equal `SABLE_WEBHOOK_OWNER`.
+
+### W7: reply threading and busy behaviour (`message.in`, all optional)
+
+| Field | Meaning |
+| --- | --- |
+| `reply_to` | Your id for the message being sent (`[A-Za-z0-9_.:-]{1,120}`). Echoed as `payload.reply_to` on the `job.result` that answers it, so you can thread the reply. Default: the inbound event `id`. |
+| `reply_text` | The text of the message this one quotes (≤4 000 chars). Inlined for the model as a marked, truncated "referenced message". |
+| `reply_role` | `"assistant"` if the quoted text was Sable's, otherwise `"user"`. |
+| `mode` | What to do while a job for this `peerId` is still running: `"steer"` (default) — the text joins the running job at its next safe point (between model/tool steps); `"queue"` — runs as a new job after the current one ends; `"new"` — start a separate job now. With no running job every mode starts a job. |
+
+The `pong` reply carries `mode: "started" | "steered" | "queued"` and the `jobId` the message went to. Steered/queued messages are still owner messages under the same rules: approvals still go through `approval.response`, and the peer cannot approve a run its own message started. If a steered message arrives after the job's last safe point, it starts the next job automatically.
+
+```json
+{ "type": "message.in", "peerId": "owner", "payload": { "text": "Cũng kiểm tra hộp thư nhé", "reply_to": "app-msg-42", "mode": "steer" } }
+```
 
 ## Example
 
