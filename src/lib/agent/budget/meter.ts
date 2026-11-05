@@ -4,7 +4,7 @@ import { estimateUsd } from "./prices.ts";
 
 export type UsageEvent = {
   at: number;
-  scope: "chat" | "job" | "plan";
+  scope: "chat" | "job" | "plan" | "media";
   scopeId: string;
   model: string;
   promptTokens: number;
@@ -81,11 +81,13 @@ export class BudgetMeter {
     completionTokens?: number;
     totalTokens?: number;
     at?: number;
+    /** Fixed cost (media generations are priced per item, not per token). */
+    usd?: number;
   }): UsageEvent {
     const promptTokens = Math.max(0, Math.floor(input.promptTokens ?? 0));
     const completionTokens = Math.max(0, Math.floor(input.completionTokens ?? 0));
     const totalTokens = Math.max(0, Math.floor(input.totalTokens ?? promptTokens + completionTokens));
-    const usd = estimateUsd(input.model, promptTokens, completionTokens);
+    const usd = input.usd != null && Number.isFinite(input.usd) && input.usd >= 0 ? input.usd : estimateUsd(input.model, promptTokens, completionTokens);
     const event: UsageEvent = {
       at: input.at ?? Date.now(),
       scope: input.scope,

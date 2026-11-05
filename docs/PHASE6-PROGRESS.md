@@ -81,6 +81,6 @@ Built in parallel with the OpenDuet research worker (no edits to `/workspace/ope
 
 Checklist:
 - [x] 1. Observability / trace UI (`SABLE_TRACE`): `/api/traces`, `/api/traces/<id>`, timeline tab, tool filter, JSON export, archive >= 7 days
-- [ ] 2. Image & video generation (`SABLE_MEDIA`): xAI + OpenAI-compatible image adapters, video only with a real provider, media library, gallery, budget
+- [x] 2. Image & video generation (`SABLE_MEDIA`): xAI + OpenAI-compatible image adapters, video only with a real provider, media library, gallery, budget
 - [ ] 3. Canvas-style Pages (`SABLE_CANVAS`): sandboxed iframe + CSP, versions, list/read API, open beside chat
 - [ ] 4. Unit + eval:w2; tsc; restart; ngrok 401/200; package CLEAN

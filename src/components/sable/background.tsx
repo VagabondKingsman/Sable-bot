@@ -26,6 +26,7 @@ import { EFFORTS, type ChatMessage, type Effort } from "@/lib/agent/types";
 import { RichText } from "@/components/sable/rich-text";
 import { ApprovalCard, WorkTrail } from "@/components/sable/desk";
 import { TracesTab } from "@/components/sable/traces-panel";
+import { MediaTab } from "@/components/sable/media-panel";
 
 export type PanelTab = "jobs" | "routines" | "inbox" | "tasks" | "traces" | "media" | "canvas";
 
@@ -115,6 +116,7 @@ export function BackgroundPanel({
     { id: "routines", label: "Lịch chạy" },
     { id: "inbox", label: "Hộp thư" },
     { id: "traces", label: "Trace" },
+    { id: "media", label: "Media" },
   ];
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-bg/70">
@@ -173,6 +175,8 @@ export function BackgroundPanel({
             <TasksTab />
           ) : tab === "traces" ? (
             <TracesTab />
+          ) : tab === "media" ? (
+            <MediaTab />
           ) : tab === "routines" ? (
             <RoutinesTab models={models} onOpenJob={onFocusJob} />
           ) : (

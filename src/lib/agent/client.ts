@@ -40,7 +40,8 @@ export async function generateImage(prompt: string, signal: AbortSignal, options
   if (!res.ok) throw new Error(await readError(res, "Không tạo được ảnh."));
   const body = (await res.json()) as { url?: string };
   if (!body.url) throw new Error("Không nhận được ảnh.");
-  return body.url;
+  // W2: images are saved to the media library and served from /api/media/file/<id>.
+  return body.url.startsWith("/api/") ? withPrefix(body.url) : body.url;
 }
 
 export async function generateVideo(prompt: string, signal: AbortSignal, options: MediaBody, onWait: () => void) {
@@ -67,7 +68,7 @@ export async function generateVideo(prompt: string, signal: AbortSignal, options
     });
     if (!poll.ok) throw new Error(await readError(poll, "Không đọc được video."));
     const body = (await poll.json()) as { status?: string; url?: string; message?: string };
-    if (body.status === "done" && body.url) return body.url;
+    if (body.status === "done" && body.url) return body.url.startsWith("/api/") ? withPrefix(body.url) : body.url;
     if (body.status === "failed") throw new Error(body.message || "Video lỗi.");
   }
   throw new Error("Video chưa xong. Thử lại.");
