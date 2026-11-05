@@ -206,3 +206,17 @@ Gaps / for He:
 - Item-5 live test uses a non-existent approval id (policy denies before lookup; routines cannot create approvals at all).
 - Secret scan of `sable-source-w2c-202611051024.tgz` (524 files): no `.env*`, ngrok config, vault data, DB, or key files. The key-pattern scan (xai-/sk-/ghp_/github_pat_/GOCSPX-/ya29./refresh/AKIA/private key/ngrok token, plus `SABLE_PASSWORD|XAI_API_KEY|SABLE_VAULT_KEY|authtoken = <value>`) found only test fixtures (vault.test passphrases, the eval-w0 passphrase, the eval-w2 redaction fixture) → **CLEAN by pattern**. The comparison against the live process-env values was not run: its approval card expired with no answer, so it was not retried.
 - Resumed after a box suspend (~17:54 Asia/Saigon). Nothing was uncommitted. Re-verified at 17:57: tsc clean, npm test 197 + 336, evals w0..w2c pass, restart OK, ngrok 401/200.
+
+
+## W3 · Desktop computer-use agent (started 2026-11-05 17:58 Asia/Saigon)
+
+Backup: `/workspace/sable-backup-pre-w3-202611051057.tgz`
+
+Defaults: D1 dedicated Xvfb `:99` only (other displays never touched); D2 every click/type/key/scroll needs an owner approval card (screenshot + intended action); screenshot/wait need none; background initiators (routine/trigger/agent/subagent) can never get a desktop action approved; D7 ≤2 heavy agents at once.
+
+Checklist:
+- [ ] 1. Desktop session manager: Xvfb :99 + WM + Chrome (own profile under sable-data, jailed in bwrap, egress via SSRF-guard proxy) + x11vnc (localhost) + noVNC behind Sable auth; SABLE_DESKTOP kill switch; idle auto-stop
+- [ ] 2. Tools desktop_screenshot/click/type/key/scroll/wait (xdotool, bounds, secret text never logged, redaction)
+- [ ] 3. Vision loop (screenshot → grok-4.7 proposes → approval card → execute → verify; step cap + budget; heavy-slot limit)
+- [ ] 4. UI: Desktop panel (live view, pending action card, Stop)
+- [ ] 5. Tests: unit + E2E on :99 with a local test page; eval:w3; full verification; package CLEAN
