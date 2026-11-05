@@ -176,6 +176,7 @@ export function jobService(): Service {
       emitJobEvent("settled", job, approval);
     },
   });
+  let briefModule: typeof import("@/server/proactive.server") | null = null;
   const scheduler = new RoutineScheduler({
     db,
     runner,
@@ -187,6 +188,15 @@ export function jobService(): Service {
     triggersOn: () => jobConfig().triggersOn,
     watchFetch,
     watchTickMs: num("SABLE_WATCH_TICK_S", 60, 5, 600) * 1000,
+    builtinReady: (name) => name !== "morning-brief" || briefModule !== null,
+    builtins: {
+      // W2c: the morning brief is a real routine; the handler runs in-process (no LLM job).
+      "morning-brief": (_routine, scheduledFor, opts) => {
+        const mod = briefModule;
+        if (!mod) throw new Error("brief module not loaded yet");
+        return mod.fireBriefRoutine(scheduledFor, { manual: opts.manual });
+      },
+    },
   });
   const service = { db, runner, scheduler, foreignOwner };
   scope[KEY] = service;
@@ -210,8 +220,12 @@ export function jobService(): Service {
     .then((mod) => mod.startChannels())
     .catch((error) => console.warn(`[sable-channels] not started: ${error instanceof Error ? error.message : String(error)}`));
   void import("@/server/proactive.server")
-    .then((mod) => mod.startBriefTicker())
-    .catch((error) => console.warn(`[sable-brief] ticker not started: ${error instanceof Error ? error.message : String(error)}`));
+    .then((mod) => {
+      briefModule = mod;
+      mod.syncBriefRoutine();
+      scheduler.tick();
+    })
+    .catch((error) => console.warn(`[sable-brief] routine not synced: ${error instanceof Error ? error.message : String(error)}`));
   void import("@/server/connectors.server")
     .then((mod) => mod.startConnectorTicker())
     .catch((error) => console.warn(`[sable-connectors] ticker not started: ${error instanceof Error ? error.message : String(error)}`));

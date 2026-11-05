@@ -13,7 +13,7 @@ import { dataDir } from "@/server/paths";
 import { jobService } from "@/server/jobs.server";
 import { prepareTurn } from "@/server/chat.server";
 import { completerFor } from "@/server/memory.server";
-import { composeBrief, dueSlot, type BriefTask } from "@/lib/agent/proactive/brief";
+import { composeBrief, localParts, type BriefTask } from "@/lib/agent/proactive/brief";
 import type { BriefConfig, BriefRecord } from "@/lib/agent/proactive/store";
 import type { InboxItem } from "@/lib/agent/jobs/types";
 import { plannerBundle } from "@/server/planner.server";
@@ -187,31 +187,64 @@ export function briefView() {
 
 export function updateBrief(patch: Partial<BriefConfig>) {
   const { enabled, time, tz, telegram } = patch;
-  return proactiveStore().setBrief({ enabled, time, tz, telegram });
+  const out = proactiveStore().setBrief({ enabled, time, tz, telegram });
+  try {
+    syncBriefRoutine();
+  } catch (error) {
+    console.warn(`[sable-brief] routine sync failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  return out;
 }
 
-const TICK = Symbol.for("sable.proactive.briefTicker");
-type GT = typeof globalThis & { [TICK]?: ReturnType<typeof setInterval> };
+/** W2c: the brief is a real routine (builtin) — schedule "MM HH * * *" in cfg.tz. */
+export function briefRoutineDef(cfg: BriefConfig = proactiveStore().brief(), on = briefOn()) {
+  const [h, m] = cfg.time.split(":").map((n) => Number(n));
+  return {
+    id: BRIEF_ROUTINE_ID,
+    builtin: "morning-brief",
+    name: "Bản tin buổi sáng",
+    prompt: "(tích hợp) Soạn bản tin sáng: triage, việc cần duyệt, lịch hôm nay, ngân sách. Không gửi gì ra ngoài ngoài Telegram của chủ (nếu bật).",
+    schedule: { kind: "cron" as const, expr: `${m} ${h} * * *` },
+    tz: cfg.tz,
+    enabled: on && cfg.enabled,
+    catchUp: true,
+  };
+}
 
-/** One-minute ticker: fires the brief once per local day at/after its time. */
-export function startBriefTicker(intervalMs = 60_000) {
-  const g = globalThis as GT;
-  if (g[TICK]) return;
-  let busy = false;
-  g[TICK] = setInterval(() => {
-    if (busy || !briefOn()) return;
-    const slot = dueSlot(proactiveStore().brief(), new Date());
-    if (!slot) return;
-    busy = true;
-    // Mark the slot first so a crash mid-run cannot fire twice.
+/** Create/re-sync the brief routine from the brief settings (boot + every settings change). */
+export function syncBriefRoutine() {
+  const { scheduler, foreignOwner } = jobService();
+  if (foreignOwner !== null) return null;
+  return scheduler.upsertBriefSafe(briefRoutineDef());
+}
+
+/** Max lateness of a (catch-up) brief: a stale brief late at night is skipped. */
+export const BRIEF_MAX_LATE_MS = 3 * 3_600_000;
+
+/** Builtin handler called by the routine scheduler. Returns a history note. */
+export function fireBriefRoutine(scheduledFor: number, opts: { manual: boolean; now?: number }): string {
+  if (!briefOn()) return "Bản tin tắt (SABLE_BRIEF=0) — bỏ qua.";
+  const now = opts.now ?? Date.now();
+  if (opts.manual) {
+    void runBrief({ manual: true }).catch((e) => console.warn(`[sable-brief] failed: ${e instanceof Error ? e.message : String(e)}`));
+    return "Chạy tay bản tin.";
+  }
+  const cfg = proactiveStore().brief();
+  const slot = localParts(new Date(scheduledFor), cfg.tz).date;
+  if (cfg.lastSlot === slot) return `Đã gửi bản tin ngày ${slot} — bỏ qua.`;
+  if (now - scheduledFor > BRIEF_MAX_LATE_MS) {
     proactiveStore().setBrief({ lastSlot: slot });
-    void runBrief({ manual: false, slot })
-      .catch((error) => console.warn(`[sable-brief] failed: ${error instanceof Error ? error.message : String(error)}`))
-      .finally(() => {
-        busy = false;
-      });
-  }, intervalMs);
-  g[TICK].unref?.();
+    return `Trễ quá 3 giờ — bỏ bản tin ngày ${slot}.`;
+  }
+  // Mark the slot first so a crash mid-run cannot fire twice.
+  proactiveStore().setBrief({ lastSlot: slot });
+  void runBrief({ manual: false, slot }).catch((e) => console.warn(`[sable-brief] failed: ${e instanceof Error ? e.message : String(e)}`));
+  return `Gửi bản tin ngày ${slot}.`;
+}
+
+/** @deprecated W2c: replaced by the builtin routine; kept as a boot hook that only syncs it. */
+export function startBriefTicker() {
+  syncBriefRoutine();
 }
 
 // ── Unified Tasks inbox ──────────────────────────────────────────────────────

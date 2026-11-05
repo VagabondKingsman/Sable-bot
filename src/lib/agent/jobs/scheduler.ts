@@ -43,7 +43,17 @@ export type SchedulerOptions = {
   /** Fetch a watched URL as text (must go through the http_fetch SSRF guards). */
   watchFetch?: (url: string, signal: AbortSignal) => Promise<CheckResult>;
   watchTickMs?: number;
+  /**
+   * W2c built-in routines (e.g. the morning brief): fired by the same schedule /
+   * catch-up logic but run in-process instead of as an LLM job. Returns a note
+   * for the run history; may throw (recorded as an error run).
+   */
+  /** False while a builtin's handler is not loaded yet: the slot waits (not marked missed). */
+  builtinReady?: (name: string) => boolean;
+  builtins?: Record<string, (routine: Routine, scheduledFor: number, opts: { manual: boolean; catchUp: boolean }) => string | undefined>;
 };
+
+export type BuiltinRoutineDef = Pick<Routine, "id" | "name" | "prompt" | "schedule" | "tz" | "enabled" | "catchUp"> & { builtin: string };
 
 export type RoutineInput = {
   name: string;
@@ -199,6 +209,8 @@ export class RoutineScheduler {
       triggersOn: () => true,
       watchFetch: async () => ({ ok: false, error: "watch fetch not configured" }),
       watchTickMs: 60_000,
+      builtins: {},
+      builtinReady: () => true,
       ...options,
     };
   }
@@ -281,6 +293,7 @@ export class RoutineScheduler {
               nextRunAt: original.enabled ? nextRun(original.schedule, original.tz, now, now) : null,
             }
           : original;
+      if (routine.builtin && !this.opts.builtinReady(routine.builtin)) return routine;
       const plan = planDue(routine, now, {
         graceMs: this.opts.graceMs,
         catchUpMs: this.opts.catchUpMs,
@@ -296,7 +309,19 @@ export class RoutineScheduler {
         // before nextRunAt was saved): advance without a duplicate run.
         return { ...routine, nextRunAt: plan.nextRunAt };
       }
-      if (plan.fire) {
+      if (plan.fire && routine.builtin) {
+        let outcome: RoutineRun["outcome"] = "builtin";
+        let note: string | undefined;
+        try {
+          const handler = this.opts.builtins[routine.builtin];
+          if (!handler) throw new Error(`không có handler cho ${routine.builtin}`);
+          note = handler(routine, plan.fire.scheduledFor, { manual: false, catchUp: plan.fire.catchUp });
+        } catch (error) {
+          outcome = "error";
+          note = error instanceof Error ? error.message : String(error);
+        }
+        runs.push({ id: newId("run"), at: now, scheduledFor: plan.fire.scheduledFor, outcome, catchUp: plan.fire.catchUp || undefined, note });
+      } else if (plan.fire) {
         try {
           const job = this.enqueueFor(routine, plan.fire.scheduledFor, plan.fire.catchUp);
           started.push(job);
@@ -363,6 +388,72 @@ export class RoutineScheduler {
       );
   }
 
+  /** W2c: create or re-sync a built-in routine (bypasses the owner-edit guards). */
+  upsertBuiltin(def: BuiltinRoutineDef): Routine {
+    const now = this.opts.now();
+    const prev = this.get(def.id);
+    if (!prev && this.list().length >= MAX_ROUTINES) throw new RoutineRefusal(`Tối đa ${MAX_ROUTINES} lịch chạy.`);
+    const timing = !prev || JSON.stringify(prev.schedule) !== JSON.stringify(def.schedule) || prev.tz !== def.tz || prev.enabled !== def.enabled;
+    const base: Routine = prev ?? {
+      id: def.id,
+      name: def.name,
+      prompt: def.prompt,
+      schedule: def.schedule,
+      tz: def.tz,
+      enabled: def.enabled,
+      catchUp: def.catchUp,
+      model: "builtin",
+      effort: "low" as Routine["effort"],
+      instructions: "",
+      memory: "",
+      tools: { web: false, x: false, code: false, image: false, files: false, fetch: false, shell: false, browser: false } as Routine["tools"],
+      maxSteps: 1,
+      createdAt: now,
+      updatedAt: now,
+      anchorAt: now,
+      nextRunAt: null,
+      history: [],
+    };
+    const next: Routine = {
+      ...base,
+      name: def.name,
+      prompt: def.prompt,
+      schedule: def.schedule,
+      tz: def.tz,
+      enabled: def.enabled,
+      catchUp: def.catchUp,
+      builtin: def.builtin,
+      trigger: undefined,
+      updatedAt: timing ? now : base.updatedAt,
+      anchorAt: timing ? now : base.anchorAt,
+      nextRunAt: timing ? (def.enabled ? nextRun(def.schedule, def.tz, now, now) : null) : base.nextRunAt,
+    };
+    this.save(prev ? this.list().map((r) => (r.id === def.id ? next : r)) : [...this.list(), next]);
+    return next;
+  }
+
+  /** upsertBuiltin that never throws (boot path). */
+  upsertBriefSafe(def: BuiltinRoutineDef): Routine | null {
+    try {
+      return this.upsertBuiltin(def);
+    } catch (error) {
+      console.warn(`[sable-routines] builtin ${def.id} not synced: ${error instanceof Error ? error.message : String(error)}`);
+      return null;
+    }
+  }
+
+  /** W2c: manual run of a built-in routine (recorded in its history). */
+  runBuiltinNow(id: string): string | undefined {
+    const routine = this.get(id);
+    if (!routine?.builtin) throw new RoutineRefusal("Không phải lịch tích hợp.");
+    const handler = this.opts.builtins[routine.builtin];
+    if (!handler) throw new RoutineRefusal("Không có handler.");
+    const now = this.opts.now();
+    const note = handler(routine, now, { manual: true, catchUp: false });
+    this.patch(id, (r) => ({ ...r, lastRunAt: now, history: [{ id: newId("run"), at: now, scheduledFor: now, outcome: "manual" as const, note: note ?? "Chạy ngay" }, ...r.history].slice(0, MAX_HISTORY) }));
+    return note;
+  }
+
   create(input: RoutineInput): Routine {
     if (this.list().length >= MAX_ROUTINES) throw new RoutineRefusal(`Tối đa ${MAX_ROUTINES} lịch chạy.`);
     const now = this.opts.now();
@@ -403,6 +494,7 @@ export class RoutineScheduler {
   }
 
   update(id: string, input: RoutineInput): Routine | undefined {
+    if (this.get(id)?.builtin) throw new RoutineRefusal("Lịch tích hợp: chỉnh trong phần cài đặt riêng của nó.");
     const now = this.opts.now();
     return this.patch(id, (routine) => {
       const timing =
@@ -436,6 +528,7 @@ export class RoutineScheduler {
   }
 
   setEnabled(id: string, enabled: boolean) {
+    if (this.get(id)?.builtin) throw new RoutineRefusal("Lịch tích hợp: chỉnh trong phần cài đặt riêng của nó.");
     const now = this.opts.now();
     return this.patch(id, (routine) => ({
       ...routine,
@@ -450,6 +543,7 @@ export class RoutineScheduler {
   }
 
   remove(id: string) {
+    if (this.get(id)?.builtin) throw new RoutineRefusal("Lịch tích hợp: chỉnh trong phần cài đặt riêng của nó.");
     const before = this.list().length;
     this.save(this.list().filter((item) => item.id !== id));
     return this.list().length < before;
@@ -461,6 +555,7 @@ export class RoutineScheduler {
       throw new RoutineRefusal("Lịch chạy đang tắt trên máy chủ (SABLE_ROUTINES=0 hoặc SABLE_JOBS=0).");
     const routine = this.get(id);
     if (!routine) throw new RoutineRefusal("Không tìm thấy lịch chạy.");
+    if (routine.builtin) throw new RoutineRefusal("Lịch tích hợp: dùng nút Chạy ngay ở phần cài đặt riêng của nó.");
     if (this.opts.runner.hasActive(id)) throw new RoutineRefusal("Lượt trước của lịch này chưa xong.");
     const now = this.opts.now();
     const job = this.enqueueFor(routine, now, false, true);
@@ -488,6 +583,7 @@ export class RoutineScheduler {
 
   /** Create or rotate the webhook secret; the plain secret is returned only here. */
   setWebhook(id: string, on: boolean): { secret?: string } {
+    if (this.get(id)?.builtin) throw new RoutineRefusal("Lịch tích hợp: chỉnh trong phần cài đặt riêng của nó.");
     if (!this.opts.triggersOn()) throw new TriggerError(409, "Trigger sự kiện đang tắt (SABLE_TRIGGERS=0).");
     if (!this.get(id)) throw new TriggerError(404, "Không tìm thấy lịch chạy.");
     const now = this.opts.now();
@@ -501,6 +597,7 @@ export class RoutineScheduler {
   }
 
   setWatch(id: string, input: unknown | null) {
+    if (this.get(id)?.builtin) throw new RoutineRefusal("Lịch tích hợp: chỉnh trong phần cài đặt riêng của nó.");
     if (!this.opts.triggersOn()) throw new TriggerError(409, "Trigger sự kiện đang tắt (SABLE_TRIGGERS=0).");
     if (!this.get(id)) throw new TriggerError(404, "Không tìm thấy lịch chạy.");
     const now = this.opts.now();

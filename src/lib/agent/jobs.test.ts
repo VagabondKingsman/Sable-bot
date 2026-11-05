@@ -879,3 +879,48 @@ test("scheduler triggers: webhook fire, wrong secret, rate limit, busy, kill swi
   assert.equal(await scheduler.checkWatches(), 0, "kill switch stops watches");
   scheduler.stop();
 });
+
+// ---------- W2c: builtin routines (morning brief) ----------
+
+test("builtin routine fires its handler on schedule (no LLM job), waits while not ready, refuses owner edits", () => {
+  const start = Date.UTC(2026, 10, 5, 0, 0); // 07:00 ICT
+  const now = { t: start };
+  const fired: { at: number; manual: boolean }[] = [];
+  let ready = false;
+  const { scheduler, db } = schedulerWith(now, async () => undefined, {
+    builtinReady: () => ready,
+    builtins: {
+      "morning-brief": (_r, at, o) => {
+        fired.push({ at, manual: o.manual });
+        return "ok";
+      },
+    },
+  });
+  const def = { id: "builtin:morning-brief", builtin: "morning-brief", name: "Brief", prompt: "-", schedule: { kind: "cron" as const, expr: "30 7 * * *" }, tz: "Asia/Ho_Chi_Minh", enabled: true, catchUp: true };
+  const r = scheduler.upsertBuiltin(def);
+  assert.equal(r.nextRunAt, Date.UTC(2026, 10, 5, 0, 30));
+  now.t = Date.UTC(2026, 10, 5, 0, 30, 5);
+  assert.deepEqual(scheduler.tick(), []);
+  assert.equal(fired.length, 0, "not ready → slot waits");
+  assert.equal(scheduler.get(def.id)!.nextRunAt, Date.UTC(2026, 10, 5, 0, 30));
+  ready = true;
+  scheduler.tick();
+  assert.equal(fired.length, 1);
+  assert.equal(fired[0].at, Date.UTC(2026, 10, 5, 0, 30));
+  assert.equal(db.listJobs().length, 0, "no LLM job");
+  const after = scheduler.get(def.id)!;
+  assert.equal(after.history[0].outcome, "builtin");
+  assert.equal(after.nextRunAt, Date.UTC(2026, 10, 6, 0, 30));
+  scheduler.tick();
+  assert.equal(fired.length, 1, "fires once per slot");
+  // Re-sync with new time re-plans; same def is a no-op.
+  assert.equal(scheduler.upsertBuiltin(def).nextRunAt, Date.UTC(2026, 10, 6, 0, 30));
+  assert.equal(scheduler.upsertBuiltin({ ...def, enabled: false }).nextRunAt, null);
+  assert.equal(scheduler.list().length, 1);
+  assert.throws(() => scheduler.remove(def.id), /tích hợp/);
+  assert.throws(() => scheduler.setEnabled(def.id, true), /tích hợp/);
+  assert.throws(() => scheduler.runNow(def.id), /tích hợp/);
+  assert.throws(() => scheduler.setWebhook(def.id, true), /tích hợp/);
+  scheduler.runBuiltinNow(def.id);
+  assert.equal(fired.at(-1)!.manual, true);
+});

@@ -635,6 +635,7 @@ const RUN_LABEL = {
   error: "Lỗi",
   webhook: "Webhook",
   watch: "Trang thay đổi",
+  builtin: "Tích hợp",
 } as const;
 
 function TriggerPanel({ routine, enabled, onChanged }: { routine: RoutineView; enabled: boolean; onChanged: () => void }) {

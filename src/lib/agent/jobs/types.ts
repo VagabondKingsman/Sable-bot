@@ -77,7 +77,7 @@ export type RoutineRun = {
   id: string;
   at: number;
   scheduledFor: number;
-  outcome: "queued" | "missed" | "busy" | "error" | "manual" | "webhook" | "watch";
+  outcome: "queued" | "missed" | "busy" | "error" | "manual" | "webhook" | "watch" | "builtin";
   catchUp?: boolean;
   jobId?: string;
   note?: string;
@@ -108,6 +108,8 @@ export type Routine = {
   history: RoutineRun[];
   /** Event triggers (webhook / URL watch), in addition to the schedule. */
   trigger?: import("./triggers.ts").RoutineTrigger;
+  /** W2c: a built-in routine (no LLM job): the scheduler calls the named handler instead. */
+  builtin?: string;
 };
 
 export type InboxItem = {

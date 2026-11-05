@@ -171,7 +171,7 @@ Backup: `/workspace/sable-backup-pre-w2c-202611050953.tgz`
 Checklist:
 - [x] 1. Canvas: iframe cannot navigate its own frame / top (sandbox + CSP + navigation guard); revocable, expiring, read-only owner share links
 - [x] 2. Agent media tool (image gen via media module; approval + budget)
-- [ ] 3. Morning brief as a real routine (no private timer)
+- [x] 3. Morning brief as a real routine (no private timer)
 - [ ] 4. Plan traces labelled by real initiator (owner vs agent)
 - [ ] 5. Live HTTP test: routine-initiated approval rejected
 - [ ] 6. Pending OAuth sign-ins persisted across restart (encrypted, 10-min TTL)
