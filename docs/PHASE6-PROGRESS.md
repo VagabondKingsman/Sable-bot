@@ -71,3 +71,16 @@ Checklist:
 - Planner `agent` steps dry-run unless JobRunner hook is wired for full LLM enqueue (note/classify/write_gate/doc_audit are solid).
 - Light model equals hard until `SABLE_MODEL_LIGHT` is configured.
 - Budget meter not yet hooked into every live LLM response usage field (plan uses synthetic tokens; jobs fail-closed on global cap before run).
+
+
+## W2 · Trace UI / media / Canvas pages (started 2026-11-05 15:48 Asia/Saigon)
+
+Backup: `/workspace/sable-backup-pre-w2-202611050847.tgz`
+
+Built in parallel with the OpenDuet research worker (no edits to `/workspace/openduet-research` or `/workspace/reverse-skill-research`).
+
+Checklist:
+- [ ] 1. Observability / trace UI (`SABLE_TRACE`): `/api/traces`, `/api/traces/<id>`, timeline tab, tool filter, JSON export, archive >= 7 days
+- [ ] 2. Image & video generation (`SABLE_MEDIA`): xAI + OpenAI-compatible image adapters, video only with a real provider, media library, gallery, budget
+- [ ] 3. Canvas-style Pages (`SABLE_CANVAS`): sandboxed iframe + CSP, versions, list/read API, open beside chat
+- [ ] 4. Unit + eval:w2; tsc; restart; ngrok 401/200; package CLEAN
