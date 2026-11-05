@@ -33,18 +33,24 @@ export type BrowserDeps = {
   chromePath?: string;
 };
 
+/** Cast Playwright's Browser to our narrow handle. */
+function asHandle(browser: unknown): BrowserHandle {
+  return browser as BrowserHandle;
+}
+
 type PageHandle = {
-  goto(url: string, opts: { waitUntil: string; timeout: number }): Promise<unknown>;
+  goto(url: string, opts: { waitUntil: "domcontentloaded" | "load" | "networkidle" | "commit"; timeout: number }): Promise<unknown>;
   url(): string;
   title(): Promise<string>;
   innerText(sel: string): Promise<string>;
   content(): Promise<string>;
-  screenshot(opts: { type: string; fullPage?: boolean }): Promise<Buffer>;
+  screenshot(opts: { type: "png" | "jpeg"; fullPage?: boolean }): Promise<Buffer>;
   click(sel: string, opts?: { timeout?: number }): Promise<void>;
   fill(sel: string, value: string, opts?: { timeout?: number }): Promise<void>;
   selectOption(sel: string, value: string): Promise<unknown>;
   press(sel: string, key: string): Promise<void>;
-  evaluate<T>(fn: (...args: any[]) => T, arg?: unknown): Promise<T>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  evaluate(fn: any, arg?: unknown): Promise<unknown>;
   close(): Promise<void>;
 };
 type BrowserHandle = {
@@ -96,11 +102,11 @@ async function ensurePage(): Promise<PageHandle> {
     process.env.SABLE_CHROME_PATH ||
     (fs.existsSync("/usr/bin/google-chrome") ? "/usr/bin/google-chrome" : undefined);
   const chromium = depsGlobal.chromium ?? (await import("playwright")).chromium;
-  const browser = await chromium.launch({
+  const browser = asHandle(await chromium.launch({
     executablePath: chrome,
     headless: true,
     args: ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
-  });
+  }));
   const page = await browser.newPage();
   session = { browser, page, lastUsed: Date.now() };
   touch(session);
@@ -216,7 +222,7 @@ async function runAction(args: BrowserArgs, ctx: ToolContext): Promise<{ ok: boo
     return { ok: true, output: `selected ${args.value} in ${sel}`, detail: sel, sources: [page.url()] };
   }
   if (args.action === "submit") {
-    await page.evaluate((selector) => {
+    await page.evaluate((selector: string) => {
       const el = document.querySelector(selector);
       if (!el) throw new Error("selector not found");
       const form = el instanceof HTMLFormElement ? el : (el as HTMLInputElement).form;

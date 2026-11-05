@@ -61,7 +61,7 @@ test("browser: click refused without approver; rejected approval does nothing", 
   setBrowserDeps({
     checkUrl: async (u) => new URL(u),
     chromium: {
-      launch: async () => ({
+      launch: async (): Promise<any> => ({
         newPage: async () => fakePage,
         close: async () => undefined,
       }),
