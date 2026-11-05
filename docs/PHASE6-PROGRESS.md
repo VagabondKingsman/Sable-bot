@@ -142,3 +142,23 @@ Backup: `/workspace/sable-backup-pre-w2b-202611050938.tgz`. Live Google sign-in:
 - [x] 2. Gmail: search/read threads, read message, labels; create draft; send only via approval card (never background initiators); new mail → triage + brief
 - [x] 3. Google Calendar: calendars/events/free-busy; create/update/delete need approval; today's events → brief
 - [x] 4. Mock OAuth + Gmail/Calendar E2E; eval:w2b; tsc; evals w0/w1/w2/w2a; restart; ngrok 401/200; package CLEAN
+
+### W2b verification (2026-11-05)
+
+- `tsc --noEmit` clean. `npm test`: script suites 197/197 and TS suites 323/323. That includes the new `connectors.test.ts` (17 E2E tests against the mock Google).
+- Evals:
+  - w0, w1, w2 (10), w2a (11): pass
+  - **w2b: 15/15**. Offline: PKCE/state, vault-only tokens, refresh on 401, host allowlist, send needs approval, background send denied, calendar writes need approval, revoke, redaction. Live: registry shape with no secrets, callback 400 with no-referrer/CSP/no-store, connect 404/409, vault refuses OAUTH_TOKEN_*, brief OK.
+- Restart via the watchdog: local `/`, `/api/health`, `/api/connectors` and `/api/brief` all 200. ngrok returns 401 without auth and 200 with it; callback with a bad state returns 400 through ngrok.
+- Live server state: gmail and gcal are **not-configured** because `SABLE_VAULT_KEY` and the Google client are not set. This needs He's credentials (docs/OAUTH-SETUP.md).
+
+Bugs found and fixed in W2b:
+- `/api/vault` get could have returned OAuth tokens. It now refuses `OAUTH_TOKEN_*` except `has`.
+- gmail_send had no draft-id path. Sends are compose-only, so the approval card shows exactly what will be sent.
+
+Gaps / follow-ups:
+- Live Google is untested: it needs He's OAuth client and a vault key. In Testing mode refresh tokens expire after 7 days.
+- Calendar has no attendees or invitations (`sendUpdates=none`) and no recurring-event editing (instances only).
+- Gmail sends text/plain only, with no attachments. Sync covers the last 2 days, 25 messages, every 10 minutes; there is no push or history-id incremental sync.
+- Pending OAuth states are in memory, so a server restart during consent means clicking Connect again.
+- A per-connector "error" status clears on the next successful connect.
