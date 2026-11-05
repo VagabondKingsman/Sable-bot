@@ -18,6 +18,8 @@ export type TraceEvent = {
   parent?: string;
   detail?: string;
   ok?: boolean;
+  /** W2c: who drove this event (plan traces): agent = LLM step, user = owner decision, system = deterministic step. */
+  actor?: "user" | "agent" | "system";
 };
 
 export type TraceStats = {

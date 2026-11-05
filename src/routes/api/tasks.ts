@@ -80,6 +80,7 @@ export const Route = createFileRoute("/api/tasks")({
               timeoutMs: typeof body.timeoutMs === "number" ? body.timeoutMs : undefined,
               budgetTokens: typeof body.budgetTokens === "number" ? body.budgetTokens : undefined,
               budgetUsd: typeof body.budgetUsd === "number" ? body.budgetUsd : undefined,
+              initiator: { kind: "user", id: "owner:web" },
             });
             if (!created.ok) return Response.json({ message: created.error }, { status: 400 });
             workspaces.ensure(created.plan.workspaceId);

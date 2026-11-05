@@ -52,6 +52,8 @@ export type TaskPlan = {
   error?: string;
   /** Crash/resume marker. */
   checkpoint?: { lastTickAt: number; completedStepIds: string[] };
+  /** W2c: who created the plan (owner via web/API; agent/routine if ever wired). */
+  initiator?: { kind: string; id: string };
 };
 
 export type CreatePlanInput = {
@@ -70,4 +72,5 @@ export type CreatePlanInput = {
   budgetUsd?: number;
   workspaceId?: string;
   now?: number;
+  initiator?: { kind: string; id: string };
 };

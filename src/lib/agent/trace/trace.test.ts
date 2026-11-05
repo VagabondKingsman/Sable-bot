@@ -84,6 +84,15 @@ test("trace: plan + chat converters", () => {
   assert.equal(pt.id, "plan.p1");
   assert.equal(pt.stats.approvalsPending, 1);
   assert.equal(pt.events[0]!.ms, 5);
+  // W2c: legacy plan without initiator → owner; steps carry their real actor.
+  assert.equal(pt.initiator_kind, "user");
+  assert.equal(pt.initiator_id, "owner:web");
+  assert.equal(pt.events[0]!.actor, "system");
+  assert.equal(pt.events.find((e) => e.type === "approval")!.actor, "user");
+  const agentPlan = { ...plan, initiator: { kind: "routine", id: "rtn_x" }, steps: [{ id: "a1", title: "draft", kind: "agent", deps: [], status: "done", requiresApproval: true, result: "approved" }] } as TaskPlan;
+  const at = fromPlan(agentPlan);
+  assert.equal(at.initiator_kind, "routine");
+  assert.equal(at.events[0]!.actor, "agent");
   const ct = fromChat("th1", "hello", { id: "m1", role: "assistant", content: "x", startedAt: now, finishedAt: now + 10, steps: [{ id: "s", kind: "web", label: "search", state: "done" }] }, now);
   assert.equal(ct!.id, "chat.th1.m1");
   assert.equal(ct!.stats.toolCalls, 1);

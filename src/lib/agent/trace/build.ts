@@ -143,6 +143,7 @@ export function fromPlan(plan: TaskPlan): Trace {
       label: redactSecrets(`${s.title} (${s.kind})`.slice(0, 400)).text,
       tool: `plan:${s.kind}`,
       state: s.status,
+      actor: s.kind === "agent" ? "agent" : "system",
     };
     if (s.startedAt) ev.at = s.startedAt;
     if (s.startedAt && s.finishedAt) ev.ms = Math.max(0, s.finishedAt - s.startedAt);
@@ -160,6 +161,7 @@ export function fromPlan(plan: TaskPlan): Trace {
         label: redactSecrets(`write_gate: ${s.title}`.slice(0, 400)).text,
         tool: `plan:${s.kind}`,
         state: s.status === "waiting_approval" ? "pending" : s.result === "approved" ? "approved" : "rejected",
+        actor: "user",
       });
     }
   }
@@ -170,8 +172,9 @@ export function fromPlan(plan: TaskPlan): Trace {
       sourceId: plan.id,
       title: plan.goal.slice(0, 200),
       status: plan.status,
-      initiator_kind: "agent",
-      initiator_id: `plan:${plan.id}`,
+      // W2c: the real initiator (plans are created by the owner; legacy plans had none → owner).
+      initiator_kind: plan.initiator?.kind ?? "user",
+      initiator_id: plan.initiator?.id ?? "owner:web",
       startedAt: plan.startedAt ?? plan.createdAt,
       finishedAt: plan.finishedAt,
       updatedAt: plan.updatedAt,

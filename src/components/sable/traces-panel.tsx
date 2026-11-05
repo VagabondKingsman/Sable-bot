@@ -129,6 +129,7 @@ export function TracesTab() {
                   <span className="flex-1 truncate" title={e.label}>
                     {e.label}
                   </span>
+                  {e.actor ? <span className="rounded bg-fg/10 px-1.5 font-mono text-[11px] text-muted" data-actor={e.actor}>{e.actor === "user" ? "chủ" : e.actor}</span> : null}
                   <span className="text-xs text-muted">{e.state}</span>
                   <span className="w-16 text-right font-mono text-xs text-muted">{fmtMs(e.ms)}</span>
                 </div>

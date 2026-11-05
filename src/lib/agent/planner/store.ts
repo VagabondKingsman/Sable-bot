@@ -95,6 +95,7 @@ export class PlanStore {
       usedTokens: 0,
       usedUsd: 0,
       checkpoint: { lastTickAt: now, completedStepIds: [] },
+      initiator: input.initiator ?? { kind: "user", id: "owner:web" },
     };
     this.save(plan);
     return { ok: true, plan };
