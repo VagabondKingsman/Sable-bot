@@ -176,5 +176,12 @@ Checklist:
 - [x] 5. Live HTTP test: routine-initiated approval rejected
 - [x] 6. Pending OAuth sign-ins persisted across restart (encrypted, 10-min TTL)
 - [x] 7. Triage eval on a separate 60-item held-out set (honest score)
-- [ ] 8. Hardening: rate limits, body size limits, CSRF/origin checks, npm audit, memory footprint
+- [x] 8. Hardening: rate limits, body size limits, CSRF/origin checks, npm audit, memory footprint
 - [ ] 9. eval:w2c + all evals; tsc; npm test; restart; ngrok 401/200; package CLEAN
+
+### W2c item 8 — hardening (notes)
+- `src/server/harden.ts` + Vite `hardenPlugin()` (first middleware, /api/* and /s/* only): per-IP fixed-window rate limits (read 600/min, write 120/min, share 60/min; loopback w/o XFF exempt), Content-Length cap 10 MB → 413, CSRF/origin check on POST/PUT/PATCH/DELETE /api/* → 403 (allowed: SABLE_TRUSTED_ORIGINS, localhost, same Host; `null` origin rejected; X-Forwarded-Host ignored). Exempt (secret-authenticated): `/api/channels/webhook`, `/api/routines/<id>/fire`. Kill switches: SABLE_RATE=0, SABLE_CSRF=0.
+- Live: evil Origin POST → 403 (local + via ngrok), same-origin ngrok POST passes guard, 20 MB Content-Length → 413, /s/* 61st req/min → 429, /api/health 200.
+- Gap: guard is a dev-server (Vite) middleware; not wired into a Nitro production build (Sable runs as `vite dev`).
+- npm audit: `npm audit fix` (non-breaking) applied → zod 4.6.7, seroval 1.7.7 (fixes 1 high + 1 moderate). Remaining 11: nodemailer ≤10.1.3 (high; fix = v10 major — not applied; SMTP only talks to owner-configured server), better-auth 1.6.x (critical/high: magic-link, oauth-proxy, device-auth advisories — those plugins are NOT used; only bearer+genericOAuth; 1.7.17 tried and reverted: breaks `genericOAuthClient` / `signInWithOAuth2` APIs), typescript-eslint/minimatch (dev-only, moderate), drizzle/kysely adapters (low).
+- Memory: 16 GB total, ~8.4 GB available at check; vite dev RSS ≈ 1.75 GB (the only large Sable process). No action needed.

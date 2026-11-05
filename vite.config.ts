@@ -11,6 +11,7 @@ import { grokPwaPlugin } from "./scripts/grok-pwa-plugin.mjs";
 // @ts-expect-error JS plugin alongside the TS vite config
 import { appEnvPlugin } from "./scripts/app-env-plugin.mjs";
 import { isMigrationFile } from "./scripts/migration-plan.mjs";
+import { Harden } from "./src/server/harden.ts";
 
 /** The files `src/lib/db.ts` globs — same directory, same non-recursive scope. */
 function hasGlobbedMigrations(root: string): boolean {
@@ -180,6 +181,29 @@ function publicNoHmrClientPlugin(): Plugin {
  * server is listening so restart recovery and the routine scheduler run even
  * before anyone opens the page.
  */
+/**
+ * W2c: rate limits, request-size cap and CSRF/Origin checks for /api/* and /s/*,
+ * before TanStack Start (see src/server/harden.ts). Kill switches SABLE_RATE=0, SABLE_CSRF=0.
+ */
+function hardenPlugin(): Plugin {
+  return {
+    name: "sable:harden",
+    apply: "serve",
+    configureServer(server) {
+      const harden = new Harden();
+      server.middlewares.use((req, res, next) => {
+        const verdict = harden.check({ method: req.method ?? "GET", path: req.url ?? "/", headers: req.headers, remote: req.socket?.remoteAddress });
+        if (verdict.ok) return next();
+        res.statusCode = verdict.status;
+        res.setHeader("content-type", "application/json; charset=utf-8");
+        res.setHeader("cache-control", "no-store");
+        if (verdict.retryAfter) res.setHeader("retry-after", String(verdict.retryAfter));
+        res.end(JSON.stringify({ message: verdict.message }));
+      });
+    },
+  };
+}
+
 function jobsBootPlugin(): Plugin {
   return {
     name: "sable:jobs-boot",
@@ -224,6 +248,8 @@ export default defineConfig(({ command, isPreview }) => ({
   },
   resolve: { tsconfigPaths: true },
   plugins: [
+    // W2c: first, so abusive / cross-site requests never reach a route.
+    hardenPlugin(),
     pgliteBootstrapPlugin(),
     publicNoHmrClientPlugin(),
     jobsBootPlugin(),
