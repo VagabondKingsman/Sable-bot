@@ -36,7 +36,7 @@ Accepted Full Agentic defaults: D1–D10 as on plan Page.
 - ngrok: unauth **401**, basic auth **200**
 - Unit: 13/13; `npm run eval:w0` pass; `tsc --noEmit` clean
 - HARD SCOPE held: no apk/binary/js-reverse/pentest/CTF/exploit skills or auto RE installers
-- Package: `/workspace/sable-source-w0-202611050831.tgz` SECRET_SCAN=CLEAN
+- Package:  SECRET_SCAN=CLEAN
 
 ## Known gaps / bugs (W0)
 - ScopeGate approve/deny is **API-only** (`POST /api/scope`); no dedicated React approval card UI yet — wire into existing approval UX in W1.
@@ -73,7 +73,7 @@ PASS budget-trip
 PASS scope-card-approve-deny
 
 all w1 eval checks passed PASS;  clean
-- Package:  (pending scan)
+- Package:  SECRET_SCAN=CLEAN
 - HARD SCOPE held: no RE/pentest/CTF skills
 
 ### Known gaps
