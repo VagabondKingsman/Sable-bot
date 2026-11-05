@@ -107,3 +107,18 @@ Checklist:
 - Canvas pages cannot load CDN libs or remote images (strict CSP by design); share link = authenticated desk URL (no separate revocable share token).
 - A sandboxed canvas can still navigate its own frame (CSP can't block self-navigation); mitigated by approval on `canvas_write` + no-referrer + no cookies in the opaque origin.
 - Trace latency for older (pre-W2) records is parsed from "ok · N ms" text; no `at` timestamp on them.
+
+
+## W2a · Proactive core (started 2026-11-05 16:15 Asia/Saigon)
+
+Backup: `/workspace/sable-backup-pre-w2a-202611050915.tgz`
+
+Approved revised plan from the Duet audit Page. Patterns adapted from OpenDuet (MIT, CopilotKit) — see `skills/_meta/NOTICE-openduet.md`. OpenBot is not vendored; no CopilotKit Intelligence dependency.
+
+Checklist:
+- [ ] 1. Triage (`SABLE_TRIAGE`): needs-reply / needs-approval / FYI / ignore with reasons; rules first, light model only when `SABLE_MODEL_LIGHT`; `evals/triage`
+- [ ] 2. Morning brief (`SABLE_BRIEF`): built-in routine, default off, 07:30 Asia/Saigon; inbox + Telegram when configured
+- [ ] 3. Tasks inbox UX: planner tasks + approvals + triaged items, states todo/doing/waiting-approval/done
+- [ ] 4. Reply chips: approve / snooze / draft reply / open task; never auto-send
+- [ ] 5. initiator_kind audit (user|routine|trigger|agent|subagent|channel) on side effects + approvals; `/api/audit`; no background self-approve
+- [ ] 6. Unit + eval:w2a + evals w0/w1/w2; tsc; restart; ngrok 401/200; package CLEAN
