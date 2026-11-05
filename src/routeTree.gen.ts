@@ -19,6 +19,7 @@ import { Route as ApiChannelsRouteImport } from './routes/api/channels'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiConnectorsRouteImport } from './routes/api/connectors'
 import { Route as ApiDeskRouteImport } from './routes/api/desk'
+import { Route as ApiDesktopRouteImport } from './routes/api/desktop'
 import { Route as ApiFieldJournalRouteImport } from './routes/api/field-journal'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiInboxRouteImport } from './routes/api/inbox'
@@ -46,6 +47,7 @@ import { Route as ApiChannelsWebhookRouteImport } from './routes/api/channels.we
 import { Route as ApiOauthCallbackRouteImport } from './routes/api/oauth.callback'
 import { Route as ApiTracesIdRouteImport } from './routes/api/traces_.$id'
 import { Route as ApiCanvasIdViewRouteImport } from './routes/api/canvas_.$id_.view'
+import { Route as ApiDesktopNovncSplatRouteImport } from './routes/api/desktop_.novnc.$'
 import { Route as ApiMediaFileIdRouteImport } from './routes/api/media_.file.$id'
 import { Route as ApiRoutinesIdFireRouteImport } from './routes/api/routines_.$id.fire'
 
@@ -97,6 +99,11 @@ const ApiConnectorsRoute = ApiConnectorsRouteImport.update({
 const ApiDeskRoute = ApiDeskRouteImport.update({
   id: '/api/desk',
   path: '/api/desk',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDesktopRoute = ApiDesktopRouteImport.update({
+  id: '/api/desktop',
+  path: '/api/desktop',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiFieldJournalRoute = ApiFieldJournalRouteImport.update({
@@ -234,6 +241,11 @@ const ApiCanvasIdViewRoute = ApiCanvasIdViewRouteImport.update({
   path: '/api/canvas/$id/view',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiDesktopNovncSplatRoute = ApiDesktopNovncSplatRouteImport.update({
+  id: '/api/desktop_/novnc/$',
+  path: '/api/desktop/novnc/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMediaFileIdRoute = ApiMediaFileIdRouteImport.update({
   id: '/api/media_/file/$id',
   path: '/api/media/file/$id',
@@ -256,6 +268,7 @@ export interface FileRoutesByFullPath {
   '/api/chat': typeof ApiChatRoute
   '/api/connectors': typeof ApiConnectorsRoute
   '/api/desk': typeof ApiDeskRoute
+  '/api/desktop': typeof ApiDesktopRoute
   '/api/field-journal': typeof ApiFieldJournalRoute
   '/api/health': typeof ApiHealthRoute
   '/api/inbox': typeof ApiInboxRoute
@@ -283,6 +296,7 @@ export interface FileRoutesByFullPath {
   '/api/oauth/callback': typeof ApiOauthCallbackRoute
   '/api/traces/$id': typeof ApiTracesIdRoute
   '/api/canvas/$id/view': typeof ApiCanvasIdViewRoute
+  '/api/desktop/novnc/$': typeof ApiDesktopNovncSplatRoute
   '/api/media/file/$id': typeof ApiMediaFileIdRoute
   '/api/routines/$id/fire': typeof ApiRoutinesIdFireRoute
 }
@@ -297,6 +311,7 @@ export interface FileRoutesByTo {
   '/api/chat': typeof ApiChatRoute
   '/api/connectors': typeof ApiConnectorsRoute
   '/api/desk': typeof ApiDeskRoute
+  '/api/desktop': typeof ApiDesktopRoute
   '/api/field-journal': typeof ApiFieldJournalRoute
   '/api/health': typeof ApiHealthRoute
   '/api/inbox': typeof ApiInboxRoute
@@ -324,6 +339,7 @@ export interface FileRoutesByTo {
   '/api/oauth/callback': typeof ApiOauthCallbackRoute
   '/api/traces/$id': typeof ApiTracesIdRoute
   '/api/canvas/$id/view': typeof ApiCanvasIdViewRoute
+  '/api/desktop/novnc/$': typeof ApiDesktopNovncSplatRoute
   '/api/media/file/$id': typeof ApiMediaFileIdRoute
   '/api/routines/$id/fire': typeof ApiRoutinesIdFireRoute
 }
@@ -339,6 +355,7 @@ export interface FileRoutesById {
   '/api/chat': typeof ApiChatRoute
   '/api/connectors': typeof ApiConnectorsRoute
   '/api/desk': typeof ApiDeskRoute
+  '/api/desktop': typeof ApiDesktopRoute
   '/api/field-journal': typeof ApiFieldJournalRoute
   '/api/health': typeof ApiHealthRoute
   '/api/inbox': typeof ApiInboxRoute
@@ -366,6 +383,7 @@ export interface FileRoutesById {
   '/api/oauth/callback': typeof ApiOauthCallbackRoute
   '/api/traces_/$id': typeof ApiTracesIdRoute
   '/api/canvas_/$id_/view': typeof ApiCanvasIdViewRoute
+  '/api/desktop_/novnc/$': typeof ApiDesktopNovncSplatRoute
   '/api/media_/file/$id': typeof ApiMediaFileIdRoute
   '/api/routines_/$id/fire': typeof ApiRoutinesIdFireRoute
 }
@@ -382,6 +400,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/connectors'
     | '/api/desk'
+    | '/api/desktop'
     | '/api/field-journal'
     | '/api/health'
     | '/api/inbox'
@@ -409,6 +428,7 @@ export interface FileRouteTypes {
     | '/api/oauth/callback'
     | '/api/traces/$id'
     | '/api/canvas/$id/view'
+    | '/api/desktop/novnc/$'
     | '/api/media/file/$id'
     | '/api/routines/$id/fire'
   fileRoutesByTo: FileRoutesByTo
@@ -423,6 +443,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/connectors'
     | '/api/desk'
+    | '/api/desktop'
     | '/api/field-journal'
     | '/api/health'
     | '/api/inbox'
@@ -450,6 +471,7 @@ export interface FileRouteTypes {
     | '/api/oauth/callback'
     | '/api/traces/$id'
     | '/api/canvas/$id/view'
+    | '/api/desktop/novnc/$'
     | '/api/media/file/$id'
     | '/api/routines/$id/fire'
   id:
@@ -464,6 +486,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/api/connectors'
     | '/api/desk'
+    | '/api/desktop'
     | '/api/field-journal'
     | '/api/health'
     | '/api/inbox'
@@ -491,6 +514,7 @@ export interface FileRouteTypes {
     | '/api/oauth/callback'
     | '/api/traces_/$id'
     | '/api/canvas_/$id_/view'
+    | '/api/desktop_/novnc/$'
     | '/api/media_/file/$id'
     | '/api/routines_/$id/fire'
   fileRoutesById: FileRoutesById
@@ -506,6 +530,7 @@ export interface RootRouteChildren {
   ApiChatRoute: typeof ApiChatRoute
   ApiConnectorsRoute: typeof ApiConnectorsRoute
   ApiDeskRoute: typeof ApiDeskRoute
+  ApiDesktopRoute: typeof ApiDesktopRoute
   ApiFieldJournalRoute: typeof ApiFieldJournalRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiInboxRoute: typeof ApiInboxRoute
@@ -532,6 +557,7 @@ export interface RootRouteChildren {
   ApiOauthCallbackRoute: typeof ApiOauthCallbackRoute
   ApiTracesIdRoute: typeof ApiTracesIdRoute
   ApiCanvasIdViewRoute: typeof ApiCanvasIdViewRoute
+  ApiDesktopNovncSplatRoute: typeof ApiDesktopNovncSplatRoute
   ApiMediaFileIdRoute: typeof ApiMediaFileIdRoute
   ApiRoutinesIdFireRoute: typeof ApiRoutinesIdFireRoute
 }
@@ -606,6 +632,13 @@ declare module '@tanstack/react-router' {
       path: '/api/desk'
       fullPath: '/api/desk'
       preLoaderRoute: typeof ApiDeskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/desktop': {
+      id: '/api/desktop'
+      path: '/api/desktop'
+      fullPath: '/api/desktop'
+      preLoaderRoute: typeof ApiDesktopRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/field-journal': {
@@ -797,6 +830,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCanvasIdViewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/desktop_/novnc/$': {
+      id: '/api/desktop_/novnc/$'
+      path: '/api/desktop/novnc/$'
+      fullPath: '/api/desktop/novnc/$'
+      preLoaderRoute: typeof ApiDesktopNovncSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/media_/file/$id': {
       id: '/api/media_/file/$id'
       path: '/api/media/file/$id'
@@ -837,6 +877,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatRoute: ApiChatRoute,
   ApiConnectorsRoute: ApiConnectorsRoute,
   ApiDeskRoute: ApiDeskRoute,
+  ApiDesktopRoute: ApiDesktopRoute,
   ApiFieldJournalRoute: ApiFieldJournalRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiInboxRoute: ApiInboxRoute,
@@ -863,6 +904,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiOauthCallbackRoute: ApiOauthCallbackRoute,
   ApiTracesIdRoute: ApiTracesIdRoute,
   ApiCanvasIdViewRoute: ApiCanvasIdViewRoute,
+  ApiDesktopNovncSplatRoute: ApiDesktopNovncSplatRoute,
   ApiMediaFileIdRoute: ApiMediaFileIdRoute,
   ApiRoutinesIdFireRoute: ApiRoutinesIdFireRoute,
 }

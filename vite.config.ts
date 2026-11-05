@@ -11,7 +11,8 @@ import { grokPwaPlugin } from "./scripts/grok-pwa-plugin.mjs";
 // @ts-expect-error JS plugin alongside the TS vite config
 import { appEnvPlugin } from "./scripts/app-env-plugin.mjs";
 import { isMigrationFile } from "./scripts/migration-plan.mjs";
-import { Harden } from "./src/server/harden.ts";
+import { Harden, hardenConfig, originAllowed } from "./src/server/harden.ts";
+import { handleVncUpgrade } from "./src/server/desktop-ws.ts";
 
 /** The files `src/lib/db.ts` globs — same directory, same non-recursive scope. */
 function hasGlobbedMigrations(root: string): boolean {
@@ -191,6 +192,12 @@ function hardenPlugin(): Plugin {
     apply: "serve",
     configureServer(server) {
       const harden = new Harden();
+      // W3: noVNC WebSocket → websockify (127.0.0.1), only while the desktop runs, same-origin only.
+      server.httpServer?.on("upgrade", (req, socket, head) => {
+        handleVncUpgrade(req, socket, head, (r) =>
+          Boolean(r.headers.origin) && originAllowed({ method: "GET", path: r.url ?? "/", headers: r.headers, remote: r.socket?.remoteAddress }, hardenConfig(process.env)),
+        );
+      });
       server.middlewares.use((req, res, next) => {
         const verdict = harden.check({ method: req.method ?? "GET", path: req.url ?? "/", headers: req.headers, remote: req.socket?.remoteAddress });
         if (verdict.ok) return next();
