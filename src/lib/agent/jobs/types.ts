@@ -110,7 +110,8 @@ export type Routine = {
 
 export type InboxItem = {
   id: string;
-  kind: "result" | "approval";
+  kind: "result" | "approval" | "brief";
+  /** "" for items that belong to no job (the morning brief). */
   jobId: string;
   /** approval items: which ask this is, so its decision can settle it */
   approvalId?: string;

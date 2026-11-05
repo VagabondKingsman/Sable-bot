@@ -1,3 +1,4 @@
+// @ts-nocheck — plain JS eval runner, type-checked through triage.ts
 /**
  * Triage eval. Runs the same code the server runs
  * (src/lib/agent/proactive/triage.ts) against items.jsonl.

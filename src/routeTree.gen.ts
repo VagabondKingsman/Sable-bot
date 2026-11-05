@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ApiBriefRouteImport } from './routes/api/brief'
 import { Route as ApiBudgetRouteImport } from './routes/api/budget'
 import { Route as ApiCanvasRouteImport } from './routes/api/canvas'
 import { Route as ApiChannelsRouteImport } from './routes/api/channels'
@@ -51,6 +52,11 @@ const IndexRoute = IndexRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBriefRoute = ApiBriefRouteImport.update({
+  id: '/api/brief',
+  path: '/api/brief',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiBudgetRoute = ApiBudgetRouteImport.update({
@@ -212,6 +218,7 @@ const ApiRoutinesIdFireRoute = ApiRoutinesIdFireRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/api/brief': typeof ApiBriefRoute
   '/api/budget': typeof ApiBudgetRoute
   '/api/canvas': typeof ApiCanvasRoute
   '/api/channels': typeof ApiChannelsRouteWithChildren
@@ -247,6 +254,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/api/brief': typeof ApiBriefRoute
   '/api/budget': typeof ApiBudgetRoute
   '/api/canvas': typeof ApiCanvasRoute
   '/api/channels': typeof ApiChannelsRouteWithChildren
@@ -283,6 +291,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/api/brief': typeof ApiBriefRoute
   '/api/budget': typeof ApiBudgetRoute
   '/api/canvas': typeof ApiCanvasRoute
   '/api/channels': typeof ApiChannelsRouteWithChildren
@@ -320,6 +329,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/api/brief'
     | '/api/budget'
     | '/api/canvas'
     | '/api/channels'
@@ -355,6 +365,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/api/brief'
     | '/api/budget'
     | '/api/canvas'
     | '/api/channels'
@@ -390,6 +401,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/login'
+    | '/api/brief'
     | '/api/budget'
     | '/api/canvas'
     | '/api/channels'
@@ -426,6 +438,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
+  ApiBriefRoute: typeof ApiBriefRoute
   ApiBudgetRoute: typeof ApiBudgetRoute
   ApiCanvasRoute: typeof ApiCanvasRoute
   ApiChannelsRoute: typeof ApiChannelsRouteWithChildren
@@ -472,6 +485,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/brief': {
+      id: '/api/brief'
+      path: '/api/brief'
+      fullPath: '/api/brief'
+      preLoaderRoute: typeof ApiBriefRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/budget': {
@@ -709,6 +729,7 @@ const ApiChannelsRouteWithChildren = ApiChannelsRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
+  ApiBriefRoute: ApiBriefRoute,
   ApiBudgetRoute: ApiBudgetRoute,
   ApiCanvasRoute: ApiCanvasRoute,
   ApiChannelsRoute: ApiChannelsRouteWithChildren,

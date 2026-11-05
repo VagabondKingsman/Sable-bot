@@ -376,6 +376,24 @@ async function onWebhookInbound(state: State, event: import("@/lib/agent/channel
   return makeEvent("pong", { ok: true, jobId: job.id }, { peerId, ref: { jobId: job.id } });
 }
 
+/**
+ * Send a Sable-composed note (the morning brief) to the owner's own Telegram
+ * chat. Fixed recipient (first SABLE_TELEGRAM_OWNER_IDS id); the model never
+ * picks it. Returns false when Telegram is not configured.
+ */
+export async function notifyOwnerTelegram(text: string): Promise<boolean> {
+  const state = startChannels();
+  const tg = state.telegram;
+  const chatId = [...parseOwners(process.env.SABLE_TELEGRAM_OWNER_IDS)][0];
+  if (!tg || chatId === undefined) return false;
+  try {
+    await tg.send(chatId, text.slice(0, 3_900));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function getWebhookChannel() {
   return startChannels().webhook;
 }

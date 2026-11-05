@@ -28,6 +28,7 @@ import { ApprovalCard, WorkTrail } from "@/components/sable/desk";
 import { TracesTab } from "@/components/sable/traces-panel";
 import { MediaTab } from "@/components/sable/media-panel";
 import { CanvasTab } from "@/components/sable/canvas-panel";
+import { BriefCard } from "@/components/sable/proactive-panel";
 
 export type PanelTab = "jobs" | "routines" | "inbox" | "tasks" | "traces" | "media" | "canvas";
 
@@ -174,7 +175,10 @@ export function BackgroundPanel({
           ) : tab === "jobs" ? (
             <JobsTab onOpen={onFocusJob} />
           ) : tab === "tasks" ? (
-            <TasksTab />
+            <div className="flex flex-col gap-3">
+              <BriefCard />
+              <TasksTab />
+            </div>
           ) : tab === "traces" ? (
             <TracesTab />
           ) : tab === "media" ? (
@@ -1030,7 +1034,9 @@ function InboxTab({ onOpenJob }: { onOpenJob: (id: string) => void }) {
   if (!data) return <p className="text-sm text-muted">{error || "Đang tải…"}</p>;
   async function open(item: InboxItem) {
     if (!item.read) await jobsApi.markRead([item.id]).catch(() => undefined);
-    onOpenJob(item.jobId);
+    // The morning brief belongs to no job: it opens in the Tasks view instead.
+    if (item.jobId) onOpenJob(item.jobId);
+    else refresh();
   }
   return (
     <div className="flex flex-col gap-3">
