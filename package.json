@@ -26,7 +26,8 @@
     "format": "prettier --write .",
     "eval:w0": "node --experimental-strip-types --no-warnings scripts/eval-w0.mjs",
     "eval:w1": "node --experimental-strip-types --no-warnings scripts/eval-w1.mjs",
-    "eval:w2": "node --experimental-strip-types --no-warnings scripts/eval-w2.mjs"
+    "eval:w2": "node --experimental-strip-types --no-warnings scripts/eval-w2.mjs",
+    "eval:w2a": "node --experimental-strip-types --no-warnings scripts/eval-w2a.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",

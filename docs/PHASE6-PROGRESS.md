@@ -122,4 +122,14 @@ Checklist:
 - [x] 4. Reply chips: approve / snooze / draft reply / open task; never auto-send
 - [x] 5. initiator_kind audit (user|routine|trigger|agent|subagent|channel) on side effects + approvals; `/api/audit`; no background self-approve
   - `src/lib/agent/audit/{types,policy,log}.ts`, `src/server/audit.server.ts` (`decideAs`/`decideStepAs`), `GET /api/audit`; every decide path (web tools/tasks/scope, Telegram, webhook) goes through `canDecide`; routine/trigger/agent/subagent deciders denied (`approval.denied_policy`), webhook peer cannot approve its own chain; channels keep jobs-only reach. Trace list/detail show initiator badge + per-job audit strip; Tasks inbox shows "bởi <kind>". Summaries redacted.
-- [ ] 6. Unit + eval:w2a + evals w0/w1/w2; tsc; restart; ngrok 401/200; package CLEAN
+- [x] 6. Unit + eval:w2a + evals w0/w1/w2; tsc; restart; ngrok 401/200; package CLEAN
+
+### W2a verification (2026-11-05, ~16:35 ICT)
+- Unit: 197 + 306 pass (adds proactive triage/brief/unify/chips + audit tests); `tsc --noEmit` clean.
+- `npm run eval:w2a` 11/11 PASS (7 offline + 4 live): triage gates (40 invented items, 100% acc; self-authored set, likely optimistic), injection can't create an approval, brief default off 07:30 Asia/Saigon + composition, chips never send, initiator_kind on every audit record + trace, background/webhook self-approve denied. eval:w0/w1/w2 still PASS.
+- Restart via watchdog: /api/health, /api/triage, /api/brief, /api/audit, /api/tasks?view=inbox, /api/traces → 200; ngrok 401 without auth / 200 with auth.
+- Package: `/workspace/sable-source-w2a-<stamp>.tgz` SECRET_SCAN=CLEAN (live SABLE_PASSWORD/XAI_API_KEY/ngrok token not present; key-pattern hits are deliberate fake test fixtures only; no .env files).
+
+### W2a bugs fixed / gaps
+- Fixed: triage heuristic missed "please update/pay"; webhook fromOwner now uses configured ownerPeerId; `decideAs` initially widened channel reach → `jobsOnly` for Telegram/webhook; `@ts-nocheck` on evals/triage/run.mjs (triage commit alone had tsc errors, fixed in next commit).
+- Gaps: morning brief is a built-in ticker (`builtin:morning-brief`), not a routines.json entry; brief is deterministic (no LLM); model triage only when SABLE_MODEL_LIGHT is set (else rules + heuristic); old archived traces have no initiator badge; plan traces are labelled `agent` (planner) even though the owner created the plan; decideAs/HTTP decide paths covered by eval policy + live 404/405 checks, not by an end-to-end routine-ask live test.
