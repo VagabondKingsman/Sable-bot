@@ -10,6 +10,7 @@ import { MEMORY_TOOLS } from "./memory.ts";
 import { spawnAgent } from "./spawn.ts";
 import { loadSkill } from "./skill.ts";
 import { shellRun } from "./shell.ts";
+import { browserTool } from "./browser.ts";
 import { SERVER_TOOLS } from "./server-tools.ts";
 import type { FunctionTool, ToolDef } from "./types.ts";
 
@@ -33,6 +34,7 @@ export const FLAG_OF: Record<string, keyof ToolFlags> = {
   spawn_agent: "agents",
   load_skill: "skills",
   shell_run: "shell",
+  browser: "browser",
 };
 
 export type Registry = {
@@ -55,7 +57,7 @@ export function createRegistry(defs: ToolDef[]): Registry {
 }
 
 export function builtinTools(): ToolDef[] {
-  return [...SERVER_TOOLS, fsList, fsRead, fsWrite, createHttpFetch(), ...MEMORY_TOOLS, spawnAgent, loadSkill, shellRun];
+  return [...SERVER_TOOLS, fsList, fsRead, fsWrite, createHttpFetch(), ...MEMORY_TOOLS, spawnAgent, loadSkill, shellRun, browserTool];
 }
 
 let shared: Registry | null = null;
@@ -97,7 +99,7 @@ export function selectTools(registry: Registry, flags: ToolFlags, caps: Capabili
  */
 export function skipNotices(selection: Selection, who: string, functionToolsOn: boolean): string[] {
   const out: string[] = [];
-  const killed = functionToolsOn ? [] : selection.skipped.filter((name) => FLAG_OF[name] === "files" || FLAG_OF[name] === "fetch" || FLAG_OF[name] === "learned" || FLAG_OF[name] === "agents" || FLAG_OF[name] === "skills" || FLAG_OF[name] === "shell");
+  const killed = functionToolsOn ? [] : selection.skipped.filter((name) => FLAG_OF[name] === "files" || FLAG_OF[name] === "fetch" || FLAG_OF[name] === "learned" || FLAG_OF[name] === "agents" || FLAG_OF[name] === "skills" || FLAG_OF[name] === "shell" || FLAG_OF[name] === "browser");
   const rest = selection.skipped.filter((name) => !killed.includes(name));
   if (killed.length) out.push(`Công cụ ${killed.join(", ")} đang tắt trên máy chủ (SABLE_TOOLS=0). Lượt này trả lời không dùng các công cụ đó.`);
   if (rest.length) {

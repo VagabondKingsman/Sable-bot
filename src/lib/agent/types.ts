@@ -72,6 +72,8 @@ export type ToolFlags = {
   skills?: boolean;
   /** shell_run (server-set; SABLE_SHELL=0 kills it). Always needs approval. */
   shell?: boolean;
+  /** browser tool (server-set; SABLE_BROWSER=0 kills it). */
+  browser?: boolean;
 };
 
 export const IMAGE_MODELS = ["grok-imagine-image-2.0", "grok-imagine-image-quality", "grok-imagine-image"] as const;
