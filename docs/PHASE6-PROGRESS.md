@@ -327,3 +327,14 @@ Backup: `/workspace/sable-backup-pre-w6-202611051251.tgz`. Sole builder. OAuth c
   - `docs/FULL-AGENTIC-STATUS.md`: W0–W6 live table, credentials He must provide, known gaps, VPS pre-deploy checklist.
 
 **W6 package:** `/workspace/sable-source-w6-202611051307.tgz` (14.9 MB, 608 files) — key-pattern secret scan CLEAN (0 hits beyond known fixtures, no suspicious filenames). Live-value scan not run (per instruction). W6 complete — Full Agentic plan W0–W6 done; see `docs/FULL-AGENTIC-STATUS.md`.
+
+## W7 — Non-blocking chat: steer / queue / parallel, server turn manager, reply/quote, Telegram async
+
+Backup: `/workspace/sable-backup-pre-w7-202611051337.tgz`. Mirrors the *observable* behaviour of a chat agent that keeps listening while it works (no claims about anyone's internals). Kill switch `SABLE_CHAT_QUEUE` (`0` = old one-shot `/api/chat` behaviour). Invariants unchanged: every steered/queued message is an owner message; forks keep their initiator and run in background mode (approvals always ask, never auto-approve).
+
+- [x] 2. Server turn manager: per-thread queue + steer inbox, sessions by turn id (resume after reconnect), global cap `SABLE_CHAT_CONCURRENCY` (default 3, minus running D7 heavy agents, ≥1), strict per-thread serialization, cancel per queued item
+  - `src/lib/agent/turns/manager.ts` (pure): modes auto/steer/queue/interrupt; burst coalescing (a message arriving before the turn's first output, ≤1.5 s, restarts the turn with all messages); steer delivered at the loop's safe point (after tool results, before the next model call) via `LoopDeps.steer` → `appendUserMessages` (Responses `input` or chat `messages`), wrapped as "new message from the owner while you were working"; leftovers after the final answer become the next turn; queue merges messages within 1.5 s; event log with seq (≤20 000/turn), 30 min / 200 finished sessions retained.
+  - `src/server/turns.server.ts`, `/api/turns` (GET view; POST submit/stop/cancel), `/api/turns/stream?turn=&after=` (SSE replay + live; disconnect only unsubscribes). `runTurnCore` shared with `/api/chat` (same initiator USER, approvals, self-eval, memory extraction).
+  - Fork (`mode:"fork"`): background job with origin `{channel:"desk", threadId, replyTo}`, initiator user:owner:web, result → per-thread outbox (`data/turn-outbox.json`) as a threaded reply.
+  - Job steering (`src/server/job-steer.ts`): background job loops also drain steer messages (used by Telegram).
+  - Tests: `src/lib/agent/turns/manager.test.ts` (9): steer at safe point, burst coalescing, queue order + merge + history, cancel/stop, interrupt, cap across threads, reconnect replay, leftovers, adapter append.

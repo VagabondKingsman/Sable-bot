@@ -8,6 +8,7 @@ import {
 } from "./types.ts";
 import { isModelId } from "./provider.ts";
 import { assemble, clipHistory, MAX_INSTRUCTIONS, MAX_MEMORY } from "./assemble.ts";
+import { decorateReplies } from "./turns/reply.ts";
 import { SERVER_TOOLS } from "./tools/server-tools.ts";
 
 export { MAX_CHARS, MAX_INSTRUCTIONS, MAX_LAST, MAX_MEMORY, MAX_MESSAGES } from "./assemble.ts";
@@ -53,7 +54,7 @@ export function parseChatRequest(body: unknown): ParsedChat {
   if (!raw.model || !isModel(raw.model)) return { ok: false, error: "Mô hình không hợp lệ." };
   if (!Array.isArray(raw.messages) || raw.messages.length === 0) return { ok: false, error: "Chưa có tin nhắn." };
 
-  const { messages, notices } = clipHistory(raw.messages);
+  const { messages, notices } = clipHistory(decorateReplies(raw.messages));
   if (!messages.length || messages[messages.length - 1]?.role !== "user") {
     return { ok: false, error: "Tin nhắn cuối phải là của bạn." };
   }

@@ -42,6 +42,7 @@ import { Route as ApiToolIndexRouteImport } from './routes/api/tool-index'
 import { Route as ApiToolsRouteImport } from './routes/api/tools'
 import { Route as ApiTracesRouteImport } from './routes/api/traces'
 import { Route as ApiTriageRouteImport } from './routes/api/triage'
+import { Route as ApiTurnsRouteImport } from './routes/api/turns'
 import { Route as ApiVaultRouteImport } from './routes/api/vault'
 import { Route as ApiVectorRouteImport } from './routes/api/vector'
 import { Route as ApiVoiceRouteImport } from './routes/api/voice'
@@ -53,6 +54,7 @@ import { Route as ApiCanvasSharesRouteImport } from './routes/api/canvas_.shares
 import { Route as ApiChannelsWebhookRouteImport } from './routes/api/channels.webhook'
 import { Route as ApiOauthCallbackRouteImport } from './routes/api/oauth.callback'
 import { Route as ApiTracesIdRouteImport } from './routes/api/traces_.$id'
+import { Route as ApiTurnsStreamRouteImport } from './routes/api/turns_.stream'
 import { Route as ApiCanvasIdViewRouteImport } from './routes/api/canvas_.$id_.view'
 import { Route as ApiDesktopNovncSplatRouteImport } from './routes/api/desktop_.novnc.$'
 import { Route as ApiDesktopShotIdRouteImport } from './routes/api/desktop_.shot.$id'
@@ -224,6 +226,11 @@ const ApiTriageRoute = ApiTriageRouteImport.update({
   path: '/api/triage',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTurnsRoute = ApiTurnsRouteImport.update({
+  id: '/api/turns',
+  path: '/api/turns',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiVaultRoute = ApiVaultRouteImport.update({
   id: '/api/vault',
   path: '/api/vault',
@@ -277,6 +284,11 @@ const ApiOauthCallbackRoute = ApiOauthCallbackRouteImport.update({
 const ApiTracesIdRoute = ApiTracesIdRouteImport.update({
   id: '/api/traces_/$id',
   path: '/api/traces/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTurnsStreamRoute = ApiTurnsStreamRouteImport.update({
+  id: '/api/turns_/stream',
+  path: '/api/turns/stream',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiCanvasIdViewRoute = ApiCanvasIdViewRouteImport.update({
@@ -339,6 +351,7 @@ export interface FileRoutesByFullPath {
   '/api/tools': typeof ApiToolsRoute
   '/api/traces': typeof ApiTracesRoute
   '/api/triage': typeof ApiTriageRoute
+  '/api/turns': typeof ApiTurnsRoute
   '/api/vault': typeof ApiVaultRoute
   '/api/vector': typeof ApiVectorRoute
   '/api/voice': typeof ApiVoiceRoute
@@ -350,6 +363,7 @@ export interface FileRoutesByFullPath {
   '/api/channels/webhook': typeof ApiChannelsWebhookRoute
   '/api/oauth/callback': typeof ApiOauthCallbackRoute
   '/api/traces/$id': typeof ApiTracesIdRoute
+  '/api/turns/stream': typeof ApiTurnsStreamRoute
   '/api/canvas/$id/view': typeof ApiCanvasIdViewRoute
   '/api/desktop/novnc/$': typeof ApiDesktopNovncSplatRoute
   '/api/desktop/shot/$id': typeof ApiDesktopShotIdRoute
@@ -390,6 +404,7 @@ export interface FileRoutesByTo {
   '/api/tools': typeof ApiToolsRoute
   '/api/traces': typeof ApiTracesRoute
   '/api/triage': typeof ApiTriageRoute
+  '/api/turns': typeof ApiTurnsRoute
   '/api/vault': typeof ApiVaultRoute
   '/api/vector': typeof ApiVectorRoute
   '/api/voice': typeof ApiVoiceRoute
@@ -401,6 +416,7 @@ export interface FileRoutesByTo {
   '/api/channels/webhook': typeof ApiChannelsWebhookRoute
   '/api/oauth/callback': typeof ApiOauthCallbackRoute
   '/api/traces/$id': typeof ApiTracesIdRoute
+  '/api/turns/stream': typeof ApiTurnsStreamRoute
   '/api/canvas/$id/view': typeof ApiCanvasIdViewRoute
   '/api/desktop/novnc/$': typeof ApiDesktopNovncSplatRoute
   '/api/desktop/shot/$id': typeof ApiDesktopShotIdRoute
@@ -442,6 +458,7 @@ export interface FileRoutesById {
   '/api/tools': typeof ApiToolsRoute
   '/api/traces': typeof ApiTracesRoute
   '/api/triage': typeof ApiTriageRoute
+  '/api/turns': typeof ApiTurnsRoute
   '/api/vault': typeof ApiVaultRoute
   '/api/vector': typeof ApiVectorRoute
   '/api/voice': typeof ApiVoiceRoute
@@ -453,6 +470,7 @@ export interface FileRoutesById {
   '/api/channels/webhook': typeof ApiChannelsWebhookRoute
   '/api/oauth/callback': typeof ApiOauthCallbackRoute
   '/api/traces_/$id': typeof ApiTracesIdRoute
+  '/api/turns_/stream': typeof ApiTurnsStreamRoute
   '/api/canvas_/$id_/view': typeof ApiCanvasIdViewRoute
   '/api/desktop_/novnc/$': typeof ApiDesktopNovncSplatRoute
   '/api/desktop_/shot/$id': typeof ApiDesktopShotIdRoute
@@ -495,6 +513,7 @@ export interface FileRouteTypes {
     | '/api/tools'
     | '/api/traces'
     | '/api/triage'
+    | '/api/turns'
     | '/api/vault'
     | '/api/vector'
     | '/api/voice'
@@ -506,6 +525,7 @@ export interface FileRouteTypes {
     | '/api/channels/webhook'
     | '/api/oauth/callback'
     | '/api/traces/$id'
+    | '/api/turns/stream'
     | '/api/canvas/$id/view'
     | '/api/desktop/novnc/$'
     | '/api/desktop/shot/$id'
@@ -546,6 +566,7 @@ export interface FileRouteTypes {
     | '/api/tools'
     | '/api/traces'
     | '/api/triage'
+    | '/api/turns'
     | '/api/vault'
     | '/api/vector'
     | '/api/voice'
@@ -557,6 +578,7 @@ export interface FileRouteTypes {
     | '/api/channels/webhook'
     | '/api/oauth/callback'
     | '/api/traces/$id'
+    | '/api/turns/stream'
     | '/api/canvas/$id/view'
     | '/api/desktop/novnc/$'
     | '/api/desktop/shot/$id'
@@ -597,6 +619,7 @@ export interface FileRouteTypes {
     | '/api/tools'
     | '/api/traces'
     | '/api/triage'
+    | '/api/turns'
     | '/api/vault'
     | '/api/vector'
     | '/api/voice'
@@ -608,6 +631,7 @@ export interface FileRouteTypes {
     | '/api/channels/webhook'
     | '/api/oauth/callback'
     | '/api/traces_/$id'
+    | '/api/turns_/stream'
     | '/api/canvas_/$id_/view'
     | '/api/desktop_/novnc/$'
     | '/api/desktop_/shot/$id'
@@ -649,6 +673,7 @@ export interface RootRouteChildren {
   ApiToolsRoute: typeof ApiToolsRoute
   ApiTracesRoute: typeof ApiTracesRoute
   ApiTriageRoute: typeof ApiTriageRoute
+  ApiTurnsRoute: typeof ApiTurnsRoute
   ApiVaultRoute: typeof ApiVaultRoute
   ApiVectorRoute: typeof ApiVectorRoute
   ApiVoiceRoute: typeof ApiVoiceRoute
@@ -658,6 +683,7 @@ export interface RootRouteChildren {
   ApiCanvasSharesRoute: typeof ApiCanvasSharesRoute
   ApiOauthCallbackRoute: typeof ApiOauthCallbackRoute
   ApiTracesIdRoute: typeof ApiTracesIdRoute
+  ApiTurnsStreamRoute: typeof ApiTurnsStreamRoute
   ApiCanvasIdViewRoute: typeof ApiCanvasIdViewRoute
   ApiDesktopNovncSplatRoute: typeof ApiDesktopNovncSplatRoute
   ApiDesktopShotIdRoute: typeof ApiDesktopShotIdRoute
@@ -898,6 +924,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTriageRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/turns': {
+      id: '/api/turns'
+      path: '/api/turns'
+      fullPath: '/api/turns'
+      preLoaderRoute: typeof ApiTurnsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/vault': {
       id: '/api/vault'
       path: '/api/vault'
@@ -973,6 +1006,13 @@ declare module '@tanstack/react-router' {
       path: '/api/traces/$id'
       fullPath: '/api/traces/$id'
       preLoaderRoute: typeof ApiTracesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/turns_/stream': {
+      id: '/api/turns_/stream'
+      path: '/api/turns/stream'
+      fullPath: '/api/turns/stream'
+      preLoaderRoute: typeof ApiTurnsStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/canvas_/$id_/view': {
@@ -1071,6 +1111,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiToolsRoute: ApiToolsRoute,
   ApiTracesRoute: ApiTracesRoute,
   ApiTriageRoute: ApiTriageRoute,
+  ApiTurnsRoute: ApiTurnsRoute,
   ApiVaultRoute: ApiVaultRoute,
   ApiVectorRoute: ApiVectorRoute,
   ApiVoiceRoute: ApiVoiceRoute,
@@ -1080,6 +1121,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCanvasSharesRoute: ApiCanvasSharesRoute,
   ApiOauthCallbackRoute: ApiOauthCallbackRoute,
   ApiTracesIdRoute: ApiTracesIdRoute,
+  ApiTurnsStreamRoute: ApiTurnsStreamRoute,
   ApiCanvasIdViewRoute: ApiCanvasIdViewRoute,
   ApiDesktopNovncSplatRoute: ApiDesktopNovncSplatRoute,
   ApiDesktopShotIdRoute: ApiDesktopShotIdRoute,

@@ -7,6 +7,7 @@
 import path from "node:path";
 import { parseChatRequest } from "@/lib/agent/harness";
 import { runAgent } from "@/lib/agent/loop";
+import { takeJobSteer } from "@/server/job-steer";
 import { createSpawner } from "@/server/spawn.server";
 import { claimDataDir, JobDb } from "@/lib/agent/jobs/db";
 import { deliverApproval, deliverResult, settleApproval, unreadCount } from "@/lib/agent/jobs/inbox";
@@ -118,6 +119,7 @@ const exec: JobExec = async (job, io) => {
       emit: rec ? (e) => (rec.tap(e), io.emit(e)) : io.emit,
       opts: turn.opts,
       maxSteps: job.maxSteps,
+      steer: () => takeJobSteer(job.id),
     });
   } catch (error) {
     if (rec && !io.signal.aborted) void gradeRun(rec.record({ error: error instanceof Error ? error.message : "error" }));

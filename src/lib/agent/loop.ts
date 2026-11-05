@@ -25,7 +25,18 @@ export type LoopDeps = {
   emit: (event: ClientEvent) => void;
   opts: CallOpts;
   maxSteps?: number;
+  /** W7: messages from the owner that arrived mid-turn, taken at a safe point (between steps). */
+  steer?: () => string[];
 };
+
+/** Append owner messages to the next model call (Responses `input` or chat `messages`). */
+export function appendUserMessages(body: Body, texts: string[]): Body {
+  if (!texts.length) return body;
+  const items = texts.map((content) => ({ role: "user", content }));
+  if (Array.isArray(body.messages)) return { ...body, messages: [...body.messages, ...items] };
+  if (Array.isArray(body.input)) return { ...body, input: [...body.input, ...items] };
+  return body;
+}
 
 export type RunResult = {
   text: string;
@@ -119,6 +130,9 @@ export async function runAgent(assembled: Assembled, deps: LoopDeps): Promise<Ru
     toolCalls += outcome.calls.length;
     breakBefore = true;
     body = deps.adapter.appendToolResults(body, outcome, results, deps.opts);
+    // Safe point: tool results are in; deliver anything the owner sent meanwhile.
+    const steered = deps.ctx.signal.aborted ? [] : (deps.steer?.() ?? []);
+    if (steered.length) body = appendUserMessages(body, steered);
     // The next model call can stay silent for minutes (hidden reasoning); don't leave
     // "Đang chạy công cụ" on screen after the tools have finished.
     if (!deps.ctx.signal.aborted) deps.emit({ event: "status", data: { text: "Đang suy nghĩ" } });

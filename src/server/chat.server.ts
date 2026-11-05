@@ -217,6 +217,56 @@ function writesMemoryNot(tool: { name: string }) {
   return tool.name !== "memory_save" && tool.name !== "memory_forget";
 }
 
+type Turn = NonNullable<ReturnType<typeof prepareTurn>>;
+
+export function turnError(error: unknown, turnSignal: AbortSignal) {
+  return turnSignal.aborted ? "Lượt này chạy quá 4 phút nên đã dừng." : error instanceof Error ? error.message : "Mất kết nối tới mô hình.";
+}
+
+/**
+ * One interactive chat turn (shared by /api/chat and the W7 turn manager): owner initiator,
+ * approvals through the shared queue, self-eval + memory extraction afterwards. `steer` delivers
+ * owner messages that arrived mid-turn at the loop's safe point.
+ */
+export async function runTurnCore(a: { input: ChatRequest; turn: Turn; transport: Transport; emit: (e: ClientEvent) => void; signal: AbortSignal; steer?: () => string[]; extraHistory?: { role: "user" | "assistant"; content: string }[] }) {
+  const { input, turn, emit, signal } = a;
+  const approvals = sharedApprovals();
+  const ctx: ToolContext = {
+    workspaceDir: workspaceDir(),
+    signal,
+    mode: "interactive",
+    approve: (ask) => approvals.request(ask, auditingEmit(emit, USER), signal),
+    memory: turn.memory,
+    skills: turn.skills,
+    scopeId: null,
+    assertScope: makeAssertScope(null, "interactive"),
+    initiator: USER,
+    audit: auditSink(),
+  };
+  if (turn.functions.some((tool) => tool.name === "spawn_agent")) ctx.spawn = createSpawner(turn, turn.active, emit);
+  // W5 self-eval: record what the run did (events only) and grade it afterwards (async).
+  const rec = selfEvalOn() ? runRecorder("chat", input.threadId ?? "chat", input) : null;
+  const tapped = rec ? (e: ClientEvent) => (rec.tap(e), emit(e)) : emit;
+  try {
+    const result = await runAgent(turn.assembled, { adapter: turn.adapter, transport: a.transport, tools: turn.functions, ctx, emit: tapped, opts: turn.opts, maxSteps: MAX_STEPS, steer: a.steer });
+    if (signal.aborted) throw new Error("stopped");
+    if (rec) void gradeRun(rec.record({ answer: result.text, stopped: result.stopped }));
+    if (turn.canLearn && result.text.trim()) {
+      const learnModel = process.env.SABLE_MEMORY_MODEL?.trim();
+      const learnInput: ChatRequest = { ...input, model: learnModel || input.model, effort: "low", tools: { web: false, x: false, code: false, image: false } };
+      queueExtraction(
+        { store: memoryStore(dataDir()), complete: completerFor(() => prepareTurn(learnInput) ?? prepareTurn({ ...learnInput, model: input.model })) },
+        [...input.messages.slice(-5), ...(a.extraHistory ?? []), { role: "assistant", content: result.text }],
+        input.threadId,
+      );
+    }
+    return result;
+  } catch (error) {
+    if (rec && !signal.aborted) void gradeRun(rec.record({ error: error instanceof Error ? error.message : "error" }));
+    throw error;
+  }
+}
+
 export async function streamChat(input: ChatRequest, notices: string[], signal: AbortSignal) {
   await mcpWarm();
   const recall = await recallBlockFor(recallQuery(input), input.threadId);
@@ -259,7 +309,6 @@ export async function streamChat(input: ChatRequest, notices: string[], signal: 
   };
 
   const encoder = new TextEncoder();
-  const approvals = sharedApprovals();
   let cancelled = false;
 
   const stream = new ReadableStream({
@@ -279,44 +328,12 @@ export async function streamChat(input: ChatRequest, notices: string[], signal: 
         }
       };
       for (const text of notices) emit({ event: "notice", data: { text } });
-      const ctx: ToolContext = {
-        workspaceDir: workspaceDir(),
-        signal: turnSignal,
-        mode: "interactive",
-        approve: (ask) => approvals.request(ask, auditingEmit(emit, USER), turnSignal),
-        memory: turn.memory,
-        skills: turn.skills,
-        scopeId: null,
-        assertScope: makeAssertScope(null, "interactive"),
-        initiator: USER,
-        audit: auditSink(),
-      };
-      if (turn.functions.some((tool) => tool.name === "spawn_agent")) ctx.spawn = createSpawner(turn, turn.active, emit);
-      // W5 self-eval: record what the run did (events only) and grade it afterwards (async).
-      const rec = selfEvalOn() ? runRecorder("chat", input.threadId ?? "chat", input) : null;
-      const tapped = rec ? (e: ClientEvent) => (rec.tap(e), emit(e)) : emit;
       try {
-        const result = await runAgent(assembled, { adapter, transport: primedTransport, tools: turn.functions, ctx, emit: tapped, opts, maxSteps: MAX_STEPS });
-        if (rec && !cancelled) void gradeRun(rec.record({ answer: result.text, stopped: result.stopped }));
+        await runTurnCore({ input, turn, transport: primedTransport, emit, signal: turnSignal });
         if (!cancelled) controller.enqueue(sse(encoder, "done", {}));
-        if (turn.canLearn && result.text.trim()) {
-          const learnModel = process.env.SABLE_MEMORY_MODEL?.trim();
-          const learnInput: ChatRequest = { ...input, model: learnModel || input.model, effort: "low", tools: { web: false, x: false, code: false, image: false } };
-          queueExtraction(
-            { store: memoryStore(dataDir()), complete: completerFor(() => prepareTurn(learnInput) ?? prepareTurn({ ...learnInput, model: input.model })) },
-            [...input.messages.slice(-5), { role: "assistant", content: result.text }],
-            input.threadId,
-          );
-        }
       } catch (error) {
-        if (rec && !signal.aborted && !cancelled && !stop.signal.aborted) void gradeRun(rec.record({ error: turnSignal.aborted ? "timeout" : error instanceof Error ? error.message : "error" }));
         if (!signal.aborted && !cancelled && !stop.signal.aborted) {
-          const timedOut = turnSignal.aborted;
-          const message = timedOut
-            ? "Lượt này chạy quá 4 phút nên đã dừng."
-            : error instanceof Error
-              ? error.message
-              : "Mất kết nối tới mô hình.";
+          const message = turnError(error, turnSignal);
           controller.enqueue(sse(encoder, "error", { message: message.slice(0, 240) }));
         }
       }

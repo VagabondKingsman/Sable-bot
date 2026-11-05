@@ -53,6 +53,14 @@ export type ChatMessage = {
   citations?: string[];
   startedAt?: number;
   finishedAt?: number;
+  /** W7: id of the message this one replies to / quotes. */
+  replyTo?: string;
+  /** W7: a threaded reply (fork / late result) rendered collapsed under `replyTo`. */
+  threaded?: boolean;
+  /** W7: how a user message was delivered while a turn ran (steer/queue/fork). */
+  delivery?: "steered" | "queued" | "fork";
+  /** W7: server turn id (resume after reconnect). */
+  turnId?: string;
 };
 
 export type Thread = {

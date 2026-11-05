@@ -73,6 +73,10 @@ function cleanMessage(raw: unknown): ChatMessage | null {
   const out: ChatMessage = { id, role: m.role, content: str(m.content, DESK_CAPS.maxContent) ?? "" };
   const notice = str(m.notice, 2000);
   if (notice) out.notice = notice;
+  const replyTo = str(m.replyTo, 120);
+  if (replyTo) out.replyTo = replyTo;
+  if (m.threaded === true) out.threaded = true;
+  if (m.delivery === "steered" || m.delivery === "queued" || m.delivery === "fork") out.delivery = m.delivery;
   if (m.media && typeof m.media === "object") {
     const media = m.media as Record<string, unknown>;
     const src = str(media.src, 200_000);
