@@ -48,7 +48,20 @@ type AgentState = {
   setApproval: (threadId: string, messageId: string, approval: ApprovalRequest) => void;
   setMedia: (threadId: string, messageId: string, media: ChatMessage["media"]) => void;
   finishTurn: (threadId: string, messageId: string, error?: string) => void;
+  /** W7: append a message to a thread (user message sent while a turn runs, assistant placeholder). */
+  addMessage: (threadId: string, message: ChatMessage) => void;
+  patchMessage: (threadId: string, messageId: string, patch: Partial<ChatMessage>) => void;
+  /** W7: keep the running answer below the latest owner message (steer / burst). */
+  moveToEnd: (threadId: string, messageId: string) => void;
+  /** W7: the server restarted a turn (burst coalescing) or a stream is replayed from seq 0. */
+  resetMessage: (threadId: string, messageId: string, status?: string) => void;
+  /** W7: insert or update a threaded reply (fork / late result) by id. */
+  upsertMessage: (threadId: string, message: ChatMessage) => void;
 };
+
+export function newMessageId() {
+  return crypto.randomUUID();
+}
 
 const MAX_THREADS = 40;
 
@@ -342,6 +355,47 @@ export const useAgent = create<AgentState>()(
               ),
             ),
           ),
+        })),
+      addMessage: (threadId, message) =>
+        set((state) => ({
+          threads: mapThread(state.threads, threadId, (thread) =>
+            touch(thread, [...thread.messages, message], thread.messages.length === 0 && message.role === "user" ? titleFrom(message.content) : undefined),
+          ),
+        })),
+      patchMessage: (threadId, messageId, patch) =>
+        set((state) => ({
+          threads: mapThread(state.threads, threadId, (thread) =>
+            touch(thread, thread.messages.map((message) => (message.id === messageId ? { ...message, ...patch } : message))),
+          ),
+        })),
+      moveToEnd: (threadId, messageId) =>
+        set((state) => ({
+          threads: mapThread(state.threads, threadId, (thread) => {
+            const found = thread.messages.find((message) => message.id === messageId);
+            if (!found || thread.messages[thread.messages.length - 1]?.id === messageId) return thread;
+            return touch(thread, [...thread.messages.filter((message) => message.id !== messageId), found]);
+          }),
+        })),
+      resetMessage: (threadId, messageId, status = "Đang viết") =>
+        set((state) => ({
+          threads: mapThread(state.threads, threadId, (thread) =>
+            touch(
+              thread,
+              thread.messages.map((message) =>
+                message.id === messageId
+                  ? { ...message, content: "", steps: undefined, citations: undefined, notice: undefined, media: undefined, approvals: undefined, finishedAt: undefined, status }
+                  : message,
+              ),
+            ),
+          ),
+        })),
+      upsertMessage: (threadId, message) =>
+        set((state) => ({
+          threads: mapThread(state.threads, threadId, (thread) => {
+            const exists = thread.messages.some((item) => item.id === message.id);
+            const messages = exists ? thread.messages.map((item) => (item.id === message.id ? { ...item, ...message } : item)) : [...thread.messages, message];
+            return touch(thread, messages);
+          }),
         })),
       finishTurn: (threadId, messageId, error) =>
         set((state) => ({

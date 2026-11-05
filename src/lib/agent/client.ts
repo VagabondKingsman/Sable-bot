@@ -144,7 +144,7 @@ export async function modelReady(signal?: AbortSignal) {
   return (await modelInfo(signal)).ready;
 }
 
-function parseBlock(block: string, handlers: StreamHandlers) {
+export function parseBlock(block: string, handlers: StreamHandlers) {
   let event = "message";
   const dataLines: string[] = [];
   for (const line of block.split("\n")) {
@@ -217,7 +217,7 @@ export function desktopShot(p: { image?: unknown; mark?: unknown }): { image?: s
   return { image: p.image, ...(ok ? { mark: { x: m.x as number, y: m.y as number, w: m.w as number, h: m.h as number } } : {}) };
 }
 
-type StreamHandlers = {
+export type StreamHandlers = {
   onDelta: (text: string) => void;
   onStatus: (text: string) => void;
   onNotice: (text: string) => void;

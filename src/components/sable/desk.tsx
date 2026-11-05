@@ -30,6 +30,7 @@ import {
   Wrench,
   X,
   PanelRight,
+  MessageSquareReply,
 } from "lucide-react";
 import { LearnedMemory } from "@/components/sable/memory-panel";
 import { DeskSyncPanel } from "@/components/sable/desk-sync-panel";
@@ -58,6 +59,7 @@ import {
   type AgentSettings,
   type ApprovalRequest,
   type ChatMessage,
+  type ChatRequest,
   type TraceStep,
 } from "@/lib/agent/types";
 import { RichText } from "@/components/sable/rich-text";
@@ -65,6 +67,8 @@ import { BackgroundNavButton, BackgroundPanel, type PanelTab } from "@/component
 import { CANVAS_OPEN_EVENT, CanvasPane, GuardedFrame, type CanvasOpen } from "@/components/sable/canvas-panel";
 import { sanitizeCanvasHtml, withNavGuard } from "@/lib/agent/canvas/render";
 import { jobsApi, type JobsCounts } from "@/lib/agent/jobs-client";
+import { deliveryLabel, historyFor, QueueStrip, QuoteChip, QuotedSnippet, SendControls, ThreadedReplies, useTurns, type Quote } from "@/components/sable/turn-queue";
+import type { SendMode } from "@/lib/agent/turns-client";
 
 const STARTERS = [
   "Tóm tắt tin mới về xAI hôm nay, có nguồn.",
@@ -185,6 +189,37 @@ export function Desk() {
   }, []);
   const sidePane = Boolean(page || canvasView);
   const threadCanvas = latestCanvas(thread?.messages ?? []);
+  const [quote, setQuote] = useState<Quote | null>(null);
+
+  /** The request for a thread as it is now (settings + main-flow history with quote refs). */
+  function buildRequest(threadId: string) {
+    const snapshot = useAgent.getState();
+    const current = snapshot.threads.find((item) => item.id === threadId);
+    if (!current) return null;
+    return {
+      model: snapshot.settings.model,
+      effort: snapshot.settings.effort,
+      instructions: snapshot.settings.instructions,
+      memory: snapshot.settings.memory,
+      tools: {
+        web: snapshot.settings.web,
+        x: snapshot.settings.x,
+        code: snapshot.settings.code,
+        image: snapshot.settings.image,
+        files: snapshot.settings.files !== false,
+        fetch: snapshot.settings.fetch !== false,
+        shell: snapshot.settings.shell === true,
+        browser: snapshot.settings.browser === true,
+      },
+      messages: historyFor(current.messages),
+      threadId,
+      ...(current.noMemory ? { remember: false } : {}),
+    } as ChatRequest;
+  }
+  const turns = useTurns({ buildRequest, activeId: thread?.id ?? null, hydrated, onError: setHint });
+  /** W7: server turn manager on (SABLE_CHAT_QUEUE≠0) → composer never blocks. */
+  const queueMode = turns.queueOn === true;
+  const threadBusy = busy || turns.runningIn(thread?.id ?? null);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -290,9 +325,7 @@ export function Desk() {
   async function replyTo(threadId: string, assistantId: string) {
     const snapshot = useAgent.getState();
     const current = snapshot.threads.find((item) => item.id === threadId);
-    const history = (current?.messages ?? [])
-      .filter((message) => message.id !== assistantId && message.content.trim())
-      .map((message) => ({ role: message.role, content: message.content }));
+    const history = historyFor((current?.messages ?? []).filter((message) => message.id !== assistantId));
     const controller = new AbortController();
     const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(300_000)]);
     lock(threadId, controller);
@@ -340,11 +373,32 @@ export function Desk() {
     }
   }
 
-  async function send(text: string) {
+  async function send(text: string, mode: SendMode = "auto") {
     const typed = text.trim();
-    if (busyRef.current || (!typed && !attachment)) return;
+    const viaQueue = queueMode && !busyRef.current;
+    if ((!viaQueue && busyRef.current) || (!typed && !attachment)) return;
     const file = attachment;
     const content = file ? `${typed}\n\n[Đính kèm ${file.name}]\n${file.text}`.trim() : typed;
+    const replyId = quote?.id;
+    setQuote(null);
+    if (viaQueue) {
+      setHint("");
+      setDraft("");
+      setAttachment(null);
+      saveComposer("", null);
+      setEditingId(null);
+      if (field.current) field.current.style.height = "auto";
+      setNavOpen(false);
+      let threadId = thread?.id;
+      if (!threadId) {
+        newThread();
+        threadId = useAgent.getState().activeId ?? undefined;
+      }
+      if (!threadId) return;
+      stick.current = true;
+      await turns.send(threadId, content, mode, replyId);
+      return;
+    }
     setHint("");
     setDraft("");
     setAttachment(null);
@@ -356,6 +410,11 @@ export function Desk() {
     let assistantId = "";
     try {
       ({ threadId, assistantId } = beginTurn(content));
+      if (replyId) {
+        const list = useAgent.getState().threads.find((item) => item.id === threadId)?.messages ?? [];
+        const user = list[list.findIndex((item) => item.id === assistantId) - 1];
+        if (user) useAgent.getState().patchMessage(threadId, user.id, { replyTo: replyId });
+      }
     } catch (error) {
       setHint(error instanceof Error ? error.message : "Không lưu được tin.");
       setDraft(typed);
@@ -514,6 +573,7 @@ export function Desk() {
 
   function stop() {
     runRef.current?.abort();
+    if (queueMode && thread && turns.runningIn(thread.id)) void turns.stop(thread.id);
   }
 
   function removeThread(id: string) {
@@ -773,14 +833,26 @@ export function Desk() {
                   </div>
                 )}
                       <ScopeApprovalStrip />
-                {thread.messages.map((message, index) => {
-                  const previous = index > 0 ? thread.messages[index - 1] : undefined;
+                {(() => {
+                  const main = thread.messages.filter((m) => !m.threaded);
+                  const byId = new Map(thread.messages.map((m) => [m.id, m]));
+                  const threadedUnder = new Map<string, ChatMessage[]>();
+                  for (const m of thread.messages) if (m.threaded && m.replyTo) threadedUnder.set(m.replyTo, [...(threadedUnder.get(m.replyTo) ?? []), m]);
+                  const renderThreaded = (m: ChatMessage) => (
+                    <div id={`msg-${m.id}`}>
+                      <MessageView message={m} busy={threadBusy} copied={copiedId === m.id} editing={false} onCopy={() => void copyMessage(m.id, m.content)} onEdit={() => undefined} onCancelEdit={() => undefined} onRegenerate={() => undefined} onPdf={() => void exportPdf(byId.get(m.replyTo ?? "")?.content ?? "", m.content)} onDecide={(approval, approve) => void decide(thread.id, m.id, approval, approve)} onReply={() => setQuote({ id: m.id, role: m.role, excerpt: m.content })} threadedReply />
+                    </div>
+                  );
+                  return main.map((message, index) => {
+                  const previous = index > 0 ? main[index - 1] : undefined;
                   const user = message.role === "user" ? message : previous?.role === "user" ? previous : undefined;
                   return (
+                    <div key={message.id} id={`msg-${message.id}`} className="flex flex-col gap-2">
                     <MessageView
-                      key={message.id}
                       message={message}
-                      busy={busy}
+                      quoted={message.replyTo ? byId.get(message.replyTo) : undefined}
+                      onReply={message.content.trim() ? () => { setQuote({ id: message.id, role: message.role, excerpt: message.content }); field.current?.focus(); } : undefined}
+                      busy={threadBusy}
                       copied={copiedId === message.id}
                       editing={editingId === message.id}
                       onCopy={() => void copyMessage(message.id, message.content)}
@@ -793,8 +865,11 @@ export function Desk() {
                       onSpeak={voiceOn && message.role === "assistant" && message.content ? () => void speakText(message.content) : undefined}
                       onDecide={(approval, approve) => void decide(thread.id, message.id, approval, approve)}
                     />
+                    <ThreadedReplies replies={threadedUnder.get(message.id) ?? []} render={renderThreaded} />
+                    </div>
                   );
-                })}
+                  });
+                })()}
               </div>
             </div>
 
@@ -860,6 +935,8 @@ export function Desk() {
                     {settings.enterToSend === false ? "Ctrl+Enter để gửi · Enter xuống hàng" : "Enter để gửi · Shift+Enter xuống hàng"}
                   </button>
                 </div>
+                {queueMode && thread && <QueueStrip view={turns.views[thread.id]} onCancel={(id, ids) => void turns.cancel(thread.id, id, ids)} />}
+                {quote && <QuoteChip quote={quote} onClear={() => setQuote(null)} />}
                 {attachment && (
                   <div className="flex items-center gap-2 px-1 text-sm text-muted">
                     <Paperclip className="size-4" />
@@ -912,7 +989,23 @@ export function Desk() {
                       onKeyDown={onComposerKey}
                     />
                   </label>
-                  {busy ? (
+                  {queueMode && !busy ? (
+                    <>
+                      {bgCounts?.enabled !== false && !threadBusy && (
+                        <button
+                          type="button"
+                          aria-label="Chạy nền"
+                          title="Chạy nền: vẫn chạy khi đóng tab, kết quả vào Hộp thư"
+                          disabled={reading || (!draft.trim() && !attachment)}
+                          onClick={() => void runInBackground()}
+                          className="grid size-11 shrink-0 place-items-center rounded-xl text-muted shadow-ring hover:text-fg disabled:opacity-40"
+                        >
+                          <Clock className="size-4" />
+                        </button>
+                      )}
+                      <SendControls busy={threadBusy} disabled={reading || (!draft.trim() && !attachment)} onStop={stop} onSend={(mode) => void send(draft, mode)} send={<ArrowUp className="size-5" />} />
+                    </>
+                  ) : busy ? (
                     <button type="button" onClick={stop} aria-label="Dừng" className="grid size-11 shrink-0 place-items-center rounded-xl bg-fg text-bg">
                       <Square className="size-4" />
                     </button>
@@ -1183,8 +1276,14 @@ function MessageView({
   onPdf,
   onSpeak,
   onDecide,
+  quoted,
+  onReply,
+  threadedReply,
 }: {
   message: ChatMessage;
+  quoted?: ChatMessage;
+  onReply?: () => void;
+  threadedReply?: boolean;
   onDecide: (approval: ApprovalRequest, approve: boolean) => void;
   busy: boolean;
   copied: boolean;
@@ -1199,6 +1298,7 @@ function MessageView({
   if (message.role === "user") {
     return (
       <article className="flex flex-col items-end gap-1">
+        <QuotedSnippet target={quoted} />
         {editing ? (
           <PromptEditor initial={message.content} busy={busy} onCancel={onCancelEdit} onSubmit={onRegenerate} />
         ) : (
@@ -1212,14 +1312,21 @@ function MessageView({
             <IconButton label="Sửa" disabled={busy} onClick={onEdit}>
               <Pencil className="size-4" />
             </IconButton>
+            {onReply && (
+              <IconButton label="Trả lời" onClick={onReply}>
+                <MessageSquareReply className="size-4" />
+              </IconButton>
+            )}
           </div>
         )}
+        {(deliveryLabel(message) || message.notice) && <p className="text-xs text-muted">{[deliveryLabel(message), message.notice].filter(Boolean).join(" · ")}</p>}
       </article>
     );
   }
   const done = !message.status && Boolean(message.content || message.media);
   return (
     <article className="max-w-full">
+      <QuotedSnippet target={quoted} />
       {message.notice && <p className="mb-2 text-sm text-muted">{message.notice}</p>}
       <WorkTrail message={message} />
       {message.approvals?.map((approval) => (
@@ -1233,9 +1340,16 @@ function MessageView({
           <IconButton label={copied ? "Đã chép" : "Chép"} onClick={onCopy}>
             <Copy className="size-4" />
           </IconButton>
-          <IconButton label="Tạo lại" disabled={busy} onClick={() => onRegenerate("")}>
-            <RotateCcw className="size-4" />
-          </IconButton>
+          {!threadedReply && (
+            <IconButton label="Tạo lại" disabled={busy} onClick={() => onRegenerate("")}>
+              <RotateCcw className="size-4" />
+            </IconButton>
+          )}
+          {onReply && (
+            <IconButton label="Trả lời" onClick={onReply}>
+              <MessageSquareReply className="size-4" />
+            </IconButton>
+          )}
           <IconButton label="Xuất PDF" onClick={onPdf}>
             <FileDown className="size-4" />
           </IconButton>
