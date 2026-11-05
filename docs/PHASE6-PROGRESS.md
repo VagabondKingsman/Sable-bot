@@ -21,3 +21,15 @@ Accepted Full Agentic defaults: D1–D10 as on plan Page.
 
 - Architecture adapted from reverse-skill MIT with attribution in `skills/_meta/NOTICE-reverse-skill.md`.
 - Unit: heartbeat, vault, router, scope, journal, toolindex — 13/13. `npm run eval:w0` all pass. `tsc --noEmit` clean.
+
+## W0 live verification (2026-11-05 15:30 Asia/Saigon)
+
+- `/api/health` GET ok + heartbeat; POST tick ok
+- `/api/router` 5 routes; classify `code review` → R2/code-review
+- `/api/vault` list names only (`configured=false` until key)
+- `/api/scope` killDeny=false, items=[]
+- `/api/tool-index` 7 tools scanned, proposals propose-only
+- `/api/field-journal` write → memory id
+- ngrok: unauth **401**, basic auth **200**
+- Unit: 13/13; `npm run eval:w0` pass; `tsc --noEmit` clean
+- HARD SCOPE held: no apk/binary/js-reverse/pentest/CTF/exploit skills or auto RE installers
