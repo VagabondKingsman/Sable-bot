@@ -15,7 +15,7 @@ import { jobService } from "@/server/jobs.server";
 import { scopeStore } from "@/server/scope.server";
 
 const KEY = Symbol.for("sable.audit.v1");
-type State = { log: AuditLog; chatAsks: Map<string, { initiator: Initiator; at: number }> };
+type State = { log: AuditLog; chatAsks: Map<string, { initiator: Initiator; at: number; tool?: string }> };
 type G = typeof globalThis & { [KEY]?: State };
 
 function state(): State {
@@ -51,7 +51,7 @@ export function auditingEmit(emit: (event: ClientEvent) => void, initiator: Init
   return (event: ClientEvent) => {
     if (event.event === "approval" && event.data.state === "pending") {
       const asks = state().chatAsks;
-      asks.set(event.data.id, { initiator, at: Date.now() });
+      asks.set(event.data.id, { initiator, at: Date.now(), tool: event.data.tool });
       if (asks.size > 500) for (const [k] of [...asks].slice(0, 100)) asks.delete(k);
       audit({ type: "approval.requested", initiator, tool: event.data.tool, summary: event.data.summary, approvalId: event.data.id });
     }
@@ -66,7 +66,7 @@ export function auditJobAsk(job: { id: string; initiator?: Initiator }, approval
 
 function askOwner(approvalId: string): { initiator: Initiator | null; jobId?: string; tool?: string } {
   const chat = state().chatAsks.get(approvalId);
-  if (chat) return { initiator: chat.initiator };
+  if (chat) return { initiator: chat.initiator, tool: chat.tool };
   const job = jobService()
     .db.listJobs()
     .find((j) => j.approvals.some((a) => a.id === approvalId));
@@ -85,7 +85,7 @@ export function decideAs(
   opts: { scope?: boolean; jobsOnly?: boolean } = {},
 ): DecideOutcome {
   const owner = askOwner(approvalId);
-  const policy = canDecide(decider, owner.initiator);
+  const policy = canDecide(decider, owner.initiator, owner.tool);
   const base = { approvalId, jobId: owner.jobId, tool: owner.tool, approve, decider, initiator: owner.initiator ?? decider };
   if (!policy.ok) {
     audit({ type: "approval.denied_policy", ...base, reason: policy.reason, ok: false });

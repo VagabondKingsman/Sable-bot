@@ -48,6 +48,7 @@ import { Route as ApiOauthCallbackRouteImport } from './routes/api/oauth.callbac
 import { Route as ApiTracesIdRouteImport } from './routes/api/traces_.$id'
 import { Route as ApiCanvasIdViewRouteImport } from './routes/api/canvas_.$id_.view'
 import { Route as ApiDesktopNovncSplatRouteImport } from './routes/api/desktop_.novnc.$'
+import { Route as ApiDesktopShotIdRouteImport } from './routes/api/desktop_.shot.$id'
 import { Route as ApiMediaFileIdRouteImport } from './routes/api/media_.file.$id'
 import { Route as ApiRoutinesIdFireRouteImport } from './routes/api/routines_.$id.fire'
 
@@ -246,6 +247,11 @@ const ApiDesktopNovncSplatRoute = ApiDesktopNovncSplatRouteImport.update({
   path: '/api/desktop/novnc/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiDesktopShotIdRoute = ApiDesktopShotIdRouteImport.update({
+  id: '/api/desktop_/shot/$id',
+  path: '/api/desktop/shot/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMediaFileIdRoute = ApiMediaFileIdRouteImport.update({
   id: '/api/media_/file/$id',
   path: '/api/media/file/$id',
@@ -297,6 +303,7 @@ export interface FileRoutesByFullPath {
   '/api/traces/$id': typeof ApiTracesIdRoute
   '/api/canvas/$id/view': typeof ApiCanvasIdViewRoute
   '/api/desktop/novnc/$': typeof ApiDesktopNovncSplatRoute
+  '/api/desktop/shot/$id': typeof ApiDesktopShotIdRoute
   '/api/media/file/$id': typeof ApiMediaFileIdRoute
   '/api/routines/$id/fire': typeof ApiRoutinesIdFireRoute
 }
@@ -340,6 +347,7 @@ export interface FileRoutesByTo {
   '/api/traces/$id': typeof ApiTracesIdRoute
   '/api/canvas/$id/view': typeof ApiCanvasIdViewRoute
   '/api/desktop/novnc/$': typeof ApiDesktopNovncSplatRoute
+  '/api/desktop/shot/$id': typeof ApiDesktopShotIdRoute
   '/api/media/file/$id': typeof ApiMediaFileIdRoute
   '/api/routines/$id/fire': typeof ApiRoutinesIdFireRoute
 }
@@ -384,6 +392,7 @@ export interface FileRoutesById {
   '/api/traces_/$id': typeof ApiTracesIdRoute
   '/api/canvas_/$id_/view': typeof ApiCanvasIdViewRoute
   '/api/desktop_/novnc/$': typeof ApiDesktopNovncSplatRoute
+  '/api/desktop_/shot/$id': typeof ApiDesktopShotIdRoute
   '/api/media_/file/$id': typeof ApiMediaFileIdRoute
   '/api/routines_/$id/fire': typeof ApiRoutinesIdFireRoute
 }
@@ -429,6 +438,7 @@ export interface FileRouteTypes {
     | '/api/traces/$id'
     | '/api/canvas/$id/view'
     | '/api/desktop/novnc/$'
+    | '/api/desktop/shot/$id'
     | '/api/media/file/$id'
     | '/api/routines/$id/fire'
   fileRoutesByTo: FileRoutesByTo
@@ -472,6 +482,7 @@ export interface FileRouteTypes {
     | '/api/traces/$id'
     | '/api/canvas/$id/view'
     | '/api/desktop/novnc/$'
+    | '/api/desktop/shot/$id'
     | '/api/media/file/$id'
     | '/api/routines/$id/fire'
   id:
@@ -515,6 +526,7 @@ export interface FileRouteTypes {
     | '/api/traces_/$id'
     | '/api/canvas_/$id_/view'
     | '/api/desktop_/novnc/$'
+    | '/api/desktop_/shot/$id'
     | '/api/media_/file/$id'
     | '/api/routines_/$id/fire'
   fileRoutesById: FileRoutesById
@@ -558,6 +570,7 @@ export interface RootRouteChildren {
   ApiTracesIdRoute: typeof ApiTracesIdRoute
   ApiCanvasIdViewRoute: typeof ApiCanvasIdViewRoute
   ApiDesktopNovncSplatRoute: typeof ApiDesktopNovncSplatRoute
+  ApiDesktopShotIdRoute: typeof ApiDesktopShotIdRoute
   ApiMediaFileIdRoute: typeof ApiMediaFileIdRoute
   ApiRoutinesIdFireRoute: typeof ApiRoutinesIdFireRoute
 }
@@ -837,6 +850,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiDesktopNovncSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/desktop_/shot/$id': {
+      id: '/api/desktop_/shot/$id'
+      path: '/api/desktop/shot/$id'
+      fullPath: '/api/desktop/shot/$id'
+      preLoaderRoute: typeof ApiDesktopShotIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/media_/file/$id': {
       id: '/api/media_/file/$id'
       path: '/api/media/file/$id'
@@ -905,6 +925,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTracesIdRoute: ApiTracesIdRoute,
   ApiCanvasIdViewRoute: ApiCanvasIdViewRoute,
   ApiDesktopNovncSplatRoute: ApiDesktopNovncSplatRoute,
+  ApiDesktopShotIdRoute: ApiDesktopShotIdRoute,
   ApiMediaFileIdRoute: ApiMediaFileIdRoute,
   ApiRoutinesIdFireRoute: ApiRoutinesIdFireRoute,
 }

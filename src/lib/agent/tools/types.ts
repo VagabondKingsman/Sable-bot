@@ -25,7 +25,18 @@ export type ToolRisk = "read" | "write" | "network" | "memory" | "agent";
 
 export type ToolMode = "interactive" | "background";
 
-export type ApprovalAsk = { tool: string; summary: string; preview?: string };
+export type ApprovalAsk = {
+  tool: string;
+  summary: string;
+  preview?: string;
+  /** W3: same-origin screenshot URL shown on the card (desktop actions). */
+  image?: string;
+  /** W3: target point on that screenshot (screen pixels) + its size. */
+  mark?: { x: number; y: number; w: number; h: number };
+  /** W3: called with the approval id once the card is shown / when it settles (not serialized). */
+  onId?: (id: string) => void;
+  onSettle?: (id: string, state: "approved" | "rejected" | "expired") => void;
+};
 
 export type ToolContext = {
   /** Root of the path-jailed workspace for this (single) user. */

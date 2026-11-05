@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import { DesktopShot } from "@/components/sable/desktop-shot";
 import {
   ArrowUp,
   ChevronDown,
@@ -1266,6 +1267,7 @@ export function ApprovalCard({ approval, onDecide }: { approval: ApprovalRequest
       <p className="mt-1 text-xs text-muted">
         {approval.tool} · {APPROVAL_STATE[approval.state]}
       </p>
+      {approval.image && pending && <DesktopShot image={approval.image} mark={approval.mark} />}
       {approval.preview && (
         <pre className="mt-2 max-h-40 overflow-auto rounded-xl bg-bg px-3 py-2 text-xs leading-relaxed break-all whitespace-pre-wrap text-muted">{approval.preview}</pre>
       )}

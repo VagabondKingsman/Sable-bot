@@ -218,7 +218,8 @@ Checklist:
 - [x] 1. Desktop session manager: Xvfb :99 + WM + Chrome (own profile under sable-data, jailed in bwrap, egress via SSRF-guard proxy) + x11vnc (localhost) + noVNC behind Sable auth; SABLE_DESKTOP kill switch; idle auto-stop
   - Files: `src/lib/agent/desktop/{config,proxy,session}.ts`, `src/server/desktop.server.ts`, `src/server/desktop-ws.ts` (WS upgrade wired in vite `hardenPlugin`), routes `/api/desktop` (GET status, POST start/stop), `/api/desktop/novnc/*` (static /usr/share/novnc, traversal guard, CSP frame-ancestors 'self').
   - Verified live: start ≈0.6 s; x11vnc 127.0.0.1:5999 + websockify 127.0.0.1:6099 only; WS upgrade 403 without/with foreign Origin, 101 same-origin (local + ngrok with auth), ngrok 401 without auth; stop removes all procs and /tmp/.X99-lock.
-- [ ] 2. Tools desktop_screenshot/click/type/key/scroll/wait (xdotool, bounds, secret text never logged, redaction)
+- [x] 2. Tools desktop_screenshot/click/type/key/scroll/wait (xdotool, bounds, secret text never logged, redaction)
+  - `src/lib/agent/desktop/{actions,tools,vision}.ts`; server `desktopToolsFor("chat")` (only interactive chat; jobs/routines get none); `/api/desktop/shot/<id>` (ring of 40, no-store). Approval asks carry `image`+`mark` (card renders screenshot + red target); `canDecide(..., tool)` — desktop asks decidable only by owner web, never when the ask chain has a background initiator. Typed text via `xdotool type --file -` (stdin), secret text redacted in labels/cards/audit. Unit tests `src/lib/agent/desktop/desktop.test.ts` (13).
 - [ ] 3. Vision loop (screenshot → grok-4.7 proposes → approval card → execute → verify; step cap + budget; heavy-slot limit)
 - [ ] 4. UI: Desktop panel (live view, pending action card, Stop)
 - [ ] 5. Tests: unit + E2E on :99 with a local test page; eval:w3; full verification; package CLEAN

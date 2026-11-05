@@ -21,7 +21,7 @@ export type ClientEvent =
   | { event: "citation"; data: { url: string } }
   | { event: "image"; data: { src: string } }
   | { event: "notice"; data: { text: string } }
-  | { event: "approval"; data: { id: string; tool: string; summary: string; preview?: string; state: "pending" | "approved" | "rejected" | "expired" } };
+  | { event: "approval"; data: { id: string; tool: string; summary: string; preview?: string; image?: string; mark?: { x: number; y: number; w: number; h: number }; state: "pending" | "approved" | "rejected" | "expired" } };
 
 export type ParsedChat =
   | { ok: true; request: ChatRequest; notices: string[] }

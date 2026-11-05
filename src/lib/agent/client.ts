@@ -202,10 +202,19 @@ function parseBlock(block: string, handlers: StreamHandlers) {
       tool: payload.tool ?? "tool",
       summary: payload.summary,
       preview: payload.preview,
+      ...desktopShot(payload as { image?: unknown; mark?: unknown }),
       state: state === "approved" || state === "rejected" || state === "expired" ? state : "pending",
     });
   }
   else if (event === "error") throw new Error(payload.message || "Mô hình dừng giữa chừng.");
+}
+
+/** Only a same-origin desktop screenshot path and a sane mark ever reach the card. */
+export function desktopShot(p: { image?: unknown; mark?: unknown }): { image?: string; mark?: { x: number; y: number; w: number; h: number } } {
+  if (typeof p.image !== "string" || !/^\/api\/desktop\/shot\/[a-f0-9]{8,64}$/.test(p.image)) return {};
+  const m = p.mark as Record<string, unknown> | undefined;
+  const ok = m && ["x", "y", "w", "h"].every((k) => typeof m[k] === "number" && Number.isFinite(m[k] as number) && (m[k] as number) >= 0 && (m[k] as number) < 10_000);
+  return { image: p.image, ...(ok ? { mark: { x: m.x as number, y: m.y as number, w: m.w as number, h: m.h as number } } : {}) };
 }
 
 type StreamHandlers = {

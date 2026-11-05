@@ -9,9 +9,18 @@ import { BACKGROUND_KINDS, type Initiator } from "./types.ts";
 
 export type Decision = { ok: true } | { ok: false; reason: string };
 
-export function canDecide(decider: Initiator, askInitiator: Initiator | null): Decision {
+/** W3 (D2): desktop actions are approved only by the owner in the web UI (who sees the screenshot). */
+export const isDesktopTool = (tool?: string | null) => Boolean(tool && /^desktop[_.]/.test(tool));
+
+export function canDecide(decider: Initiator, askInitiator: Initiator | null, tool?: string | null): Decision {
   if (BACKGROUND_KINDS.includes(decider.kind))
     return { ok: false, reason: `${decider.kind} initiators can never approve (no auto-approve in the background)` };
+  if (isDesktopTool(tool)) {
+    if (askInitiator && chainHasBackground(askInitiator))
+      return { ok: false, reason: "desktop actions started by a background initiator can never be approved" };
+    if (decider.kind !== "user") return { ok: false, reason: "desktop actions can only be approved by the owner in the Sable web UI" };
+    return { ok: true };
+  }
   if (decider.kind === "user") return { ok: true };
   if (decider.kind === "channel") {
     if (!/^(telegram|webhook):/.test(decider.id)) return { ok: false, reason: "unknown channel" };
@@ -20,6 +29,11 @@ export function canDecide(decider: Initiator, askInitiator: Initiator | null): D
     return { ok: true };
   }
   return { ok: false, reason: "unknown decider" };
+}
+
+function chainHasBackground(a: Initiator): boolean {
+  if (BACKGROUND_KINDS.includes(a.kind)) return true;
+  return a.via ? chainHasBackground(a.via) : false;
 }
 
 function sameChain(a: Initiator, d: Initiator): boolean {

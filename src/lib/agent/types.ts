@@ -35,6 +35,9 @@ export type ApprovalRequest = {
   tool: string;
   summary: string;
   preview?: string;
+  /** W3 desktop actions: screenshot (same-origin /api/desktop/shot/…) + target point. */
+  image?: string;
+  mark?: { x: number; y: number; w: number; h: number };
   state: "pending" | "approved" | "rejected" | "expired";
 };
 

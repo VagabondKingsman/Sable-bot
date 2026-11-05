@@ -14,6 +14,7 @@ export type Approvals = {
   request(ask: ApprovalAsk, emit: (event: ClientEvent) => void, signal: AbortSignal): Promise<boolean>;
   decide(id: string, approve: boolean): boolean;
   pending(): number;
+  has(id: string): boolean;
 };
 
 export function createApprovals(ttlMs = APPROVAL_TTL_MS, newId: () => string = () => crypto.randomUUID()): Approvals {
@@ -23,7 +24,12 @@ export function createApprovals(ttlMs = APPROVAL_TTL_MS, newId: () => string = (
       // Already cancelled/timed out: never show (or wait on) a card nobody can act on.
       if (signal.aborted) return Promise.resolve(false);
       const id = newId();
-      emit({ event: "approval", data: { id, tool: ask.tool, summary: ask.summary, preview: ask.preview, state: "pending" } });
+      emit({ event: "approval", data: { id, tool: ask.tool, summary: ask.summary, preview: ask.preview, ...(ask.image ? { image: ask.image, mark: ask.mark } : {}), state: "pending" } });
+      try {
+        ask.onId?.(id);
+      } catch {
+        /* observer hooks never break the gate */
+      }
       emit({ event: "status", data: { text: "Đang chờ bạn duyệt" } });
       return new Promise<boolean>((resolve) => {
         let settled = false;
@@ -33,6 +39,11 @@ export function createApprovals(ttlMs = APPROVAL_TTL_MS, newId: () => string = (
           clearTimeout(timer);
           signal.removeEventListener("abort", onAbort);
           map.delete(id);
+          try {
+            ask.onSettle?.(id, state);
+          } catch {
+            /* ignore */
+          }
           if (!signal.aborted) emit({ event: "approval", data: { id, tool: ask.tool, summary: ask.summary, state } });
           resolve(ok);
         };
@@ -50,6 +61,7 @@ export function createApprovals(ttlMs = APPROVAL_TTL_MS, newId: () => string = (
       return true;
     },
     pending: () => map.size,
+    has: (id) => map.has(id),
   };
 }
 
