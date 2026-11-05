@@ -27,7 +27,7 @@ export type HardenConfig = {
 const MINUTE = 60_000;
 const WRITE = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 /** Machine endpoints authenticated by HMAC / per-routine secret (no browser Origin). */
-const CSRF_EXEMPT = [/^\/api\/channels\/webhook$/, /^\/api\/routines\/[A-Za-z0-9_-]{1,80}\/fire$/];
+const CSRF_EXEMPT = [/^\/api\/channels\/webhook$/, /^\/api\/bridge\/inbound$/, /^\/api\/routines\/[A-Za-z0-9_-]{1,80}\/fire$/];
 
 const num = (v: string | undefined, d: number, lo: number, hi: number) => {
   const n = Number(v);

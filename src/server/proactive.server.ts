@@ -271,6 +271,7 @@ export async function tasksInbox(opts: { includeSnoozed?: boolean } = {}) {
     return {};
   };
   const reviews = await import("@/server/evals.server").then((m) => (m.selfEvalOn() ? m.openReviews() : [])).catch(() => []);
-  const tasks = unify({ plans, triaged: feed.items, jobs, reviews, includeSnoozed: opts.includeSnoozed }).map((t) => ({ ...t, ...who(t), chips: assertNoSend(chipsFor(t)) }));
+  const bridge = await import("@/server/bridge.server").then((m) => m.openBridgeInbound()).catch(() => []);
+  const tasks = unify({ plans, triaged: feed.items, jobs, reviews, bridge, includeSnoozed: opts.includeSnoozed }).map((t) => ({ ...t, ...who(t), chips: assertNoSend(chipsFor(t)) }));
   return { triage: feed.enabled, tasks, counts: stateCounts(tasks), ignored: feed.counts.ignore ?? 0 };
 }

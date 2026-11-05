@@ -10,7 +10,7 @@
  */
 import type { UnifiedTask } from "./unify.ts";
 
-export type ChipAction = "approve" | "reject" | "snooze" | "done" | "draft_reply" | "open_task" | "open_job" | "review_resolve" | "review_dismiss";
+export type ChipAction = "approve" | "reject" | "snooze" | "done" | "draft_reply" | "open_task" | "open_job" | "review_resolve" | "review_dismiss" | "bridge_resolve" | "bridge_dismiss";
 
 export type Chip = {
   id: string;
@@ -37,6 +37,8 @@ export const CHIP_ROUTES: Record<ChipAction, string | null> = {
   open_job: null,
   review_resolve: "/api/evals (review state only — never edits code)",
   review_dismiss: "/api/evals (review state only — never edits code)",
+  bridge_resolve: "/api/bridge action=inbound (item state only; no outbound)",
+  bridge_dismiss: "/api/bridge action=inbound (item state only; no outbound)",
 };
 
 const SEND_WORDS = /\b(send|gửi|post|reply now|forward)\b/i;
@@ -63,6 +65,10 @@ export function chipsFor(t: UnifiedTask): Chip[] {
   if (t.ref.reviewId) {
     add("review_resolve", "Đã xem");
     add("review_dismiss", "Bỏ qua");
+  }
+  if (t.ref.bridgeId) {
+    add("bridge_resolve", "Đã xem");
+    add("bridge_dismiss", "Bỏ qua");
   }
   if (t.ref.planId) add("open_task", "Mở task");
   else if (t.ref.jobId) add("open_job", "Mở việc");

@@ -16,6 +16,8 @@ test("CSRF: cross-site POST refused; same-origin, trusted, localhost, curl allow
   assert.equal(hd.check(req("POST", "/api/tools", {})).ok, true, "curl / no Origin");
   assert.equal(hd.check(req("GET", "/api/tools", { origin: "https://evil.example" })).ok, true, "reads are not CSRF-gated");
   assert.equal(hd.check(req("POST", "/api/channels/webhook", { origin: "https://evil.example" })).ok, true);
+  assert.equal(hd.check(req("POST", "/api/bridge/inbound", { origin: "https://evil.example" })).ok, true);
+  assert.equal(hd.check(req("POST", "/api/bridge", { origin: "https://evil.example" })).ok, false);
   assert.equal(hd.check(req("POST", "/api/routines/rtn_1/fire", { origin: "https://evil.example" })).ok, true);
   assert.equal(new Harden(() => cfg({ csrfOn: false })).check(req("POST", "/api/tools", { origin: "https://evil.example" })).ok, true);
   assert.equal(originAllowed(req("POST", "/", { origin: "https://evil.example", "x-forwarded-host": "evil.example", host: "undone.example.dev" }), cfg()), false, "X-Forwarded-Host is not trusted");

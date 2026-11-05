@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ApiAuditRouteImport } from './routes/api/audit'
+import { Route as ApiBridgeRouteImport } from './routes/api/bridge'
 import { Route as ApiBriefRouteImport } from './routes/api/brief'
 import { Route as ApiBudgetRouteImport } from './routes/api/budget'
 import { Route as ApiCanvasRouteImport } from './routes/api/canvas'
@@ -46,6 +47,7 @@ import { Route as ApiVectorRouteImport } from './routes/api/vector'
 import { Route as ApiVoiceRouteImport } from './routes/api/voice'
 import { Route as STokenRouteImport } from './routes/s.$token'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiBridgeInboundRouteImport } from './routes/api/bridge.inbound'
 import { Route as ApiCanvasIdRouteImport } from './routes/api/canvas_.$id'
 import { Route as ApiCanvasSharesRouteImport } from './routes/api/canvas_.shares'
 import { Route as ApiChannelsWebhookRouteImport } from './routes/api/channels.webhook'
@@ -70,6 +72,11 @@ const LoginRoute = LoginRouteImport.update({
 const ApiAuditRoute = ApiAuditRouteImport.update({
   id: '/api/audit',
   path: '/api/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBridgeRoute = ApiBridgeRouteImport.update({
+  id: '/api/bridge',
+  path: '/api/bridge',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiBriefRoute = ApiBriefRouteImport.update({
@@ -242,6 +249,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiBridgeInboundRoute = ApiBridgeInboundRouteImport.update({
+  id: '/inbound',
+  path: '/inbound',
+  getParentRoute: () => ApiBridgeRoute,
+} as any)
 const ApiCanvasIdRoute = ApiCanvasIdRouteImport.update({
   id: '/api/canvas_/$id',
   path: '/api/canvas/$id',
@@ -297,6 +309,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/api/audit': typeof ApiAuditRoute
+  '/api/bridge': typeof ApiBridgeRouteWithChildren
   '/api/brief': typeof ApiBriefRoute
   '/api/budget': typeof ApiBudgetRoute
   '/api/canvas': typeof ApiCanvasRoute
@@ -331,6 +344,7 @@ export interface FileRoutesByFullPath {
   '/api/voice': typeof ApiVoiceRoute
   '/s/$token': typeof STokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/bridge/inbound': typeof ApiBridgeInboundRoute
   '/api/canvas/$id': typeof ApiCanvasIdRoute
   '/api/canvas/shares': typeof ApiCanvasSharesRoute
   '/api/channels/webhook': typeof ApiChannelsWebhookRoute
@@ -346,6 +360,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/api/audit': typeof ApiAuditRoute
+  '/api/bridge': typeof ApiBridgeRouteWithChildren
   '/api/brief': typeof ApiBriefRoute
   '/api/budget': typeof ApiBudgetRoute
   '/api/canvas': typeof ApiCanvasRoute
@@ -380,6 +395,7 @@ export interface FileRoutesByTo {
   '/api/voice': typeof ApiVoiceRoute
   '/s/$token': typeof STokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/bridge/inbound': typeof ApiBridgeInboundRoute
   '/api/canvas/$id': typeof ApiCanvasIdRoute
   '/api/canvas/shares': typeof ApiCanvasSharesRoute
   '/api/channels/webhook': typeof ApiChannelsWebhookRoute
@@ -396,6 +412,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/api/audit': typeof ApiAuditRoute
+  '/api/bridge': typeof ApiBridgeRouteWithChildren
   '/api/brief': typeof ApiBriefRoute
   '/api/budget': typeof ApiBudgetRoute
   '/api/canvas': typeof ApiCanvasRoute
@@ -430,6 +447,7 @@ export interface FileRoutesById {
   '/api/voice': typeof ApiVoiceRoute
   '/s/$token': typeof STokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/bridge/inbound': typeof ApiBridgeInboundRoute
   '/api/canvas_/$id': typeof ApiCanvasIdRoute
   '/api/canvas_/shares': typeof ApiCanvasSharesRoute
   '/api/channels/webhook': typeof ApiChannelsWebhookRoute
@@ -447,6 +465,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/api/audit'
+    | '/api/bridge'
     | '/api/brief'
     | '/api/budget'
     | '/api/canvas'
@@ -481,6 +500,7 @@ export interface FileRouteTypes {
     | '/api/voice'
     | '/s/$token'
     | '/api/auth/$'
+    | '/api/bridge/inbound'
     | '/api/canvas/$id'
     | '/api/canvas/shares'
     | '/api/channels/webhook'
@@ -496,6 +516,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/api/audit'
+    | '/api/bridge'
     | '/api/brief'
     | '/api/budget'
     | '/api/canvas'
@@ -530,6 +551,7 @@ export interface FileRouteTypes {
     | '/api/voice'
     | '/s/$token'
     | '/api/auth/$'
+    | '/api/bridge/inbound'
     | '/api/canvas/$id'
     | '/api/canvas/shares'
     | '/api/channels/webhook'
@@ -545,6 +567,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/api/audit'
+    | '/api/bridge'
     | '/api/brief'
     | '/api/budget'
     | '/api/canvas'
@@ -579,6 +602,7 @@ export interface FileRouteTypes {
     | '/api/voice'
     | '/s/$token'
     | '/api/auth/$'
+    | '/api/bridge/inbound'
     | '/api/canvas_/$id'
     | '/api/canvas_/shares'
     | '/api/channels/webhook'
@@ -595,6 +619,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   ApiAuditRoute: typeof ApiAuditRoute
+  ApiBridgeRoute: typeof ApiBridgeRouteWithChildren
   ApiBriefRoute: typeof ApiBriefRoute
   ApiBudgetRoute: typeof ApiBudgetRoute
   ApiCanvasRoute: typeof ApiCanvasRoute
@@ -661,6 +686,13 @@ declare module '@tanstack/react-router' {
       path: '/api/audit'
       fullPath: '/api/audit'
       preLoaderRoute: typeof ApiAuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/bridge': {
+      id: '/api/bridge'
+      path: '/api/bridge'
+      fullPath: '/api/bridge'
+      preLoaderRoute: typeof ApiBridgeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/brief': {
@@ -901,6 +933,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/bridge/inbound': {
+      id: '/api/bridge/inbound'
+      path: '/inbound'
+      fullPath: '/api/bridge/inbound'
+      preLoaderRoute: typeof ApiBridgeInboundRouteImport
+      parentRoute: typeof ApiBridgeRoute
+    }
     '/api/canvas_/$id': {
       id: '/api/canvas_/$id'
       path: '/api/canvas/$id'
@@ -974,6 +1013,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface ApiBridgeRouteChildren {
+  ApiBridgeInboundRoute: typeof ApiBridgeInboundRoute
+}
+
+const ApiBridgeRouteChildren: ApiBridgeRouteChildren = {
+  ApiBridgeInboundRoute: ApiBridgeInboundRoute,
+}
+
+const ApiBridgeRouteWithChildren = ApiBridgeRoute._addFileChildren(
+  ApiBridgeRouteChildren,
+)
+
 interface ApiChannelsRouteChildren {
   ApiChannelsWebhookRoute: typeof ApiChannelsWebhookRoute
 }
@@ -990,6 +1041,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   ApiAuditRoute: ApiAuditRoute,
+  ApiBridgeRoute: ApiBridgeRouteWithChildren,
   ApiBriefRoute: ApiBriefRoute,
   ApiBudgetRoute: ApiBudgetRoute,
   ApiCanvasRoute: ApiCanvasRoute,

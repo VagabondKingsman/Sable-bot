@@ -1,4 +1,5 @@
 /** W2a proactive UI: morning-brief settings card (+ Tasks inbox, reply chips). */
+import { bridgeApi } from "@/lib/agent/bridge-client";
 import { useCallback, useEffect, useState } from "react";
 import { Bell, Play } from "lucide-react";
 import { proactiveApi, type BriefView, type TasksInboxView } from "@/lib/agent/proactive-client";
@@ -231,6 +232,9 @@ export function ChipRow({
       case "review_resolve":
       case "review_dismiss":
         return void act(() => evalsApi.review(task.ref.reviewId!, c.action === "review_resolve" ? "resolved" : "dismissed"));
+      case "bridge_resolve":
+      case "bridge_dismiss":
+        return void act(() => bridgeApi.inbound(task.ref.bridgeId!, c.action === "bridge_resolve" ? "resolved" : "dismissed"));
     }
   }
   return (
