@@ -58,25 +58,16 @@ Checklist:
 
 ## W1 live verification (2026-11-05 15:41 Asia/Saigon)
 
-- Backup: 
--  create → waiting_approval on write_gate; workspace under tasks/<id>
--  enforce + pick hard=grok-4.7 (light=hard until SABLE_MODEL_LIGHT set)
+- Backup: `/workspace/sable-backup-pre-w1-202611050832.tgz`
+- `/api/tasks` create → waiting_approval on write_gate; workspace under tasks/<id>
+- `/api/budget` enforce + pick hard=grok-4.7 (light=hard until SABLE_MODEL_LIGHT set)
 - ScopeGate: create pending → POST /api/tools kind=scope approve → approved
 - ngrok: unauth **401**, basic auth **200**
-- Unit: 267/267; 
-> eval:w1
-> node --experimental-strip-types --no-warnings scripts/eval-w1.mjs
-
-PASS plan-create-resume-after-crash
-PASS workspace-isolation-3
-PASS budget-trip
-PASS scope-card-approve-deny
-
-all w1 eval checks passed PASS;  clean
-- Package:  SECRET_SCAN=CLEAN
+- Unit: 267/267; `npm run eval:w1` all PASS; `tsc --noEmit` clean
+- Package: `/workspace/sable-source-w1-202611050841.tgz` SECRET_SCAN=CLEAN
 - HARD SCOPE held: no RE/pentest/CTF skills
 
-### Known gaps
-- Planner agent steps dry-run unless JobRunner hook wired for full LLM enqueue (write_gate/note/classify/doc_audit solid).
-- Light model equals hard until  configured.
-- Budget meter not yet hooked into every live LLM response usage field (plan synthetic + API; job fail-closed on global cap before run).
+### Known gaps (W1)
+- Planner `agent` steps dry-run unless JobRunner hook is wired for full LLM enqueue (note/classify/write_gate/doc_audit are solid).
+- Light model equals hard until `SABLE_MODEL_LIGHT` is configured.
+- Budget meter not yet hooked into every live LLM response usage field (plan uses synthetic tokens; jobs fail-closed on global cap before run).
