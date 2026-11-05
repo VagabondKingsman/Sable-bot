@@ -92,6 +92,9 @@ function cleanMessage(raw: unknown): ChatMessage | null {
         detail: str(step.detail, 20_000),
         state: "done" as const,
         parent: str(step.parent, 300),
+        tool: str(step.tool, 80),
+        at: num(step.at),
+        ms: num(step.ms),
         sources: Array.isArray(step.sources) ? step.sources.filter((x): x is string => typeof x === "string").slice(0, 50).map((x) => x.slice(0, 2000)) : undefined,
       }];
     });

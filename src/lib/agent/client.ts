@@ -167,6 +167,8 @@ function parseBlock(block: string, handlers: StreamHandlers) {
     tool?: string;
     summary?: string;
     preview?: string;
+    at?: number;
+    ms?: number;
   };
   try {
     payload = JSON.parse(data) as typeof payload;
@@ -185,6 +187,9 @@ function parseBlock(block: string, handlers: StreamHandlers) {
       state: payload.state,
       sources: Array.isArray(payload.sources) ? payload.sources.filter((url) => typeof url === "string").slice(0, 8) : undefined,
       parent: typeof payload.parent === "string" ? payload.parent.slice(0, 300) : undefined,
+      ...(typeof payload.tool === "string" ? { tool: payload.tool.slice(0, 80) } : {}),
+      ...(typeof payload.at === "number" && Number.isFinite(payload.at) ? { at: payload.at } : {}),
+      ...(typeof payload.ms === "number" && Number.isFinite(payload.ms) ? { ms: payload.ms } : {}),
     });
   } else if (event === "thought" && payload.text) handlers.onThought(payload.text);
   else if (event === "citation" && payload.url) handlers.onCitation(payload.url);

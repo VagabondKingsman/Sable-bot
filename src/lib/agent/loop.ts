@@ -49,8 +49,8 @@ async function runOne(call: ToolCall, deps: LoopDeps, step: number): Promise<Too
   // Step number in the id: providers may reuse call ids across steps (e.g. "call_0").
   const stepId = `tool-${step}-${call.id}`;
   const label = labelFor(def, call);
-  deps.emit({ event: "step", data: { id: stepId, kind: "tool", label, state: "run" } });
   const started = Date.now();
+  deps.emit({ event: "step", data: { id: stepId, kind: "tool", label, state: "run", tool: call.name, at: started } });
   const result: ToolResult = def
     ? await execute(def, call.args, { ...deps.ctx, stepId })
     : { ok: false, output: `unknown tool: ${call.name}. Available: ${deps.tools.map((tool) => tool.name).join(", ") || "none"}` };
@@ -59,7 +59,7 @@ async function runOne(call: ToolCall, deps: LoopDeps, step: number): Promise<Too
   const detail = [`${result.ok ? "ok" : "lỗi"} · ${ms} ms`, result.detail ?? "", result.output ?? ""].filter(Boolean).join("\n").slice(0, 2_000);
   deps.emit({
     event: "step",
-    data: { id: stepId, kind: "tool", label, detail, state: "done", sources: result.sources?.length ? result.sources.slice(0, 8) : undefined },
+    data: { id: stepId, kind: "tool", label, detail, state: "done", tool: call.name, ms, sources: result.sources?.length ? result.sources.slice(0, 8) : undefined },
   });
   return result;
 }

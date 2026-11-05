@@ -25,8 +25,9 @@ import { useAgent } from "@/lib/agent/store";
 import { EFFORTS, type ChatMessage, type Effort } from "@/lib/agent/types";
 import { RichText } from "@/components/sable/rich-text";
 import { ApprovalCard, WorkTrail } from "@/components/sable/desk";
+import { TracesTab } from "@/components/sable/traces-panel";
 
-export type PanelTab = "jobs" | "routines" | "inbox" | "tasks";
+export type PanelTab = "jobs" | "routines" | "inbox" | "tasks" | "traces" | "media" | "canvas";
 
 const STATUS: Record<JobStatus, { label: string; tone: string }> = {
   queued: { label: "Đang chờ", tone: "text-muted" },
@@ -113,6 +114,7 @@ export function BackgroundPanel({
     { id: "tasks", label: "Tasks" },
     { id: "routines", label: "Lịch chạy" },
     { id: "inbox", label: "Hộp thư" },
+    { id: "traces", label: "Trace" },
   ];
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-bg/70">
@@ -141,7 +143,7 @@ export function BackgroundPanel({
             <X className="size-5" />
           </button>
         </div>
-        <div className="flex gap-1 px-4 pt-3" role="tablist">
+        <div className="flex gap-1 overflow-x-auto px-4 pt-3" role="tablist">
           {tabs.map((item) => (
             <button
               key={item.id}
@@ -169,6 +171,8 @@ export function BackgroundPanel({
             <JobsTab onOpen={onFocusJob} />
           ) : tab === "tasks" ? (
             <TasksTab />
+          ) : tab === "traces" ? (
+            <TracesTab />
           ) : tab === "routines" ? (
             <RoutinesTab models={models} onOpenJob={onFocusJob} />
           ) : (

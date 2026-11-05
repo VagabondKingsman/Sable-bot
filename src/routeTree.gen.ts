@@ -30,10 +30,12 @@ import { Route as ApiSkillsRouteImport } from './routes/api/skills'
 import { Route as ApiTasksRouteImport } from './routes/api/tasks'
 import { Route as ApiToolIndexRouteImport } from './routes/api/tool-index'
 import { Route as ApiToolsRouteImport } from './routes/api/tools'
+import { Route as ApiTracesRouteImport } from './routes/api/traces'
 import { Route as ApiVaultRouteImport } from './routes/api/vault'
 import { Route as ApiVoiceRouteImport } from './routes/api/voice'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiChannelsWebhookRouteImport } from './routes/api/channels.webhook'
+import { Route as ApiTracesIdRouteImport } from './routes/api/traces_.$id'
 import { Route as ApiRoutinesIdFireRouteImport } from './routes/api/routines_.$id.fire'
 
 const IndexRoute = IndexRouteImport.update({
@@ -141,6 +143,11 @@ const ApiToolsRoute = ApiToolsRouteImport.update({
   path: '/api/tools',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTracesRoute = ApiTracesRouteImport.update({
+  id: '/api/traces',
+  path: '/api/traces',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiVaultRoute = ApiVaultRouteImport.update({
   id: '/api/vault',
   path: '/api/vault',
@@ -160,6 +167,11 @@ const ApiChannelsWebhookRoute = ApiChannelsWebhookRouteImport.update({
   id: '/webhook',
   path: '/webhook',
   getParentRoute: () => ApiChannelsRoute,
+} as any)
+const ApiTracesIdRoute = ApiTracesIdRouteImport.update({
+  id: '/api/traces_/$id',
+  path: '/api/traces/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiRoutinesIdFireRoute = ApiRoutinesIdFireRouteImport.update({
   id: '/api/routines_/$id/fire',
@@ -189,10 +201,12 @@ export interface FileRoutesByFullPath {
   '/api/tasks': typeof ApiTasksRoute
   '/api/tool-index': typeof ApiToolIndexRoute
   '/api/tools': typeof ApiToolsRoute
+  '/api/traces': typeof ApiTracesRoute
   '/api/vault': typeof ApiVaultRoute
   '/api/voice': typeof ApiVoiceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/channels/webhook': typeof ApiChannelsWebhookRoute
+  '/api/traces/$id': typeof ApiTracesIdRoute
   '/api/routines/$id/fire': typeof ApiRoutinesIdFireRoute
 }
 export interface FileRoutesByTo {
@@ -217,10 +231,12 @@ export interface FileRoutesByTo {
   '/api/tasks': typeof ApiTasksRoute
   '/api/tool-index': typeof ApiToolIndexRoute
   '/api/tools': typeof ApiToolsRoute
+  '/api/traces': typeof ApiTracesRoute
   '/api/vault': typeof ApiVaultRoute
   '/api/voice': typeof ApiVoiceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/channels/webhook': typeof ApiChannelsWebhookRoute
+  '/api/traces/$id': typeof ApiTracesIdRoute
   '/api/routines/$id/fire': typeof ApiRoutinesIdFireRoute
 }
 export interface FileRoutesById {
@@ -246,10 +262,12 @@ export interface FileRoutesById {
   '/api/tasks': typeof ApiTasksRoute
   '/api/tool-index': typeof ApiToolIndexRoute
   '/api/tools': typeof ApiToolsRoute
+  '/api/traces': typeof ApiTracesRoute
   '/api/vault': typeof ApiVaultRoute
   '/api/voice': typeof ApiVoiceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/channels/webhook': typeof ApiChannelsWebhookRoute
+  '/api/traces_/$id': typeof ApiTracesIdRoute
   '/api/routines_/$id/fire': typeof ApiRoutinesIdFireRoute
 }
 export interface FileRouteTypes {
@@ -276,10 +294,12 @@ export interface FileRouteTypes {
     | '/api/tasks'
     | '/api/tool-index'
     | '/api/tools'
+    | '/api/traces'
     | '/api/vault'
     | '/api/voice'
     | '/api/auth/$'
     | '/api/channels/webhook'
+    | '/api/traces/$id'
     | '/api/routines/$id/fire'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -304,10 +324,12 @@ export interface FileRouteTypes {
     | '/api/tasks'
     | '/api/tool-index'
     | '/api/tools'
+    | '/api/traces'
     | '/api/vault'
     | '/api/voice'
     | '/api/auth/$'
     | '/api/channels/webhook'
+    | '/api/traces/$id'
     | '/api/routines/$id/fire'
   id:
     | '__root__'
@@ -332,10 +354,12 @@ export interface FileRouteTypes {
     | '/api/tasks'
     | '/api/tool-index'
     | '/api/tools'
+    | '/api/traces'
     | '/api/vault'
     | '/api/voice'
     | '/api/auth/$'
     | '/api/channels/webhook'
+    | '/api/traces_/$id'
     | '/api/routines_/$id/fire'
   fileRoutesById: FileRoutesById
 }
@@ -361,9 +385,11 @@ export interface RootRouteChildren {
   ApiTasksRoute: typeof ApiTasksRoute
   ApiToolIndexRoute: typeof ApiToolIndexRoute
   ApiToolsRoute: typeof ApiToolsRoute
+  ApiTracesRoute: typeof ApiTracesRoute
   ApiVaultRoute: typeof ApiVaultRoute
   ApiVoiceRoute: typeof ApiVoiceRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiTracesIdRoute: typeof ApiTracesIdRoute
   ApiRoutinesIdFireRoute: typeof ApiRoutinesIdFireRoute
 }
 
@@ -516,6 +542,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/traces': {
+      id: '/api/traces'
+      path: '/api/traces'
+      fullPath: '/api/traces'
+      preLoaderRoute: typeof ApiTracesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/vault': {
       id: '/api/vault'
       path: '/api/vault'
@@ -543,6 +576,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/channels/webhook'
       preLoaderRoute: typeof ApiChannelsWebhookRouteImport
       parentRoute: typeof ApiChannelsRoute
+    }
+    '/api/traces_/$id': {
+      id: '/api/traces_/$id'
+      path: '/api/traces/$id'
+      fullPath: '/api/traces/$id'
+      preLoaderRoute: typeof ApiTracesIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/routines_/$id/fire': {
       id: '/api/routines_/$id/fire'
@@ -588,9 +628,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTasksRoute: ApiTasksRoute,
   ApiToolIndexRoute: ApiToolIndexRoute,
   ApiToolsRoute: ApiToolsRoute,
+  ApiTracesRoute: ApiTracesRoute,
   ApiVaultRoute: ApiVaultRoute,
   ApiVoiceRoute: ApiVoiceRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiTracesIdRoute: ApiTracesIdRoute,
   ApiRoutinesIdFireRoute: ApiRoutinesIdFireRoute,
 }
 export const routeTree = rootRouteImport

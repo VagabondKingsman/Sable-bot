@@ -16,7 +16,7 @@ export const MAX_OUTPUT_TOKENS = 12_000;
 export type ClientEvent =
   | { event: "delta"; data: { text: string } }
   | { event: "status"; data: { text: string } }
-  | { event: "step"; data: { id: string; kind: StepKind; label: string; detail?: string; state?: "run" | "done"; sources?: string[]; parent?: string } }
+  | { event: "step"; data: { id: string; kind: StepKind; label: string; detail?: string; state?: "run" | "done"; sources?: string[]; parent?: string; tool?: string; at?: number; ms?: number } }
   | { event: "thought"; data: { text: string } }
   | { event: "citation"; data: { url: string } }
   | { event: "image"; data: { src: string } }
@@ -344,6 +344,9 @@ function unite(prev: TraceStep, step: TraceStep): TraceStep {
     id: step.id || prev.id,
     detail: step.detail ?? prev.detail,
     state: step.state ?? prev.state,
+    ...((step.tool ?? prev.tool) ? { tool: step.tool ?? prev.tool } : {}),
+    ...((prev.at ?? step.at) != null ? { at: prev.at ?? step.at } : {}),
+    ...((step.ms ?? prev.ms) != null ? { ms: step.ms ?? prev.ms } : {}),
     sources: sources.length ? sources : undefined,
   };
 }

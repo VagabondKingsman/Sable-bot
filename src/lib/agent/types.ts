@@ -21,6 +21,12 @@ export type TraceStep = {
   sources?: string[];
   /** Id of the spawn_agent step this step belongs to (sub-agent trace, shown nested). */
   parent?: string;
+  /** Function tool name (W2 trace filter). */
+  tool?: string;
+  /** Epoch ms when the step started (W2 trace timeline). */
+  at?: number;
+  /** Step latency in ms once done. */
+  ms?: number;
 };
 
 /** A write a tool asked to make; the user approves or rejects it in the UI. */
