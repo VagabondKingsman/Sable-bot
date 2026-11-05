@@ -90,8 +90,8 @@ test("voice: STT/TTS against local mock server", async () => {
 
 test("voice: upstream errors do not leak keys", async () => {
   const fetchImpl = (async () =>
-    new Response(JSON.stringify({ error: { message: "bad sk-secretKEY1234567890abcd" } }), { status: 401 })) as typeof fetch;
-  const endpoint = { base: "http://mock", key: "sk-secretKEY1234567890abcd", sttModel: "whisper-1", ttsModel: "tts-1", voice: "alloy" };
+    new Response(JSON.stringify({ error: { message: "bad sk-TESTLEAKMARKER" } }), { status: 401 })) as typeof fetch;
+  const endpoint = { base: "http://mock", key: "sk-TESTLEAKMARKER", sttModel: "whisper-1", ttsModel: "tts-1", voice: "alloy" };
   const stt = await transcribe({ bytes: fakeWavBytes(), endpoint, fetchImpl });
   assert.equal(stt.ok, false);
   if (!stt.ok) {
