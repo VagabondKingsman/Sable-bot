@@ -83,4 +83,26 @@ Checklist:
 - [x] 1. Observability / trace UI (`SABLE_TRACE`): `/api/traces`, `/api/traces/<id>`, timeline tab, tool filter, JSON export, archive >= 7 days
 - [x] 2. Image & video generation (`SABLE_MEDIA`): xAI + OpenAI-compatible image adapters, video only with a real provider, media library, gallery, budget
 - [x] 3. Canvas-style Pages (`SABLE_CANVAS`): sandboxed iframe + CSP, versions, list/read API, open beside chat
-- [ ] 4. Unit + eval:w2; tsc; restart; ngrok 401/200; package CLEAN
+- [x] 4. Unit + eval:w2; tsc; restart; ngrok 401/200; package CLEAN
+
+## W2 live verification (2026-11-05 16:12 Asia/Saigon)
+
+- Trace: `/api/traces` 200 (12 runs, retention 14 d, floor 7 d), `/api/traces/<id>?export=1` → `sable.trace.v1` attachment; bad id 400; archive files 0600.
+- Media: real xAI image generated (`grok-imagine-image-2.0`, b64, JPEG sniffed, 70 KB) → `/workspace/sable-workspace/media/`, index in `sable-data/media/` (0600); gallery shows it. OpenAI-compatible adapter honestly "chưa cấu hình" (no `SABLE_IMAGE_BASE_URL`). Video: xAI configured; not live-generated this wave (cost) — covered by unit tests with a mocked provider.
+- Canvas: owner create/update via API → v1/v2; `/view` carries `CSP: sandbox allow-scripts; default-src 'none'; connect-src 'none' …` + nosniff (also through ngrok). Agent `canvas_write` end-to-end: approval card → approved → `c_e6a1…` v1. Headless Chrome probe inside the frame: `origin=null`, parent access blocked, `fetch` blocked by CSP, `localStorage` blocked; script (counter button) runs. Pane opens beside the chat.
+- Restart: dev server killed → watchdog relaunched in ~21 s; `/api/health` 200.
+- ngrok: unauth **401**, basic auth **200** (`/`, `/api/canvas`; `/api/traces`, `/api/media` 200 with auth).
+- Unit: 197 + 284 pass; `npm run eval:w2` 10/10 PASS (7 offline + 3 live); eval:w0/w1 still PASS; `tsc --noEmit` clean.
+- HARD SCOPE held: no RE/pentest/CTF skills; Content scope untouched.
+
+### Bugs found/fixed (W2)
+- Trace archive test flaked on `Date.now()` in fixture → fixed fixture.
+- `unite` produced `undefined` keys for tool/at/ms → conditional spreads.
+- `canvas_write` first registered under the `files` flag changed every Files-on tool list (3 tests failed) → own server-set `canvas` flag (SABLE_CANVAS && Files).
+- First live image recorded $0 in the meter because the running server held a pre-W2 BudgetMeter singleton (no fixed `usd`); fixed by restart, the one event corrected to $0.07 (backup `/tmp/budget-usage.bak.json`).
+
+### Known gaps (W2)
+- No agent tool for media yet (generate from the Media tab / `/api/media`; chat Ảnh/Video buttons use the same library path).
+- Canvas pages cannot load CDN libs or remote images (strict CSP by design); share link = authenticated desk URL (no separate revocable share token).
+- A sandboxed canvas can still navigate its own frame (CSP can't block self-navigation); mitigated by approval on `canvas_write` + no-referrer + no cookies in the opaque origin.
+- Trace latency for older (pre-W2) records is parsed from "ok · N ms" text; no `at` timestamp on them.
