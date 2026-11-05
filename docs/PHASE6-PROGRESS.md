@@ -233,3 +233,12 @@ Checklist:
   - Memory footprint: desktop stopped = 0 extra processes (Vite ~850 MB RSS baseline). Desktop running during a vision run = 17 processes, ~1.2 GB RSS summed (Xvfb ~73 MB, x11vnc ~20 MB, websockify ~38 MB, Chrome main ~240 MB + renderer/GPU/utility children; xfwm4 ~86 MB when a WM is used). Idle auto-stop after 10 min (timer, not exercised live in eval).
 
 **W3 package:** `/workspace/sable-source-w3-202611051143.tgz` (14.7 MB) — key-pattern secret scan CLEAN (only known fixtures: vault.test "test-master…" passphrase, evals/sable.jsonl `sk-proj-abcdefghij…` alphabet fixture); no suspicious filenames. Live-value scan not run (expired approval, not retried). W3 complete — W4 not started.
+
+## W4 — Deep research + code worktree agent
+
+Backup: `/workspace/sable-backup-pre-w4-202611051144.tgz`. Sole builder. Defaults: D6 GitHub PR off; D7 ≤2 heavy agents (research/code runs share slots with desktop runs + subagents). Kill switches `SABLE_RESEARCH=0`, `SABLE_CODEAGENT=0`.
+
+- [ ] 1. Deep-research agent: plan → parallel search/fetch (SSRF-guarded http_fetch) → dedupe + credibility notes → claim-level citations (quote must be in a fetched excerpt) → verifier flags unsupported claims → Canvas page; resumable checkpoints; run $ cap `SABLE_RESEARCH_RUN_USD` + step cap; heavy slot
+- [ ] 2. Code worktree agent: git worktree under `/workspace/sable-workspace/code/<task>/` (fs jail), commands in bwrap (no network), diff + test results for review; apply/merge only with owner approval; PR off (D6)
+- [ ] 3. UI: Research + Code panels (plan, progress, sources, diff viewer, approve/reject)
+- [ ] 4. Tests with local fixture sites + fixture repo; eval:w4; full verification; package CLEAN
