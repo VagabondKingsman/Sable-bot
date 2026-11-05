@@ -31,7 +31,8 @@
     "eval:w2b": "node --experimental-strip-types --no-warnings scripts/eval-w2b.mjs",
     "eval:w2c": "node --experimental-strip-types --no-warnings scripts/eval-w2c.mjs",
     "eval:w3": "node --experimental-strip-types --no-warnings scripts/eval-w3.mjs",
-    "eval:w4": "node --experimental-strip-types --no-warnings scripts/eval-w4.mjs"
+    "eval:w4": "node --experimental-strip-types --no-warnings scripts/eval-w4.mjs",
+    "eval:w5": "node --experimental-strip-types --no-warnings scripts/eval-w5.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",

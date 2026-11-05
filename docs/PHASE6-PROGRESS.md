@@ -292,4 +292,15 @@ Backup: `/workspace/sable-backup-pre-w5-202611051225.tgz`. Sole builder. Kill sw
   - `memory-search-panel.tsx` (tab "Tìm nhớ"): index status (embedder that ran + why others were skipped, docs/chunks/bytes per source, last sync in VN time, redaction count), Sync / Rebuild, query with source filters (memory, journal, threads, Canvas, research, workspace docs) + mode (hybrid / BM25 / vector), hits with per-signal score parts (BM25 / vector / recency).
   - `eval-panel.tsx` (tab "Eval"): summary (runs, failed, avg success / groundedness, grader), review queue (Đã xem / Chấp nhận đề xuất / Bỏ qua — state only, accepting a proposal applies nothing), nightly toggle + time + suites (default off), run-now with suite picker, regression runs with diffs, recent grades.
   - Headless Chrome check (no display used): both tabs render; search returned 12 hits; dashboard showed 1 grade, 2 regression runs, nightly unchecked; 0 page errors.
-- [ ] 5. Tests, eval:w5 (retrieval quality set, honest recall@k), tsc, npm test, evals w0..w4, restart, ngrok 401/200, memory footprint; package CLEAN
+- [x] 5. Tests, eval:w5 (retrieval quality set, honest recall@k), tsc, npm test, evals w0..w4, restart, ngrok 401/200, memory footprint; package CLEAN
+  - `scripts/eval-w5.mjs` (`npm run eval:w5`): vector + evals unit suites; retrieval quality set (30 docs over all 6 sources, 36 labelled queries: 12 keyword, 12 fuzzy = no diacritics/typos/inflection, 12 paraphrase = meaning only); recency tie-break; deletion propagation; 5 000-chunk footprint; live checks (embedder that ran, /api/recall 400 without q, CSRF 403 on /api/vector + /api/evals, nightly off + routine disabled, review validation 400/404).
+  - Retrieval quality, embedder **hash-v2-512** (R@1 / R@5 / MRR):
+    - keyword: bm25 1.00/1.00/1.00 · vector 1.00/1.00/1.00 · hybrid 1.00/1.00/1.00
+    - fuzzy: bm25 1.00/1.00/1.00 · vector 1.00/1.00/1.00 · hybrid 1.00/1.00/1.00
+    - paraphrase: bm25 0.25/0.33/0.29 · vector 0.25/0.25/0.25 · hybrid 0.25/0.42/0.30
+    - all 36: bm25 0.75/0.78/0.76 · vector 0.75/0.75/0.75 · **hybrid 0.75/0.81/0.77**
+    - Honest read: the set is self-authored and small, so keyword/fuzzy scores are optimistic. The hash embedder is lexical, so it adds almost nothing on paraphrase (hybrid R@5 0.42 vs BM25 0.33); real semantic recall needs an embeddings key (`OPENAI_API_KEY`) or the optional local model. No paraphrase gate applies to the hash embedder; with a semantic embedder the eval requires R@5 ≥ 0.6.
+  - Footprint: 5 000 synthetic chunks → 5.3 MB on disk (vectors 2.46 MB int8), +49 MB RSS (store + BM25 + chunk text), hybrid query ~7 ms. Live index: 17 docs / 228 chunks / 368 KB on disk; evals data 12 KB. vite dev RSS ~815 MB after restart (W4 baseline ~850–900 MB); box 16 GB total, ~5 GB available.
+  - /api/recall now returns 400 without `q` (found by eval).
+  - Verification: tsc clean; npm test 197 + 392 pass, 0 fail; evals w0, w1, w2 (10/0/0), w2a (11), w2b (15), w2c (12), w3 11/0/0, w4 8/0/0, w5 14/0/0. Restart OK; ngrok `/`, `/api/vector`, `/api/recall`, `/api/evals` → 401 without auth, 200 with.
+  - Package: `/workspace/sable-source-w5-202611051250.tgz`, key-pattern scan clean (known test fixtures only).

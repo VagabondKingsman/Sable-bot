@@ -15,13 +15,14 @@ export const Route = createFileRoute("/api/recall")({
         guarded("GET /api/recall", async () => {
           const u = new URL(request.url).searchParams;
           const q = (u.get("q") ?? "").slice(0, 300);
+          if (!q.trim()) return Response.json({ message: "q required." }, { status: 400, headers: NO_STORE });
           if (!vectorOn()) return Response.json({ enabled: false, hits: [] }, { headers: NO_STORE });
           const sources = (u.get("sources") ?? "").split(",").filter((s): s is SourceKind => (SOURCE_KINDS as readonly string[]).includes(s));
           const m = u.get("mode");
           const mode = m === "bm25" || m === "vector" ? m : "hybrid";
           const k = Math.min(30, Math.max(1, Number(u.get("k")) || 10));
           const t0 = Date.now();
-          const hits = q.trim() ? await hybridSearch(q, { k, sources, mode }) : [];
+          const hits = await hybridSearch(q, { k, sources, mode });
           return Response.json(
             {
               enabled: true,
