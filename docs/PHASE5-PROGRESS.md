@@ -25,3 +25,4 @@ License: AIC is PolyForm Perimeter — designs studied, no AIC code copied. Fres
   3. Eval harness + 7 new cases; scrub redact fixture.
 - [x] Final · restart :8080; ngrok **401** without auth / **200** with basic auth; local 200; sable-watchdog + ngrok still running.
 - [x] Final · package + secret scan (see report below).
+- Package: /workspace/sable-source-phase5-202611050703.tgz
