@@ -139,3 +139,13 @@ Telegram / routines keep running as long as this one process is up — that is t
 Router config: `skills/routing.json` (benign skills only). Attribution: `skills/_meta/NOTICE-reverse-skill.md`.
 Scope records: `$SABLE_DATA_DIR/scopes.json` — owner approve/deny via `/api/scope`.
 Background jobs never bypass ScopeGate.
+
+## W1 · Planner / workspace / budget / ScopeGate UI
+
+- `SABLE_PLANNER=0` disables creating/running task graphs.
+- `SABLE_WORKSPACES=0` falls back to the shared `SABLE_WORKSPACE` jail (no per-task dirs).
+- Task workspaces live under `/workspace/sable-workspace/tasks/<id>/` (`SABLE_TASK_WORKSPACE_ROOT` override). Deleting a task wipes its workspace.
+- `SABLE_BUDGET=0` keeps metering but does not fail-closed on caps. Caps: `SABLE_BUDGET_MAX_TOKENS`, `SABLE_BUDGET_MAX_USD`.
+- Model router (D8): `SABLE_MODEL_HARD` (default `grok-4.7`), `SABLE_MODEL_LIGHT` / `SABLE_MODEL_CHEAP` for light steps; `SABLE_MODEL_ROUTER=0` always uses hard.
+- ScopeGate pending scopes appear as Đồng ý/Từ chối cards (desk + background). `POST /api/tools` with `{id, approve, kind:"scope"}` or `POST /api/scope` approve/deny.
+- APIs: `GET|POST /api/tasks`, `GET /api/budget`.

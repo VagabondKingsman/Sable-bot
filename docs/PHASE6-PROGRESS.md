@@ -1,6 +1,6 @@
 # Phase 6 progress
 
-**Last updated:** 2026-11-05 15:31 Asia/Saigon
+**Last updated:** 2026-11-05 15:40 Asia/Saigon
  (times Asia/Saigon UTC+7)
 
 Backup: `/workspace/sable-backup-pre-w0-202611050822.tgz`
@@ -43,3 +43,15 @@ Accepted Full Agentic defaults: D1–D10 as on plan Page.
 - Git commits collapsed: most W0 code landed in `d2e5dcb` (intended per-item commits partially collapsed after early `git add -A`).
 - Vault `configured=false` until `SABLE_VAULT_KEY` set; `.env.local` migrate path documented in DEPLOY.md, not auto-run.
 - Watchdog restarted (pid refreshed) so POST `/api/health` tick is live.
+
+
+## W1 · Planner / workspace / budget / ScopeGate UI (2026-11-05 15:33 Asia/Saigon)
+
+Backup: `/workspace/sable-backup-pre-w1-202611050832.tgz`
+
+Checklist:
+- [x] 1. Planner/executor task graphs + checkpoints (`SABLE_PLANNER`)
+- [x] 2. Per-task workspace under `/workspace/sable-workspace/tasks/<id>/` (`SABLE_WORKSPACES`)
+- [x] 3. Cost/token budgeter + model router (`SABLE_BUDGET`)
+- [x] 4. ScopeGate approval card in desk/background UX
+- [ ] 5. Unit + eval:w1; tsc; restart; ngrok 401/200; package CLEAN
