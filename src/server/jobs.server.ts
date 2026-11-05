@@ -20,6 +20,8 @@ import type { ToolContext } from "@/lib/agent/tools/types";
 import { prepareTurn, workspaceDir } from "@/server/chat.server";
 import { emitJobEvent } from "@/server/channel-bus";
 import { catchUpOn, tickHeartbeat } from "@/lib/agent/resilience/heartbeat";
+import { plannerBundle } from "@/server/planner.server";
+import { makeAssertScope } from "@/server/scope.server";
 
 function num(name: string, fallback: number, min: number, max: number) {
   const raw = Number(process.env[name]);
@@ -82,13 +84,21 @@ const exec: JobExec = async (job, io) => {
   const turn = prepareTurn(job.request, BACKGROUND_NOTE, { mode: "background", source: job.routineId ? "routine" : "job", sourceRef: job.id, mcp: true });
   if (!turn) throw new Error("Mô hình chưa sẵn sàng trong môi trường này.");
   for (const text of turn.notices) io.emit({ event: "notice", data: { text } });
+  const { workspaces, budget } = plannerBundle();
+  const wsId = job.workspaceId ?? job.taskId;
+  if (wsId) workspaces.ensure(wsId);
+  const taskWs = workspaces.resolve(wsId);
+  const budgetOk = budget.check();
+  if (!budgetOk.ok) throw new Error(budgetOk.error);
   const ctx: ToolContext = {
-    workspaceDir: workspaceDir(),
+    workspaceDir: taskWs,
     signal: io.signal,
     mode: "background",
     approve: io.approve,
     memory: turn.memory,
     skills: turn.skills,
+    scopeId: job.scopeId ?? null,
+    assertScope: makeAssertScope(job.scopeId ?? null, "background"),
   };
   if (turn.functions.some((tool) => tool.name === "spawn_agent")) ctx.spawn = createSpawner(turn, turn.active, io.emit);
   const result = await runAgent(turn.assembled, {

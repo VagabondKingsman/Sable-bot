@@ -54,6 +54,11 @@ export type Job = {
   delivered?: boolean;
   /** Set when a routine run replied NO_CHANGE (no inbox item, no channel ping). */
   skippedReason?: "unchanged";
+  /** Planner task / isolated workspace (W1). */
+  taskId?: string;
+  workspaceId?: string;
+  /** Owner-approved ScopeGate id for ACT tools. */
+  scopeId?: string;
 };
 
 /** List view: everything but the heavy fields. */
