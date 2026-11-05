@@ -316,6 +316,7 @@ Backup: `/workspace/sable-backup-pre-w6-202611051251.tgz`. Sole builder. OAuth c
 - [x] 2. Inbound `/api/bridge/inbound`: HMAC verify, replay → 409, rate limit, untrusted content (no instructions, no approvals, no side effects) → Tasks inbox + optional thread
   - Order: off 403 → size 413 → rate 429 → signature/timestamp 401 → nonce replay 409 → JSON 400 → schema 422 (peer may only send result/message/ping/pong) → message-id replay 409. Extra fields are dropped; text redacted; links http(s) only. CSRF-exempt (HMAC-authenticated); `/api/bridge` stays same-origin.
   - Lands in the Tasks inbox as kind `bridge` ("dữ liệu không tin cậy") with state-only chips Đã xem / Bỏ qua; optional (default off) new noMemory thread with an untrusted banner. No path to approvals, tools or runs. Live: 403 `bridge_off` until configured.
-- [ ] 3. `docs/BRIDGE-PROTOCOL.md` (sable.bridge.v1 schema, signing, error codes, curl, setup for He)
+- [x] 3. `docs/BRIDGE-PROTOCOL.md` (sable.bridge.v1 schema, signing, error codes, curl, setup for He)
+  - Safety table, schema, signing string + headers, inbound error codes, openssl/curl example, setup (vault `BRIDGE_SECRET` / `BRIDGE_PEER_URL` / `BRIDGE_PEER_TOKEN`, needs `SABLE_VAULT_KEY`; Grok Bot webhook routine He must approve; kill switch), ngrok basic-auth note.
 - [ ] 4. UI: Bridge panel in Settings (status, mock-peer test ping, recent handoffs)
 - [ ] 5. Tests with a local mock peer, eval:w6, tsc, npm test, evals w0..w5, restart, ngrok 401/200, package CLEAN; `docs/FULL-AGENTIC-STATUS.md`
