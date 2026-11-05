@@ -259,3 +259,13 @@ Backup: `/workspace/sable-backup-pre-w4-202611051144.tgz`. Sole builder. Default
   - `scripts/eval-w4.mjs` (`npm run eval:w4`, `--no-llm` skips the live model run): research + code unit suites; research E2E on the local fixture web with a dishonest model (global fetch trapped: only the fixture server reachable) → every surviving cite maps verbatim to a fetched source, 4 bad claims (fabricated quote, unknown S9, injected text, blocked metadata source) flagged unsupported; code E2E on a fixture repo (escape write, `.git` write, network probe all refused/blocked; agent/background chains cannot apply; owner apply merges, no remote); live status/caps/sandbox/PR off; CSRF 403, validation 400, protected repos refused; live code-agent run on a temp repo (task 9b978be10c96-style, ~6 steps, ~$0.015) → review → owner apply → cleanup; footprint. Commit e503274.
   - Verification (after restart): tsc clean; npm test 197 + 376 pass; eval w0, w1, w2, w2a, w2b, w2c all passed; w3 11/0/0; w4 8 pass 0 fail 0 skip. ngrok: `/`, `/api/research`, `/api/code` 401 without auth, 200 with. Memory: vite main ~0.9 GB RSS; box 16 GB total, ~5 GB available.
   - Package `/workspace/sable-source-w4-202611051224.tgz` (stamp UTC = 19:24 ICT), 569 files, key-pattern scan: 0 hits, no suspicious filenames → CLEAN.
+
+## W5 — Local vector store, hybrid retrieval, self-eval (D4)
+
+Backup: `/workspace/sable-backup-pre-w5-202611051225.tgz`. Sole builder. Kill switches `SABLE_VECTOR=0` (index + vector recall), `SABLE_SELFEVAL=0` (grader). Nightly regression routine default **off**. Self-eval never modifies code or prompts — proposals only, owner approves.
+
+- [ ] 1. Local vector store (lightest on RAM, under sable-data) indexing memory, journal, threads, canvas pages, research sources, workspace docs; configurable embeddings (OpenAI/xAI if available → local small model → deterministic fallback; report which ran); incremental indexing, deletion propagation, vault/secrets never indexed, redaction before embedding; kill switch `SABLE_VECTOR`
+- [ ] 2. Hybrid retrieval (BM25 + vector + recency) for memory recall + the agent's context builder with a token budget; recall tool for the agent
+- [ ] 3. Self-eval: per-run lightweight grader (light model if `SABLE_MODEL_LIGHT` else rule checks) → success/groundedness; failures → review queue in the Tasks inbox; nightly regression routine (default off) running eval suites + reporting diffs; proposals only
+- [ ] 4. UI: Memory search panel + Eval dashboard
+- [ ] 5. Tests, eval:w5 (retrieval quality set, honest recall@k), tsc, npm test, evals w0..w4, restart, ngrok 401/200, memory footprint; package CLEAN
