@@ -1,3 +1,5 @@
+import { auditingEmit, auditSink } from "@/server/audit.server";
+import { USER } from "@/lib/agent/audit/types";
 import { MAX_OUTPUT_TOKENS, parseChatRequest, takeSlot, type ClientEvent } from "@/lib/agent/harness";
 import { adapterFor, type CallOpts } from "@/lib/agent/adapters";
 import { assemble } from "@/lib/agent/assemble";
@@ -262,11 +264,13 @@ export async function streamChat(input: ChatRequest, notices: string[], signal: 
         workspaceDir: workspaceDir(),
         signal: turnSignal,
         mode: "interactive",
-        approve: (ask) => approvals.request(ask, emit, turnSignal),
+        approve: (ask) => approvals.request(ask, auditingEmit(emit, USER), turnSignal),
         memory: turn.memory,
         skills: turn.skills,
         scopeId: null,
         assertScope: makeAssertScope(null, "interactive"),
+        initiator: USER,
+        audit: auditSink(),
       };
       if (turn.functions.some((tool) => tool.name === "spawn_agent")) ctx.spawn = createSpawner(turn, turn.active, emit);
       try {

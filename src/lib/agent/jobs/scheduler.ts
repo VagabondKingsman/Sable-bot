@@ -247,7 +247,7 @@ export class RoutineScheduler {
     return found;
   }
 
-  private enqueueFor(routine: Routine, scheduledFor: number, catchUp: boolean, manual = false, prompt?: string): Job {
+  private enqueueFor(routine: Routine, scheduledFor: number, catchUp: boolean, manual = false, prompt?: string, initiator?: Job["initiator"]): Job {
     const request = requestFor(routine);
     if (prompt) request.messages = [{ role: "user", content: prompt }];
     const input: EnqueueInput = {
@@ -257,6 +257,7 @@ export class RoutineScheduler {
       scheduledFor,
       catchUp,
       manual,
+      initiator,
       request,
       maxSteps: Math.min(this.opts.maxStepsCap, routine.maxSteps),
       timeoutMs: this.opts.jobTimeoutMs,
@@ -527,7 +528,8 @@ export class RoutineScheduler {
     if (!routine.enabled) throw new TriggerError(409, "Lịch chạy đang tạm dừng.");
     if (this.opts.runner.hasActive(routine.id)) throw new TriggerError(409, "Lượt trước của lịch này chưa xong.");
     const now = this.opts.now();
-    const job = this.enqueueFor(routine, now, false, true, eventPrompt(routine.prompt, source, text, url));
+    // Event-fired: nobody clicked — a trigger, never "user" (W2a audit).
+    const job = this.enqueueFor(routine, now, false, true, eventPrompt(routine.prompt, source, text, url), { kind: "trigger", id: `${source}:${routine.id}` });
     this.patch(routine.id, (item) => ({
       ...item,
       lastRunAt: now,

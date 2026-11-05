@@ -63,6 +63,9 @@ export function createSpawner(
       mode: ctx.mode,
       approve: ctx.approve ? (ask) => ctx.approve!({ ...ask, summary: `[sub-agent ${profile}] ${ask.summary}` }) : undefined,
       memory: ctx.memory ? { ...ctx.memory, canWrite: false } : undefined,
+      // W2a: the child's side effects are "subagent", chained to the parent run's initiator.
+      initiator: { kind: "subagent", id: ctx.stepId ?? `spawn:${profile}`, via: ctx.initiator },
+      audit: ctx.audit,
       // no spawn: depth limit 1
     };
     const started = Date.now();

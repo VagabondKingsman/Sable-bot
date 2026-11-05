@@ -50,6 +50,8 @@ export type Job = {
   manual?: boolean;
   /** Where the request came from when not the web UI (replies go back there, owner only). */
   origin?: JobOrigin;
+  /** W2a: who started this run (user | routine | trigger | agent | subagent | channel). */
+  initiator?: import("../audit/types.ts").Initiator;
   /** false between the final save and the inbox write; recovery redelivers it. */
   delivered?: boolean;
   /** Set when a routine run replied NO_CHANGE (no inbox item, no channel ping). */

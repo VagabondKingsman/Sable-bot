@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ApiAuditRouteImport } from './routes/api/audit'
 import { Route as ApiBriefRouteImport } from './routes/api/brief'
 import { Route as ApiBudgetRouteImport } from './routes/api/budget'
 import { Route as ApiCanvasRouteImport } from './routes/api/canvas'
@@ -52,6 +53,11 @@ const IndexRoute = IndexRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuditRoute = ApiAuditRouteImport.update({
+  id: '/api/audit',
+  path: '/api/audit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiBriefRoute = ApiBriefRouteImport.update({
@@ -218,6 +224,7 @@ const ApiRoutinesIdFireRoute = ApiRoutinesIdFireRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/api/audit': typeof ApiAuditRoute
   '/api/brief': typeof ApiBriefRoute
   '/api/budget': typeof ApiBudgetRoute
   '/api/canvas': typeof ApiCanvasRoute
@@ -254,6 +261,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/api/audit': typeof ApiAuditRoute
   '/api/brief': typeof ApiBriefRoute
   '/api/budget': typeof ApiBudgetRoute
   '/api/canvas': typeof ApiCanvasRoute
@@ -291,6 +299,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/api/audit': typeof ApiAuditRoute
   '/api/brief': typeof ApiBriefRoute
   '/api/budget': typeof ApiBudgetRoute
   '/api/canvas': typeof ApiCanvasRoute
@@ -329,6 +338,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/api/audit'
     | '/api/brief'
     | '/api/budget'
     | '/api/canvas'
@@ -365,6 +375,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/api/audit'
     | '/api/brief'
     | '/api/budget'
     | '/api/canvas'
@@ -401,6 +412,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/login'
+    | '/api/audit'
     | '/api/brief'
     | '/api/budget'
     | '/api/canvas'
@@ -438,6 +450,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
+  ApiAuditRoute: typeof ApiAuditRoute
   ApiBriefRoute: typeof ApiBriefRoute
   ApiBudgetRoute: typeof ApiBudgetRoute
   ApiCanvasRoute: typeof ApiCanvasRoute
@@ -485,6 +498,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/audit': {
+      id: '/api/audit'
+      path: '/api/audit'
+      fullPath: '/api/audit'
+      preLoaderRoute: typeof ApiAuditRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/brief': {
@@ -729,6 +749,7 @@ const ApiChannelsRouteWithChildren = ApiChannelsRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
+  ApiAuditRoute: ApiAuditRoute,
   ApiBriefRoute: ApiBriefRoute,
   ApiBudgetRoute: ApiBudgetRoute,
   ApiCanvasRoute: ApiCanvasRoute,

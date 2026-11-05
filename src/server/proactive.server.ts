@@ -17,8 +17,10 @@ import { composeBrief, dueSlot, type BriefTask } from "@/lib/agent/proactive/bri
 import type { BriefConfig, BriefRecord } from "@/lib/agent/proactive/store";
 import type { InboxItem } from "@/lib/agent/jobs/types";
 import { plannerBundle } from "@/server/planner.server";
+import { audit } from "@/server/audit.server";
 import { stateCounts, unify } from "@/lib/agent/proactive/unify";
 import { assertNoSend, chipsFor } from "@/lib/agent/proactive/chips";
+import { initiatorFor } from "@/lib/agent/jobs/runner";
 
 const KEY = Symbol.for("sable.proactive.store");
 type G = typeof globalThis & { [KEY]?: ProactiveStore };
@@ -159,15 +161,15 @@ export async function runBrief(opts: { manual: boolean; slot?: string; now?: Dat
   const record: BriefRecord = { id, at: now.getTime(), title: brief.title, text: brief.text, manual: opts.manual, delivered, counts: brief.counts, items: needing };
   store.addBrief(record);
   store.setBrief({ lastRunAt: now.getTime(), ...(opts.slot ? { lastSlot: opts.slot } : {}) });
-  onBriefDelivered?.(record, opts.manual);
+  audit({
+    type: "brief.delivered",
+    initiator: opts.manual ? { kind: "user", id: "owner:web" } : { kind: "routine", id: BRIEF_ROUTINE_ID },
+    summary: `${brief.title} → ${delivered.join(" + ")}`,
+    ok: true,
+  });
   return { ok: true as const, brief: record };
 }
 
-/** Hook for the audit log (set by audit.server) — keeps this module free of a cycle. */
-export let onBriefDelivered: ((record: BriefRecord, manual: boolean) => void) | undefined;
-export function setBriefHook(fn: typeof onBriefDelivered) {
-  onBriefDelivered = fn;
-}
 
 export function briefView() {
   const cfg = proactiveStore().brief();
@@ -216,6 +218,16 @@ export async function tasksInbox(opts: { includeSnoozed?: boolean } = {}) {
     }
   })();
   const jobs = jobService().db.listJobs().slice(0, 100);
-  const tasks = unify({ plans, triaged: feed.items, jobs, includeSnoozed: opts.includeSnoozed }).map((t) => ({ ...t, chips: assertNoSend(chipsFor(t)) }));
+  const byId = new Map(jobs.map((j) => [j.id, j]));
+  const who = (t: { ref: { jobId?: string; planId?: string; stepId?: string } }) => {
+    const job = t.ref.jobId ? byId.get(t.ref.jobId) : undefined;
+    if (job) {
+      const i = job.initiator ?? initiatorFor(job);
+      return { initiator_kind: i.kind, initiator_id: i.id };
+    }
+    if (t.ref.planId && t.ref.stepId) return { initiator_kind: "agent", initiator_id: `plan:${t.ref.planId}/${t.ref.stepId}` };
+    return {};
+  };
+  const tasks = unify({ plans, triaged: feed.items, jobs, includeSnoozed: opts.includeSnoozed }).map((t) => ({ ...t, ...who(t), chips: assertNoSend(chipsFor(t)) }));
   return { triage: feed.enabled, tasks, counts: stateCounts(tasks), ignored: feed.counts.ignore ?? 0 };
 }

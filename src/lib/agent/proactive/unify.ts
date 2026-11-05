@@ -23,6 +23,9 @@ export type UnifiedTask = {
   decidedBy?: string;
   snoozed?: boolean;
   chips?: import("./chips.ts").Chip[];
+  /** W2a: who started the run behind this task (user | routine | trigger | agent | subagent | channel). */
+  initiator_kind?: string;
+  initiator_id?: string;
   ref: { planId?: string; stepId?: string; approvalId?: string; jobId?: string; inboxId?: string; triageId?: string; routineId?: string };
 };
 

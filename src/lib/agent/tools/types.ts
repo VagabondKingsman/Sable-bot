@@ -46,6 +46,10 @@ export type ToolContext = {
   scopeId?: string | null;
   /** Server-side ScopeGate; when set, tools with requiresScope must pass. */
   assertScope?: (tool: string, requiresScope: boolean) => { ok: true } | { ok: false; reason: string };
+  /** W2a: who started the chain this call belongs to. */
+  initiator?: import("../audit/types.ts").Initiator;
+  /** W2a: audit sink for side-effecting calls (non-read tools). */
+  audit?: (entry: { tool: string; risk: ToolRisk; summary: string; ok: boolean; stepId?: string; initiator: import("../audit/types.ts").Initiator; reason?: string }) => void;
 };
 
 /** Builtin research|writer|coder, or a custom profile id from Settings → Profiles. */

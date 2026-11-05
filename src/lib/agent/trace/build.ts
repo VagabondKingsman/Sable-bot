@@ -100,6 +100,19 @@ function finish(base: Omit<Trace, "events" | "stats" | "durationMs">, events: Tr
   return { ...base, ...(durationMs != null ? { durationMs } : {}), events: kept, stats: computeStats(kept) };
 }
 
+function jobInitiator(job: Job): { initiator_kind: string; initiator_id: string } {
+  const i =
+    job.initiator ??
+    (job.origin?.channel === "telegram"
+      ? { kind: "channel", id: `telegram:${job.origin.chatId}` }
+      : job.origin?.channel === "webhook"
+        ? { kind: "channel", id: `webhook:${job.origin.peerId}` }
+        : job.routineId && !job.manual
+          ? { kind: "routine", id: job.routineId }
+          : { kind: "user", id: "owner:web" });
+  return { initiator_kind: i.kind, initiator_id: i.id };
+}
+
 export function fromJob(job: Job): Trace {
   const events = job.steps.map(stepEvent);
   for (const a of job.approvals) events.push(approvalEvent(a));
@@ -113,6 +126,7 @@ export function fromJob(job: Job): Trace {
       title: job.title.slice(0, 200),
       status: job.status,
       model: job.request?.model,
+      ...jobInitiator(job),
       startedAt: job.startedAt ?? job.createdAt,
       finishedAt: job.finishedAt,
       updatedAt: job.updatedAt,
@@ -156,6 +170,8 @@ export function fromPlan(plan: TaskPlan): Trace {
       sourceId: plan.id,
       title: plan.goal.slice(0, 200),
       status: plan.status,
+      initiator_kind: "agent",
+      initiator_id: `plan:${plan.id}`,
       startedAt: plan.startedAt ?? plan.createdAt,
       finishedAt: plan.finishedAt,
       updatedAt: plan.updatedAt,
@@ -179,6 +195,8 @@ export function fromChat(threadId: string, title: string, message: ChatMessage, 
       sourceId: `${threadId}/${message.id}`,
       title: (title || "chat").slice(0, 200),
       status: message.finishedAt ? "done" : "running",
+      initiator_kind: "user",
+      initiator_id: "owner:web",
       startedAt: message.startedAt,
       finishedAt: message.finishedAt,
       updatedAt: message.finishedAt ?? mtime,

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Download } from "lucide-react";
 import { tracesApi, type TraceList } from "@/lib/agent/w2-client";
+import { proactiveAuditApi } from "@/lib/agent/proactive-client";
+import type { AuditRecord } from "@/lib/agent/audit/types";
 import { saigonTime } from "@/lib/agent/jobs-client";
 import type { Trace, TraceEvent } from "@/lib/agent/trace/types";
 
@@ -103,6 +105,7 @@ export function TracesTab() {
             <h3 className="text-sm font-medium">{trace.title}</h3>
             <p className="text-xs text-muted">
               {trace.source} · {trace.status} · {trace.model ? `${trace.model} · ` : ""}
+              {trace.initiator_kind ? <span data-initiator-kind={trace.initiator_kind}>initiator: {trace.initiator_kind}{trace.initiator_id ? ` (${trace.initiator_id})` : ""} · </span> : null}
               {saigonTime(trace.startedAt)} · {fmtMs(trace.durationMs) || "—"}
             </p>
             <p className="text-xs text-muted">
@@ -113,6 +116,7 @@ export function TracesTab() {
             <Download className="size-4" /> JSON
           </a>
         </div>
+        {trace.source === "job" && <AuditStrip jobId={trace.sourceId} />}
         <ol className="space-y-1" data-testid="trace-timeline">
           {trace.events.map((e) => {
             const left = e.at ? Math.min(100, ((e.at - t0) / span) * 100) : 0;
@@ -160,6 +164,7 @@ export function TracesTab() {
           <div className="flex items-center gap-2 text-sm font-medium">
             <span className="rounded bg-fg/10 px-1.5 font-mono text-[11px] text-muted">{item.source}</span>
             <span className="truncate">{item.title}</span>
+            {item.initiator_kind && <span className="ml-auto shrink-0 rounded bg-fg/10 px-1.5 font-mono text-[11px] text-muted" data-initiator-kind={item.initiator_kind}>{item.initiator_kind}</span>}
           </div>
           <div className="mt-1 text-xs text-muted">
             {item.status} · {item.stats.toolCalls} tool · {item.stats.approvals} duyệt · {item.stats.errors} lỗi · {fmtMs(item.durationMs) || "—"} · {saigonTime(item.startedAt)}
@@ -167,5 +172,34 @@ export function TracesTab() {
         </button>
       ))}
     </div>
+  );
+}
+
+/** W2a: audit records (side effects, approval asks/decisions) for one job, with initiator_kind. */
+function AuditStrip({ jobId }: { jobId: string }) {
+  const [items, setItems] = useState<AuditRecord[] | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    proactiveAuditApi
+      .list({ jobId }, controller.signal)
+      .then((d) => setItems(d.items))
+      .catch(() => setItems([]));
+    return () => controller.abort();
+  }, [jobId]);
+  if (!items?.length) return null;
+  return (
+    <details className="rounded-xl p-2 shadow-ring" data-testid="trace-audit">
+      <summary className="cursor-pointer text-xs text-muted">Audit ({items.length})</summary>
+      <ul className="mt-1 space-y-1 text-xs text-muted">
+        {items.map((r) => (
+          <li key={r.id} data-audit-type={r.type} data-initiator-kind={r.initiator_kind}>
+            {saigonTime(r.at)} · {r.type} · {r.tool ?? ""} · initiator {r.initiator_kind}
+            {r.via_kind ? ` via ${r.via_kind}` : ""}
+            {r.decider_kind ? ` · decider ${r.decider_kind}` : ""}
+            {r.reason ? ` · ${r.reason}` : ""}
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }

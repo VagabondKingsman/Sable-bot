@@ -5,6 +5,7 @@
  * recipient: replies go back to the chat that asked, mail to SABLE_SMTP_TO.
  */
 import { recordIncoming } from "@/server/proactive.server";
+import { decideAs } from "@/server/audit.server";
 import fs from "node:fs";
 import path from "node:path";
 import { parseChatRequest } from "@/lib/agent/harness";
@@ -140,8 +141,9 @@ async function onTelegramCallback(state: State, cb: { chatId: number; data: stri
   const card = state.cards.get(match[2]);
   // Only the chat the card was sent to may answer it.
   if (!card || card.chatId !== cb.chatId) return "Yêu cầu này không còn chờ duyệt.";
-  const ok = jobService().runner.decide(match[2], match[1] === "a");
-  if (!ok) return "Yêu cầu này không còn chờ duyệt.";
+  // Owner on an allow-listed Telegram chat = a human channel decider (W2a policy + audit).
+  const out = decideAs(match[2], match[1] === "a", { kind: "channel", id: `telegram:${cb.chatId}` }, { jobsOnly: true });
+  if (!out.ok) return out.status === 403 ? "Không được duyệt từ đây." : "Yêu cầu này không còn chờ duyệt.";
   return match[1] === "a" ? "Đã duyệt" : "Đã từ chối";
 }
 
@@ -344,8 +346,9 @@ async function onWebhookInbound(state: State, event: import("@/lib/agent/channel
     const id = typeof event.payload.approvalId === "string" ? event.payload.approvalId : event.ref?.approvalId;
     const decide = event.payload.approve === true || event.payload.decision === "approve";
     if (!id) return makeEvent("pong", { ok: false, error: "missing approvalId" }, { peerId: event.peerId });
-    const ok = jobService().runner.decide(id, Boolean(decide));
-    return makeEvent("pong", { ok, decision: decide ? "approve" : "reject" }, { peerId: event.peerId, ref: { approvalId: id } });
+    // A webhook peer is a channel decider; it may not approve a run its own message started (W2a).
+    const out = decideAs(id, Boolean(decide), { kind: "channel", id: `webhook:${event.peerId ?? ""}` }, { jobsOnly: true });
+    return makeEvent("pong", { ok: out.ok, decision: decide ? "approve" : "reject", ...(out.ok ? {} : { error: out.reason }) }, { peerId: event.peerId, ref: { approvalId: id } });
   }
   if (event.type !== "message.in") return;
   const text = typeof event.payload.text === "string" ? event.payload.text.trim() : "";

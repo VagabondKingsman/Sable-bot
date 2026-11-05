@@ -5,8 +5,27 @@ function clipOut(text: string, max: number) {
   return text.length > max ? `${text.slice(0, max)}\n…[cắt bớt ${text.length - max} ký tự]` : text;
 }
 
-/** Validate → approval gate → run with timeout → clip. Never throws. */
+/** Validate → approval gate → run with timeout → clip. Never throws. Side effects are audited (W2a). */
 export async function execute(def: FunctionTool, raw: string, ctx: ToolContext): Promise<ToolResult> {
+  const result = await executeInner(def, raw, ctx);
+  if (def.risk !== "read" && ctx.audit && ctx.initiator) {
+    try {
+      let summary = def.name;
+      try {
+        const parsed = parseArgs(raw, def.parameters);
+        if (parsed.ok) summary = def.label(parsed.value);
+      } catch {
+        /* keep tool name */
+      }
+      ctx.audit({ tool: def.name, risk: def.risk, summary, ok: result.ok, stepId: ctx.stepId, initiator: ctx.initiator, reason: result.ok ? undefined : result.output.slice(0, 200) });
+    } catch {
+      /* auditing must never break a tool call */
+    }
+  }
+  return result;
+}
+
+async function executeInner(def: FunctionTool, raw: string, ctx: ToolContext): Promise<ToolResult> {
   const parsed = parseArgs(raw, def.parameters);
   if (!parsed.ok) return { ok: false, output: `invalid args: ${parsed.error}` };
   if (def.check) {

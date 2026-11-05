@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { guarded, methodNotAllowed, readObjectBody } from "@/server/http";
 import { plannerBundle } from "@/server/planner.server";
 import { tasksInbox } from "@/server/proactive.server";
+import { decideStepAs } from "@/server/audit.server";
+import { USER } from "@/lib/agent/audit/types";
 import type { StepKind } from "@/lib/agent/planner/types";
 
 const MAX_BODY = 100_000;
@@ -115,8 +117,10 @@ export const Route = createFileRoute("/api/tasks")({
             if (typeof body.stepId !== "string" || typeof body.approve !== "boolean") {
               return Response.json({ message: "Thiếu stepId/approve." }, { status: 400 });
             }
-            const res = executor.approveStep(id, body.stepId, body.approve);
-            if (!res.ok) return Response.json({ message: res.error }, { status: 400 });
+            const approve = body.approve;
+            const stepId = body.stepId;
+            const out = decideStepAs(id, stepId, approve, USER, () => executor.approveStep(id, stepId, approve));
+            if (!out.ok) return Response.json({ message: out.reason }, { status: out.status === 403 ? 403 : 400 });
             if (body.approve) await executor.tick(id);
             return Response.json({ ok: true, plan: plans.get(id) });
           }

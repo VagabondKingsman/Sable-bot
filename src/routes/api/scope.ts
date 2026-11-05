@@ -3,6 +3,8 @@ import { guarded, methodNotAllowed, readObjectBody } from "@/server/http";
 import { assertReadyForAct, scopeAuditLine } from "@/lib/agent/scope/guard";
 import { scopeKillDenyAll } from "@/lib/agent/scope/store";
 import { scopeStore } from "@/server/scope.server";
+import { audit } from "@/server/audit.server";
+import { USER } from "@/lib/agent/audit/types";
 
 const MAX_BODY = 20_000;
 
@@ -49,6 +51,15 @@ export const Route = createFileRoute("/api/scope")({
             if (typeof body.id !== "string") return Response.json({ message: "Thiếu id." }, { status: 400 });
             const rec = store.decide(body.id, body.action === "approve" ? "approved" : "denied", typeof body.approvalId === "string" ? body.approvalId : undefined);
             if (!rec) return Response.json({ message: "Không tìm thấy scope." }, { status: 404 });
+            audit({
+              type: "approval.decided",
+              initiator: USER,
+              decider: USER,
+              approve: body.action === "approve",
+              tool: "scope",
+              summary: `scope ${body.id} → ${body.action}`,
+              approvalId: typeof body.approvalId === "string" ? body.approvalId.slice(0, 120) : undefined,
+            });
             return Response.json({ ok: true, scope: rec });
           }
           if (body.action === "guard") {

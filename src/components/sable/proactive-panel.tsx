@@ -170,6 +170,7 @@ export function TasksInbox({ onOpenPlan, onOpenJob }: { onOpenPlan: (id: string)
               {saigonTime(t.at)}
               {t.reason ? ` · ${t.reason}` : ""}
               {t.decidedBy ? ` · ${t.decidedBy}` : ""}
+              {t.initiator_kind ? <span data-initiator-kind={t.initiator_kind}>{` · bởi ${t.initiator_kind}`}</span> : null}
             </span>
             {t.detail && <span className="line-clamp-2 text-sm text-muted">{t.detail}</span>}
             <ChipRow task={t} busy={busy} act={act} onOpenPlan={onOpenPlan} onOpenJob={onOpenJob} />

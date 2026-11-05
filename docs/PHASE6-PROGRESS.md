@@ -120,5 +120,6 @@ Checklist:
 - [x] 2. Morning brief (`SABLE_BRIEF`): built-in routine, default off, 07:30 Asia/Saigon; inbox + Telegram when configured
 - [x] 3. Tasks inbox UX: planner tasks + approvals + triaged items, states todo/doing/waiting-approval/done
 - [x] 4. Reply chips: approve / snooze / draft reply / open task; never auto-send
-- [ ] 5. initiator_kind audit (user|routine|trigger|agent|subagent|channel) on side effects + approvals; `/api/audit`; no background self-approve
+- [x] 5. initiator_kind audit (user|routine|trigger|agent|subagent|channel) on side effects + approvals; `/api/audit`; no background self-approve
+  - `src/lib/agent/audit/{types,policy,log}.ts`, `src/server/audit.server.ts` (`decideAs`/`decideStepAs`), `GET /api/audit`; every decide path (web tools/tasks/scope, Telegram, webhook) goes through `canDecide`; routine/trigger/agent/subagent deciders denied (`approval.denied_policy`), webhook peer cannot approve its own chain; channels keep jobs-only reach. Trace list/detail show initiator badge + per-job audit strip; Tasks inbox shows "bởi <kind>". Summaries redacted.
 - [ ] 6. Unit + eval:w2a + evals w0/w1/w2; tsc; restart; ngrok 401/200; package CLEAN

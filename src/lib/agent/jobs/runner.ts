@@ -50,10 +50,19 @@ export type EnqueueInput = {
   catchUp?: boolean;
   manual?: boolean;
   origin?: Job["origin"];
+  initiator?: Job["initiator"];
   request: ChatRequest;
   maxSteps: number;
   timeoutMs: number;
 };
+
+/** Default initiator for a job when the caller did not say (W2a audit). */
+export function initiatorFor(input: Pick<EnqueueInput, "origin" | "routineId" | "manual">): NonNullable<Job["initiator"]> {
+  if (input.origin?.channel === "telegram") return { kind: "channel", id: `telegram:${input.origin.chatId}` };
+  if (input.origin?.channel === "webhook") return { kind: "channel", id: `webhook:${input.origin.peerId}` };
+  if (input.routineId && !input.manual) return { kind: "routine", id: input.routineId };
+  return { kind: "user", id: input.routineId ? `owner:run-now:${input.routineId}` : "owner:web" };
+}
 
 export class JobsDisabledError extends Error {
   constructor() {
@@ -234,6 +243,7 @@ export class JobRunner {
       catchUp: input.catchUp,
       manual: input.manual || undefined,
       origin: input.origin,
+      initiator: input.initiator ?? initiatorFor(input),
       status: "queued",
       request: input.request,
       maxSteps: input.maxSteps,

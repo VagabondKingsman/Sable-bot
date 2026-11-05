@@ -10,7 +10,8 @@ import { runAgent } from "@/lib/agent/loop";
 import { createSpawner } from "@/server/spawn.server";
 import { claimDataDir, JobDb } from "@/lib/agent/jobs/db";
 import { deliverApproval, deliverResult, settleApproval, unreadCount } from "@/lib/agent/jobs/inbox";
-import { compactRequest, JobRunner, type JobExec } from "@/lib/agent/jobs/runner";
+import { compactRequest, initiatorFor, JobRunner, type JobExec } from "@/lib/agent/jobs/runner";
+import { auditJobAsk, auditSink } from "@/server/audit.server";
 import { RoutineScheduler } from "@/lib/agent/jobs/scheduler";
 import { triggerView, type CheckResult } from "@/lib/agent/jobs/triggers";
 import { createHttpFetch } from "@/lib/agent/tools/fetch";
@@ -99,6 +100,8 @@ const exec: JobExec = async (job, io) => {
     skills: turn.skills,
     scopeId: job.scopeId ?? null,
     assertScope: makeAssertScope(job.scopeId ?? null, "background"),
+    initiator: job.initiator ?? initiatorFor(job),
+    audit: auditSink(job.id),
   };
   if (turn.functions.some((tool) => tool.name === "spawn_agent")) ctx.spawn = createSpawner(turn, turn.active, io.emit);
   const result = await runAgent(turn.assembled, {
@@ -165,6 +168,7 @@ export function jobService(): Service {
     },
     onWaiting: (job, approval) => {
       deliverApproval(db, job, approval);
+      auditJobAsk(job, approval);
       emitJobEvent("waiting", job, approval);
     },
     onApprovalSettled: (job, approval) => {

@@ -29,3 +29,11 @@ export const proactiveApi = {
   briefConfig: (patch: Partial<Pick<BriefConfig, "enabled" | "time" | "tz" | "telegram">>) => post<{ ok: true; config: BriefConfig }>("/api/brief", { action: "config", ...patch }),
   briefRun: () => post<{ ok: true; brief: BriefRecord }>("/api/brief", { action: "run" }),
 };
+
+export const proactiveAuditApi = {
+  list: (q: { jobId?: string; kind?: string; type?: string; limit?: number }, signal?: AbortSignal) => {
+    const u = new URLSearchParams();
+    for (const [k, v] of Object.entries(q)) if (v !== undefined && v !== "") u.set(k, String(v));
+    return get<{ items: import("@/lib/agent/audit/types").AuditRecord[] }>(`/api/audit?${u}`, signal, "Không tải được audit.");
+  },
+};

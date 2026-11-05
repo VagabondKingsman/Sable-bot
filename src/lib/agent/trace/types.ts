@@ -41,6 +41,9 @@ export type Trace = {
   title: string;
   status: string;
   model?: string;
+  /** W2a: who started this run (user | routine | trigger | agent | subagent | channel). */
+  initiator_kind?: string;
+  initiator_id?: string;
   startedAt?: number;
   finishedAt?: number;
   durationMs?: number;
