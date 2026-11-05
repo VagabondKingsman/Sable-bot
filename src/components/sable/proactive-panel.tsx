@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Bell, Play } from "lucide-react";
 import { proactiveApi, type BriefView, type TasksInboxView } from "@/lib/agent/proactive-client";
+import { evalsApi } from "@/lib/agent/evals-client";
 import { TASK_STATES, type TaskState, type UnifiedTask } from "@/lib/agent/proactive/unify";
 import type { Chip } from "@/lib/agent/proactive/chips";
 import { decideApproval } from "@/lib/agent/client";
@@ -227,6 +228,9 @@ export function ChipRow({
         return task.ref.planId && onOpenPlan?.(task.ref.planId);
       case "open_job":
         return task.ref.jobId && onOpenJob?.(task.ref.jobId);
+      case "review_resolve":
+      case "review_dismiss":
+        return void act(() => evalsApi.review(task.ref.reviewId!, c.action === "review_resolve" ? "resolved" : "dismissed"));
     }
   }
   return (

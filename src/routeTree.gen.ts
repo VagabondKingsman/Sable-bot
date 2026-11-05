@@ -21,6 +21,7 @@ import { Route as ApiCodeRouteImport } from './routes/api/code'
 import { Route as ApiConnectorsRouteImport } from './routes/api/connectors'
 import { Route as ApiDeskRouteImport } from './routes/api/desk'
 import { Route as ApiDesktopRouteImport } from './routes/api/desktop'
+import { Route as ApiEvalsRouteImport } from './routes/api/evals'
 import { Route as ApiFieldJournalRouteImport } from './routes/api/field-journal'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiInboxRouteImport } from './routes/api/inbox'
@@ -114,6 +115,11 @@ const ApiDeskRoute = ApiDeskRouteImport.update({
 const ApiDesktopRoute = ApiDesktopRouteImport.update({
   id: '/api/desktop',
   path: '/api/desktop',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiEvalsRoute = ApiEvalsRouteImport.update({
+  id: '/api/evals',
+  path: '/api/evals',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiFieldJournalRoute = ApiFieldJournalRouteImport.update({
@@ -300,6 +306,7 @@ export interface FileRoutesByFullPath {
   '/api/connectors': typeof ApiConnectorsRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/desktop': typeof ApiDesktopRoute
+  '/api/evals': typeof ApiEvalsRoute
   '/api/field-journal': typeof ApiFieldJournalRoute
   '/api/health': typeof ApiHealthRoute
   '/api/inbox': typeof ApiInboxRoute
@@ -348,6 +355,7 @@ export interface FileRoutesByTo {
   '/api/connectors': typeof ApiConnectorsRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/desktop': typeof ApiDesktopRoute
+  '/api/evals': typeof ApiEvalsRoute
   '/api/field-journal': typeof ApiFieldJournalRoute
   '/api/health': typeof ApiHealthRoute
   '/api/inbox': typeof ApiInboxRoute
@@ -397,6 +405,7 @@ export interface FileRoutesById {
   '/api/connectors': typeof ApiConnectorsRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/desktop': typeof ApiDesktopRoute
+  '/api/evals': typeof ApiEvalsRoute
   '/api/field-journal': typeof ApiFieldJournalRoute
   '/api/health': typeof ApiHealthRoute
   '/api/inbox': typeof ApiInboxRoute
@@ -447,6 +456,7 @@ export interface FileRouteTypes {
     | '/api/connectors'
     | '/api/desk'
     | '/api/desktop'
+    | '/api/evals'
     | '/api/field-journal'
     | '/api/health'
     | '/api/inbox'
@@ -495,6 +505,7 @@ export interface FileRouteTypes {
     | '/api/connectors'
     | '/api/desk'
     | '/api/desktop'
+    | '/api/evals'
     | '/api/field-journal'
     | '/api/health'
     | '/api/inbox'
@@ -543,6 +554,7 @@ export interface FileRouteTypes {
     | '/api/connectors'
     | '/api/desk'
     | '/api/desktop'
+    | '/api/evals'
     | '/api/field-journal'
     | '/api/health'
     | '/api/inbox'
@@ -592,6 +604,7 @@ export interface RootRouteChildren {
   ApiConnectorsRoute: typeof ApiConnectorsRoute
   ApiDeskRoute: typeof ApiDeskRoute
   ApiDesktopRoute: typeof ApiDesktopRoute
+  ApiEvalsRoute: typeof ApiEvalsRoute
   ApiFieldJournalRoute: typeof ApiFieldJournalRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiInboxRoute: typeof ApiInboxRoute
@@ -711,6 +724,13 @@ declare module '@tanstack/react-router' {
       path: '/api/desktop'
       fullPath: '/api/desktop'
       preLoaderRoute: typeof ApiDesktopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/evals': {
+      id: '/api/evals'
+      path: '/api/evals'
+      fullPath: '/api/evals'
+      preLoaderRoute: typeof ApiEvalsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/field-journal': {
@@ -979,6 +999,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiConnectorsRoute: ApiConnectorsRoute,
   ApiDeskRoute: ApiDeskRoute,
   ApiDesktopRoute: ApiDesktopRoute,
+  ApiEvalsRoute: ApiEvalsRoute,
   ApiFieldJournalRoute: ApiFieldJournalRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiInboxRoute: ApiInboxRoute,

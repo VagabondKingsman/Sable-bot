@@ -270,6 +270,7 @@ export async function tasksInbox(opts: { includeSnoozed?: boolean } = {}) {
     if (t.ref.planId && t.ref.stepId) return { initiator_kind: "agent", initiator_id: `plan:${t.ref.planId}/${t.ref.stepId}` };
     return {};
   };
-  const tasks = unify({ plans, triaged: feed.items, jobs, includeSnoozed: opts.includeSnoozed }).map((t) => ({ ...t, ...who(t), chips: assertNoSend(chipsFor(t)) }));
+  const reviews = await import("@/server/evals.server").then((m) => (m.selfEvalOn() ? m.openReviews() : [])).catch(() => []);
+  const tasks = unify({ plans, triaged: feed.items, jobs, reviews, includeSnoozed: opts.includeSnoozed }).map((t) => ({ ...t, ...who(t), chips: assertNoSend(chipsFor(t)) }));
   return { triage: feed.enabled, tasks, counts: stateCounts(tasks), ignored: feed.counts.ignore ?? 0 };
 }

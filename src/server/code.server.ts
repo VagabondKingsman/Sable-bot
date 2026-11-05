@@ -121,6 +121,7 @@ export async function startCode(input: { repo: unknown; goal: unknown; testCmd?:
     st().ctl.delete(id);
     release();
     audit({ type: "side_effect", initiator: USER, tool: "code.run", summary: `task ${id} → ${task.status} (${task.diff?.files.length ?? 0} files, $${task.usd.toFixed(3)})`, ok: task.status === "review" });
+    if (task.status !== "cancelled") void import("@/server/evals.server").then((m) => m.gradeCodeTask(task)).catch(() => undefined);
   });
   return { ok: true, task: publicTask(task) };
 }

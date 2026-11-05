@@ -171,6 +171,7 @@ export async function startResearch(question: string, resumeId?: string): Promis
       st().ctl.delete(r.id);
       release();
       audit({ type: "side_effect", initiator: USER, tool: "research.run", summary: `run ${r.id} → ${r.status} ($${r.usd.toFixed(3)})`, ok: r.status === "done" });
+      if (r.status !== "cancelled" && r.status !== "paused") void import("@/server/evals.server").then((m) => m.gradeResearchRun(r as never)).catch(() => undefined);
     });
   return { ok: true, run: publicRun(run) };
 }

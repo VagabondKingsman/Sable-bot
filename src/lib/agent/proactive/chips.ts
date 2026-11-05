@@ -10,7 +10,7 @@
  */
 import type { UnifiedTask } from "./unify.ts";
 
-export type ChipAction = "approve" | "reject" | "snooze" | "done" | "draft_reply" | "open_task" | "open_job";
+export type ChipAction = "approve" | "reject" | "snooze" | "done" | "draft_reply" | "open_task" | "open_job" | "review_resolve" | "review_dismiss";
 
 export type Chip = {
   id: string;
@@ -35,6 +35,8 @@ export const CHIP_ROUTES: Record<ChipAction, string | null> = {
   draft_reply: null,
   open_task: null,
   open_job: null,
+  review_resolve: "/api/evals (review state only — never edits code)",
+  review_dismiss: "/api/evals (review state only — never edits code)",
 };
 
 const SEND_WORDS = /\b(send|gửi|post|reply now|forward)\b/i;
@@ -57,6 +59,10 @@ export function chipsFor(t: UnifiedTask): Chip[] {
     add("snooze", "Hoãn 1 giờ", { ms: 3_600_000 });
     add("snooze", "Mai", { ms: 86_400_000 });
     add("done", "Xong");
+  }
+  if (t.ref.reviewId) {
+    add("review_resolve", "Đã xem");
+    add("review_dismiss", "Bỏ qua");
   }
   if (t.ref.planId) add("open_task", "Mở task");
   else if (t.ref.jobId) add("open_job", "Mở việc");

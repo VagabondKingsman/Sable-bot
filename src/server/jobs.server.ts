@@ -106,15 +106,24 @@ const exec: JobExec = async (job, io) => {
     audit: auditSink(job.id),
   };
   if (turn.functions.some((tool) => tool.name === "spawn_agent")) ctx.spawn = createSpawner(turn, turn.active, io.emit);
-  const result = await runAgent(turn.assembled, {
-    adapter: turn.adapter,
-    transport: turn.transport,
-    tools: turn.functions,
-    ctx,
-    emit: io.emit,
-    opts: turn.opts,
-    maxSteps: job.maxSteps,
-  });
+  const { gradeRun, runRecorder, selfEvalOn } = await import("@/server/evals.server");
+  const rec = selfEvalOn() ? runRecorder("job", job.id, job.request) : null;
+  let result: Awaited<ReturnType<typeof runAgent>>;
+  try {
+    result = await runAgent(turn.assembled, {
+      adapter: turn.adapter,
+      transport: turn.transport,
+      tools: turn.functions,
+      ctx,
+      emit: rec ? (e) => (rec.tap(e), io.emit(e)) : io.emit,
+      opts: turn.opts,
+      maxSteps: job.maxSteps,
+    });
+  } catch (error) {
+    if (rec && !io.signal.aborted) void gradeRun(rec.record({ error: error instanceof Error ? error.message : "error" }));
+    throw error;
+  }
+  if (rec) void gradeRun(rec.record({ answer: result.text, stopped: result.stopped }));
   return { stopped: result.stopped };
 };
 
@@ -179,6 +188,7 @@ export function jobService(): Service {
     },
   });
   let briefModule: typeof import("@/server/proactive.server") | null = null;
+  let evalsModule: typeof import("@/server/evals.server") | null = null;
   const scheduler = new RoutineScheduler({
     db,
     runner,
@@ -190,13 +200,19 @@ export function jobService(): Service {
     triggersOn: () => jobConfig().triggersOn,
     watchFetch,
     watchTickMs: num("SABLE_WATCH_TICK_S", 60, 5, 600) * 1000,
-    builtinReady: (name) => name !== "morning-brief" || briefModule !== null,
+    builtinReady: (name) => (name === "morning-brief" ? briefModule !== null : name === "nightly-eval" ? evalsModule !== null : true),
     builtins: {
       // W2c: the morning brief is a real routine; the handler runs in-process (no LLM job).
       "morning-brief": (_routine, scheduledFor, opts) => {
         const mod = briefModule;
         if (!mod) throw new Error("brief module not loaded yet");
         return mod.fireBriefRoutine(scheduledFor, { manual: opts.manual });
+      },
+      // W5: nightly regression eval (default off; proposals only).
+      "nightly-eval": (_routine, scheduledFor, opts) => {
+        const mod = evalsModule;
+        if (!mod) throw new Error("evals module not loaded yet");
+        return mod.fireNightlyEval(scheduledFor, { manual: opts.manual });
       },
     },
   });
@@ -231,6 +247,13 @@ export function jobService(): Service {
   void import("@/server/connectors.server")
     .then((mod) => mod.startConnectorTicker())
     .catch((error) => console.warn(`[sable-connectors] ticker not started: ${error instanceof Error ? error.message : String(error)}`));
+  void import("@/server/evals.server")
+    .then(async (mod) => {
+      evalsModule = mod;
+      await mod.syncNightlyRoutine();
+      scheduler.tick();
+    })
+    .catch((error) => console.warn(`[sable-evals] routine not synced: ${error instanceof Error ? error.message : String(error)}`));
   // W5: local vector index (incremental sync ticker; SABLE_VECTOR=0 → off).
   void import("@/server/vector.server")
     .then((mod) => mod.startVectorTicker())

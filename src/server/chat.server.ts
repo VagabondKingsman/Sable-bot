@@ -24,6 +24,7 @@ import { voiceStatus } from "@/server/voice.server";
 import { accessFor, completerFor, learnedFor, memoryOn, memoryStore, queueExtraction } from "@/server/memory.server";
 import type { MemorySource } from "@/lib/agent/memory/types";
 import { recallBlockFor, vectorOn } from "@/server/vector.server";
+import { gradeRun, runRecorder, selfEvalOn } from "@/server/evals.server";
 import {
   availableModels,
   endpointFor,
@@ -288,8 +289,12 @@ export async function streamChat(input: ChatRequest, notices: string[], signal: 
         audit: auditSink(),
       };
       if (turn.functions.some((tool) => tool.name === "spawn_agent")) ctx.spawn = createSpawner(turn, turn.active, emit);
+      // W5 self-eval: record what the run did (events only) and grade it afterwards (async).
+      const rec = selfEvalOn() ? runRecorder("chat", input.threadId ?? "chat", input) : null;
+      const tapped = rec ? (e: ClientEvent) => (rec.tap(e), emit(e)) : emit;
       try {
-        const result = await runAgent(assembled, { adapter, transport: primedTransport, tools: turn.functions, ctx, emit, opts, maxSteps: MAX_STEPS });
+        const result = await runAgent(assembled, { adapter, transport: primedTransport, tools: turn.functions, ctx, emit: tapped, opts, maxSteps: MAX_STEPS });
+        if (rec && !cancelled) void gradeRun(rec.record({ answer: result.text, stopped: result.stopped }));
         if (!cancelled) controller.enqueue(sse(encoder, "done", {}));
         if (turn.canLearn && result.text.trim()) {
           const learnModel = process.env.SABLE_MEMORY_MODEL?.trim();
@@ -301,6 +306,7 @@ export async function streamChat(input: ChatRequest, notices: string[], signal: 
           );
         }
       } catch (error) {
+        if (rec && !signal.aborted && !cancelled && !stop.signal.aborted) void gradeRun(rec.record({ error: turnSignal.aborted ? "timeout" : error instanceof Error ? error.message : "error" }));
         if (!signal.aborted && !cancelled && !stop.signal.aborted) {
           const timedOut = turnSignal.aborted;
           const message = timedOut

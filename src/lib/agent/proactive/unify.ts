@@ -8,7 +8,7 @@ import type { TriageBucket, TriageUrgency } from "./triage.ts";
 export type TaskState = "todo" | "doing" | "waiting_approval" | "done";
 export const TASK_STATES: readonly TaskState[] = ["waiting_approval", "todo", "doing", "done"];
 
-export type UnifiedKind = "plan" | "approval" | "triage" | "job";
+export type UnifiedKind = "plan" | "approval" | "triage" | "job" | "review";
 
 export type UnifiedTask = {
   id: string;
@@ -26,7 +26,7 @@ export type UnifiedTask = {
   /** W2a: who started the run behind this task (user | routine | trigger | agent | subagent | channel). */
   initiator_kind?: string;
   initiator_id?: string;
-  ref: { planId?: string; stepId?: string; approvalId?: string; jobId?: string; inboxId?: string; triageId?: string; routineId?: string };
+  ref: { planId?: string; stepId?: string; approvalId?: string; jobId?: string; inboxId?: string; triageId?: string; routineId?: string; reviewId?: string };
 };
 
 export type PlanLike = {
@@ -37,6 +37,8 @@ export type PlanLike = {
   steps: { id: string; title: string; status: string; approvalId?: string }[];
 };
 export type JobLike = { id: string; title: string; status: string; createdAt: number; routineId?: string };
+/** W5 self-eval review queue item (failed run or regression proposal), open only. */
+export type ReviewLike = { id: string; type: string; title: string; detail: string; at: number };
 
 export function planState(status: string): TaskState {
   if (status === "running") return "doing";
@@ -45,7 +47,7 @@ export function planState(status: string): TaskState {
   return "todo"; // draft, paused
 }
 
-export function unify(input: { plans: PlanLike[]; triaged: TriagedItem[]; jobs: JobLike[]; includeSnoozed?: boolean }): UnifiedTask[] {
+export function unify(input: { plans: PlanLike[]; triaged: TriagedItem[]; jobs: JobLike[]; reviews?: ReviewLike[]; includeSnoozed?: boolean }): UnifiedTask[] {
   const out: UnifiedTask[] = [];
   for (const p of input.plans) {
     const done = p.steps.filter((s) => s.status === "done" || s.status === "skipped").length;
@@ -81,6 +83,9 @@ export function unify(input: { plans: PlanLike[]; triaged: TriagedItem[]; jobs: 
     if (j.status !== "running" && j.status !== "queued") continue;
     if (jobsWithAsk.has(j.id)) continue;
     out.push({ id: `job:${j.id}`, kind: "job", title: j.title, detail: j.status === "queued" ? "Đang chờ chạy" : "Đang chạy", state: "doing", at: j.createdAt, ref: { jobId: j.id, routineId: j.routineId } });
+  }
+  for (const r of input.reviews ?? []) {
+    out.push({ id: `review:${r.id}`, kind: "review", title: r.title, detail: `${r.type === "regression_proposal" ? "Đề xuất (chờ chủ duyệt, không tự sửa)" : "Self-eval: cần xem lại"} · ${r.detail}`.slice(0, 240), state: "todo", at: r.at, urgency: "low", ref: { reviewId: r.id } });
   }
   const rank = (t: UnifiedTask) => TASK_STATES.indexOf(t.state) * 10 + (t.urgency === "high" ? 0 : t.urgency === "low" ? 2 : 1);
   return out.sort((a, b) => rank(a) - rank(b) || b.at - a.at);
