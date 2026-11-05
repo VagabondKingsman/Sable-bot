@@ -5,7 +5,7 @@ repo Sable **không cần** lịch sử chat. Đây là tài liệu bàn giao, *
 Canvas Page. Không tự triển khai tính năng mới chỉ vì đọc file này.
 
 **Ngày baseline (ICT):** 2026-11-06 ~00:35 Asia/Saigon  
-**Nhánh / commit:** `main` @ `3136672` (`docs(env): complete .env.example + setup guide`)  
+**Nhánh / commit:** `main` @ `fc4c91f` (`docs(handoff)`); parent env `3136672`  
 **Remote công khai:** `https://github.com/VagabondKingsman/Sable-bot`  
 **Owner:** Tun Hen (“He”). Một builder trên box; He duyệt credential / gửi ra ngoài /
 deploy production / đổi visibility.
