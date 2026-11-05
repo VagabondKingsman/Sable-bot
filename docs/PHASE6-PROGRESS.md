@@ -1,6 +1,6 @@
 # Phase 6 progress
 
-**Last updated:** 2026-11-05 15:40 Asia/Saigon
+**Last updated:** 2026-11-05 15:41 Asia/Saigon
  (times Asia/Saigon UTC+7)
 
 Backup: `/workspace/sable-backup-pre-w0-202611050822.tgz`
@@ -54,4 +54,29 @@ Checklist:
 - [x] 2. Per-task workspace under `/workspace/sable-workspace/tasks/<id>/` (`SABLE_WORKSPACES`)
 - [x] 3. Cost/token budgeter + model router (`SABLE_BUDGET`)
 - [x] 4. ScopeGate approval card in desk/background UX
-- [ ] 5. Unit + eval:w1; tsc; restart; ngrok 401/200; package CLEAN
+- [x] 5. Unit + eval:w1; tsc; restart; ngrok 401/200; package CLEAN
+
+## W1 live verification (2026-11-05 15:41 Asia/Saigon)
+
+- Backup: 
+-  create → waiting_approval on write_gate; workspace under tasks/<id>
+-  enforce + pick hard=grok-4.7 (light=hard until SABLE_MODEL_LIGHT set)
+- ScopeGate: create pending → POST /api/tools kind=scope approve → approved
+- ngrok: unauth **401**, basic auth **200**
+- Unit: 267/267; 
+> eval:w1
+> node --experimental-strip-types --no-warnings scripts/eval-w1.mjs
+
+PASS plan-create-resume-after-crash
+PASS workspace-isolation-3
+PASS budget-trip
+PASS scope-card-approve-deny
+
+all w1 eval checks passed PASS;  clean
+- Package:  (pending scan)
+- HARD SCOPE held: no RE/pentest/CTF skills
+
+### Known gaps
+- Planner agent steps dry-run unless JobRunner hook wired for full LLM enqueue (write_gate/note/classify/doc_audit solid).
+- Light model equals hard until  configured.
+- Budget meter not yet hooked into every live LLM response usage field (plan synthetic + API; job fail-closed on global cap before run).
