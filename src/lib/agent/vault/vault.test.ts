@@ -24,16 +24,20 @@ test("VaultStore: put/list/get/remove; list never has values; kill switch", () =
   const env = { SABLE_VAULT_KEY: "test-master-passphrase-for-sable" };
   const store = new VaultStore(dir, env);
   assert.deepEqual(store.list(), []);
-  assert.equal(store.put("XAI_API_KEY", "sk-test-value-123456").ok, true);
-  assert.deepEqual(store.list(), ["XAI_API_KEY"]);
+  const fixtureVal = "fixture-value-not-a-live-credential";
+  assert.equal(store.put("DEMO_SECRET", fixtureVal).ok, true);
+  assert.deepEqual(store.list(), ["DEMO_SECRET"]);
   const meta = JSON.stringify(store.meta());
-  assert.ok(!meta.includes("sk-test"));
-  assert.equal(store.get("XAI_API_KEY"), "sk-test-value-123456");
-  assert.equal(store.remove("XAI_API_KEY"), true);
-  assert.equal(store.get("XAI_API_KEY"), null);
+  assert.ok(!meta.includes(fixtureVal));
+  assert.equal(store.get("DEMO_SECRET"), fixtureVal);
+  assert.equal(store.remove("DEMO_SECRET"), true);
+  assert.equal(store.get("DEMO_SECRET"), null);
   const off = new VaultStore(dir, { ...env, SABLE_VAULT: "0" });
   assert.equal(off.put("FOO", "bar").ok, false);
-  assert.equal(redactVaultNames("XAI_API_KEY=sk-leak-here and ok", ["XAI_API_KEY"]), "XAI_API_KEY=[đã ẩn] and ok");
+  assert.equal(
+    redactVaultNames("DEMO_SECRET=fixture-leak-here and ok", ["DEMO_SECRET"]),
+    "DEMO_SECRET=[đã ẩn] and ok",
+  );
 });
 
 test("VaultStore: refuses bad names", () => {
