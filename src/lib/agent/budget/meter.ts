@@ -4,7 +4,7 @@ import { estimateUsd } from "./prices.ts";
 
 export type UsageEvent = {
   at: number;
-  scope: "chat" | "job" | "plan" | "media" | "desktop";
+  scope: "chat" | "job" | "plan" | "media" | "desktop" | "research" | "code";
   scopeId: string;
   model: string;
   promptTokens: number;

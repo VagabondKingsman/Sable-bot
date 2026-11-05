@@ -28,6 +28,7 @@ import { Route as ApiMcpRouteImport } from './routes/api/mcp'
 import { Route as ApiMediaRouteImport } from './routes/api/media'
 import { Route as ApiMemoryRouteImport } from './routes/api/memory'
 import { Route as ApiProfilesRouteImport } from './routes/api/profiles'
+import { Route as ApiResearchRouteImport } from './routes/api/research'
 import { Route as ApiRouterRouteImport } from './routes/api/router'
 import { Route as ApiRoutinesRouteImport } from './routes/api/routines'
 import { Route as ApiScopeRouteImport } from './routes/api/scope'
@@ -145,6 +146,11 @@ const ApiMemoryRoute = ApiMemoryRouteImport.update({
 const ApiProfilesRoute = ApiProfilesRouteImport.update({
   id: '/api/profiles',
   path: '/api/profiles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiResearchRoute = ApiResearchRouteImport.update({
+  id: '/api/research',
+  path: '/api/research',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiRouterRoute = ApiRouterRouteImport.update({
@@ -283,6 +289,7 @@ export interface FileRoutesByFullPath {
   '/api/media': typeof ApiMediaRoute
   '/api/memory': typeof ApiMemoryRoute
   '/api/profiles': typeof ApiProfilesRoute
+  '/api/research': typeof ApiResearchRoute
   '/api/router': typeof ApiRouterRoute
   '/api/routines': typeof ApiRoutinesRoute
   '/api/scope': typeof ApiScopeRoute
@@ -327,6 +334,7 @@ export interface FileRoutesByTo {
   '/api/media': typeof ApiMediaRoute
   '/api/memory': typeof ApiMemoryRoute
   '/api/profiles': typeof ApiProfilesRoute
+  '/api/research': typeof ApiResearchRoute
   '/api/router': typeof ApiRouterRoute
   '/api/routines': typeof ApiRoutinesRoute
   '/api/scope': typeof ApiScopeRoute
@@ -372,6 +380,7 @@ export interface FileRoutesById {
   '/api/media': typeof ApiMediaRoute
   '/api/memory': typeof ApiMemoryRoute
   '/api/profiles': typeof ApiProfilesRoute
+  '/api/research': typeof ApiResearchRoute
   '/api/router': typeof ApiRouterRoute
   '/api/routines': typeof ApiRoutinesRoute
   '/api/scope': typeof ApiScopeRoute
@@ -418,6 +427,7 @@ export interface FileRouteTypes {
     | '/api/media'
     | '/api/memory'
     | '/api/profiles'
+    | '/api/research'
     | '/api/router'
     | '/api/routines'
     | '/api/scope'
@@ -462,6 +472,7 @@ export interface FileRouteTypes {
     | '/api/media'
     | '/api/memory'
     | '/api/profiles'
+    | '/api/research'
     | '/api/router'
     | '/api/routines'
     | '/api/scope'
@@ -506,6 +517,7 @@ export interface FileRouteTypes {
     | '/api/media'
     | '/api/memory'
     | '/api/profiles'
+    | '/api/research'
     | '/api/router'
     | '/api/routines'
     | '/api/scope'
@@ -551,6 +563,7 @@ export interface RootRouteChildren {
   ApiMediaRoute: typeof ApiMediaRoute
   ApiMemoryRoute: typeof ApiMemoryRoute
   ApiProfilesRoute: typeof ApiProfilesRoute
+  ApiResearchRoute: typeof ApiResearchRoute
   ApiRouterRoute: typeof ApiRouterRoute
   ApiRoutinesRoute: typeof ApiRoutinesRoute
   ApiScopeRoute: typeof ApiScopeRoute
@@ -708,6 +721,13 @@ declare module '@tanstack/react-router' {
       path: '/api/profiles'
       fullPath: '/api/profiles'
       preLoaderRoute: typeof ApiProfilesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/research': {
+      id: '/api/research'
+      path: '/api/research'
+      fullPath: '/api/research'
+      preLoaderRoute: typeof ApiResearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/router': {
@@ -906,6 +926,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMediaRoute: ApiMediaRoute,
   ApiMemoryRoute: ApiMemoryRoute,
   ApiProfilesRoute: ApiProfilesRoute,
+  ApiResearchRoute: ApiResearchRoute,
   ApiRouterRoute: ApiRouterRoute,
   ApiRoutinesRoute: ApiRoutinesRoute,
   ApiScopeRoute: ApiScopeRoute,
