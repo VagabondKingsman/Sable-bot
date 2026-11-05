@@ -2,7 +2,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { Bell, Play } from "lucide-react";
 import { proactiveApi, type BriefView, type TasksInboxView } from "@/lib/agent/proactive-client";
-import { TASK_STATES, type TaskState } from "@/lib/agent/proactive/unify";
+import { TASK_STATES, type TaskState, type UnifiedTask } from "@/lib/agent/proactive/unify";
+import type { Chip } from "@/lib/agent/proactive/chips";
+import { decideApproval } from "@/lib/agent/client";
+import { tasksApi } from "@/lib/agent/tasks-client";
 import { saigonTime } from "@/lib/agent/jobs-client";
 
 const btn =
@@ -74,7 +77,17 @@ export function BriefCard() {
               <button type="button" className="w-full truncate text-left text-sm text-muted hover:text-fg" onClick={() => setOpen(open === b.id ? null : b.id)}>
                 {saigonTime(b.at)} · {b.title}
               </button>
-              {open === b.id && <pre className="mt-1 whitespace-pre-wrap rounded-xl bg-surface p-3 text-xs" data-brief-text>{b.text}</pre>}
+              {open === b.id && (
+                <div className="mt-1 flex flex-col gap-2">
+                  <pre className="whitespace-pre-wrap rounded-xl bg-surface p-3 text-xs" data-brief-text>{b.text}</pre>
+                  {(b.items ?? []).map((t) => (
+                    <div key={t.id} className="flex flex-col gap-1 rounded-xl bg-surface p-2" data-brief-item={t.id}>
+                      <span className="truncate text-xs">{t.title}</span>
+                      <ChipRow task={t} busy={busy} act={async (fn) => { setBusy(true); try { await fn(); setNote("Xong."); } catch (e) { setNote(e instanceof Error ? e.message : String(e)); } finally { setBusy(false); } }} />
+                    </div>
+                  ))}
+                </div>
+              )}
             </li>
           ))}
         </ul>
@@ -159,23 +172,7 @@ export function TasksInbox({ onOpenPlan, onOpenJob }: { onOpenPlan: (id: string)
               {t.decidedBy ? ` · ${t.decidedBy}` : ""}
             </span>
             {t.detail && <span className="line-clamp-2 text-sm text-muted">{t.detail}</span>}
-            <div className="flex flex-wrap gap-1">
-              {t.ref.planId && (
-                <button type="button" className={chip} onClick={() => onOpenPlan(t.ref.planId!)}>
-                  Mở kế hoạch
-                </button>
-              )}
-              {t.ref.jobId && !t.ref.planId && (
-                <button type="button" className={chip} onClick={() => onOpenJob(t.ref.jobId!)}>
-                  Mở việc
-                </button>
-              )}
-              {t.ref.triageId && (
-                <button type="button" className={chip} disabled={busy} onClick={() => void act(() => proactiveApi.itemState(t.ref.triageId!, t.state === "done" ? "undone" : "done"))}>
-                  {t.state === "done" ? "Mở lại" : "Xong"}
-                </button>
-              )}
-            </div>
+            <ChipRow task={t} busy={busy} act={act} onOpenPlan={onOpenPlan} onOpenJob={onOpenJob} />
           </li>
         ))}
       </ul>
@@ -184,3 +181,82 @@ export function TasksInbox({ onOpenPlan, onOpenJob }: { onOpenPlan: (id: string)
 }
 
 const chip = "inline-flex min-h-9 items-center gap-1 rounded-xl px-2 text-xs shadow-ring hover:text-fg disabled:opacity-40";
+
+/**
+ * Chips never send. Approve / reject ask for a confirm and use the normal
+ * human approval path; a draft opens in a local text box with Copy only.
+ */
+export function ChipRow({
+  task,
+  busy,
+  act,
+  onOpenPlan,
+  onOpenJob,
+}: {
+  task: UnifiedTask;
+  busy: boolean;
+  act: (fn: () => Promise<unknown>) => Promise<void>;
+  onOpenPlan?: (id: string) => void;
+  onOpenJob?: (id: string) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const chips = task.chips ?? [];
+  if (!chips.length) return null;
+  async function decide(approve: boolean) {
+    if (!window.confirm(approve ? `Duyệt: ${task.title}?` : `Từ chối: ${task.title}?`)) return;
+    await act(async () => {
+      if (task.ref.stepId && task.ref.planId) await tasksApi.act({ action: "approve_step", id: task.ref.planId, stepId: task.ref.stepId, approve });
+      else if (task.ref.approvalId) await decideApproval(task.ref.approvalId, approve);
+    });
+  }
+  function run(c: Chip) {
+    switch (c.action) {
+      case "approve":
+        return void decide(true);
+      case "reject":
+        return void decide(false);
+      case "snooze":
+        return void act(() => proactiveApi.itemState(task.ref.triageId!, "snooze", c.ms));
+      case "done":
+        return void act(() => proactiveApi.itemState(task.ref.triageId!, "done"));
+      case "draft_reply":
+        return setDraft(draft === null ? (c.draft ?? "") : null);
+      case "open_task":
+        return task.ref.planId && onOpenPlan?.(task.ref.planId);
+      case "open_job":
+        return task.ref.jobId && onOpenJob?.(task.ref.jobId);
+    }
+  }
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap gap-1" aria-label="Gợi ý thao tác">
+        {chips.map((c) => (
+          <button key={c.id} type="button" data-chip={c.action} data-sends="false" className={chip} disabled={busy && c.confirm} onClick={() => run(c)}>
+            {c.label}
+          </button>
+        ))}
+      </div>
+      {draft !== null && (
+        <div className="flex flex-col gap-1" data-draft>
+          <textarea aria-label="Bản nháp trả lời" className={field + " min-h-28"} value={draft} onChange={(e) => setDraft(e.target.value)} />
+          <div className="flex gap-1">
+            <button
+              type="button"
+              className={chip}
+              onClick={() =>
+                void navigator.clipboard?.writeText(draft).then(
+                  () => setCopied(true),
+                  () => setCopied(false),
+                )
+              }
+            >
+              {copied ? "Đã chép" : "Chép"}
+            </button>
+            <span className="text-xs text-muted">Chỉ là bản nháp — Sable không tự gửi.</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

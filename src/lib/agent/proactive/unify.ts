@@ -22,6 +22,7 @@ export type UnifiedTask = {
   reason?: string;
   decidedBy?: string;
   snoozed?: boolean;
+  chips?: import("./chips.ts").Chip[];
   ref: { planId?: string; stepId?: string; approvalId?: string; jobId?: string; inboxId?: string; triageId?: string; routineId?: string };
 };
 

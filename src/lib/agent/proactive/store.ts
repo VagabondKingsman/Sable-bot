@@ -23,7 +23,17 @@ export type BriefConfig = {
   lastSlot: string | null;
 };
 
-export type BriefRecord = { id: string; at: number; title: string; text: string; manual: boolean; delivered: string[]; counts: Record<string, number> };
+export type BriefRecord = {
+  id: string;
+  at: number;
+  title: string;
+  text: string;
+  manual: boolean;
+  delivered: string[];
+  counts: Record<string, number>;
+  /** Items that need the owner, with their chips (approve / snooze / draft / open). */
+  items?: import("./unify.ts").UnifiedTask[];
+};
 
 export type ProactiveData = {
   v: 1;

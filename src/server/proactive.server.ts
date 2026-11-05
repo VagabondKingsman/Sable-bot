@@ -18,6 +18,7 @@ import type { BriefConfig, BriefRecord } from "@/lib/agent/proactive/store";
 import type { InboxItem } from "@/lib/agent/jobs/types";
 import { plannerBundle } from "@/server/planner.server";
 import { stateCounts, unify } from "@/lib/agent/proactive/unify";
+import { assertNoSend, chipsFor } from "@/lib/agent/proactive/chips";
 
 const KEY = Symbol.for("sable.proactive.store");
 type G = typeof globalThis & { [KEY]?: ProactiveStore };
@@ -154,7 +155,8 @@ export async function runBrief(opts: { manual: boolean; slot?: string; now?: Dat
     const { notifyOwnerTelegram } = await import("@/server/channels.server");
     if (await notifyOwnerTelegram(brief.text)) delivered.push("telegram");
   }
-  const record: BriefRecord = { id, at: now.getTime(), title: brief.title, text: brief.text, manual: opts.manual, delivered, counts: brief.counts };
+  const needing = (await tasksInbox()).tasks.filter((t) => t.state === "waiting_approval" || t.bucket === "needs_reply").slice(0, 12);
+  const record: BriefRecord = { id, at: now.getTime(), title: brief.title, text: brief.text, manual: opts.manual, delivered, counts: brief.counts, items: needing };
   store.addBrief(record);
   store.setBrief({ lastRunAt: now.getTime(), ...(opts.slot ? { lastSlot: opts.slot } : {}) });
   onBriefDelivered?.(record, opts.manual);
@@ -214,6 +216,6 @@ export async function tasksInbox(opts: { includeSnoozed?: boolean } = {}) {
     }
   })();
   const jobs = jobService().db.listJobs().slice(0, 100);
-  const tasks = unify({ plans, triaged: feed.items, jobs, includeSnoozed: opts.includeSnoozed });
+  const tasks = unify({ plans, triaged: feed.items, jobs, includeSnoozed: opts.includeSnoozed }).map((t) => ({ ...t, chips: assertNoSend(chipsFor(t)) }));
   return { triage: feed.enabled, tasks, counts: stateCounts(tasks), ignored: feed.counts.ignore ?? 0 };
 }
