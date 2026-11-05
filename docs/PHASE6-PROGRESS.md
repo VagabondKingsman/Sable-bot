@@ -177,7 +177,7 @@ Checklist:
 - [x] 6. Pending OAuth sign-ins persisted across restart (encrypted, 10-min TTL)
 - [x] 7. Triage eval on a separate 60-item held-out set (honest score)
 - [x] 8. Hardening: rate limits, body size limits, CSRF/origin checks, npm audit, memory footprint
-- [ ] 9. eval:w2c + all evals; tsc; npm test; restart; ngrok 401/200; package CLEAN
+- [x] 9. eval:w2c + all evals; tsc; npm test; restart; ngrok 401/200; package CLEAN
 
 ### W2c item 8 — hardening (notes)
 - `src/server/harden.ts` + Vite `hardenPlugin()` (first middleware, /api/* and /s/* only): per-IP fixed-window rate limits (read 600/min, write 120/min, share 60/min; loopback w/o XFF exempt), Content-Length cap 10 MB → 413, CSRF/origin check on POST/PUT/PATCH/DELETE /api/* → 403 (allowed: SABLE_TRUSTED_ORIGINS, localhost, same Host; `null` origin rejected; X-Forwarded-Host ignored). Exempt (secret-authenticated): `/api/channels/webhook`, `/api/routines/<id>/fire`. Kill switches: SABLE_RATE=0, SABLE_CSRF=0.
@@ -185,3 +185,22 @@ Checklist:
 - Gap: guard is a dev-server (Vite) middleware; not wired into a Nitro production build (Sable runs as `vite dev`).
 - npm audit: `npm audit fix` (non-breaking) applied → zod 4.6.7, seroval 1.7.7 (fixes 1 high + 1 moderate). Remaining 11: nodemailer ≤10.1.3 (high; fix = v10 major — not applied; SMTP only talks to owner-configured server), better-auth 1.6.x (critical/high: magic-link, oauth-proxy, device-auth advisories — those plugins are NOT used; only bearer+genericOAuth; 1.7.17 tried and reverted: breaks `genericOAuthClient` / `signInWithOAuth2` APIs), typescript-eslint/minimatch (dev-only, moderate), drizzle/kysely adapters (low).
 - Memory: 16 GB total, ~8.4 GB available at check; vite dev RSS ≈ 1.75 GB (the only large Sable process). No action needed.
+
+### W2c verification (2026-11-05 ~17:25 Asia/Saigon)
+- `tsc --noEmit` clean. `npm test`: script suites 197/197, TS suites 336/336 (now includes canvas/shares, media/tool, server/harden).
+- Evals: w0, w1, w2 (10), w2a (11), w2b (15) pass; **eval:w2c 12/12** — offline: canvas guard + share links, media tool approval/budget, builtin brief routine, plan initiator traces, OAuth pending persistence, harden; triage tuning set gate; held-out honest score reported (rules+heuristic 65.0%, not gated; approval recall 100%). Live: builtin:morning-brief listed and undeletable, routine-webhook approval → 401 wrong secret / 403 right secret + `approval.denied_policy` audited (temp routine deleted), share link create → view (CSP frame-ancestors none, sandbox allow-scripts, target=_top stripped) → revoke → 404, CSRF 403 (evil + null origin), 20 MB body → 413.
+- Restart (watchdog): local /api/health 200; eval:w2c live 12/12 again; ngrok 401 without auth, 200 with auth.
+- Package: `/workspace/sable-source-w2c-202611051024.tgz` (secret scan below).
+
+Incidents / bugs fixed in W2c:
+- Box restore (~17:00 Asia/Saigon): node_modules missing, server down, uncommitted item-2 work lost → `npm ci`, item 2 rewritten, watchdog relaunched. Committing per item limited the loss to one item.
+- Builtin brief could be recorded as missed at boot (first tick before module load) → `builtinReady` gate.
+- Stale expired OAuth pending blob was not removed → resave on load.
+- Same-origin CSRF check initially trusted X-Forwarded-Host → Host only.
+
+Gaps / for He:
+- Share links still sit behind ngrok basic auth (traffic policy unchanged) — recipients need the password unless He opts to exempt `/s/*` (docs/CANVAS-SHARE.md).
+- Production triage tier is rules+heuristic (65% on held-out). Setting `SABLE_MODEL_LIGHT` (grok-4.5 tier scored 93.3%) is recommended.
+- harden middleware is dev-server (Vite) only; not wired into a Nitro production build.
+- npm audit residue (11): nodemailer (high, major bump needed), better-auth 1.6 (critical/high advisories for magic-link / oauth-proxy / device-auth plugins, not used here; 1.7 breaks APIs), typescript-eslint/minimatch (dev-only), adapters (low).
+- Item-5 live test uses a non-existent approval id (policy denies before lookup; routines cannot create approvals at all).
