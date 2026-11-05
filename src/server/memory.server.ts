@@ -13,6 +13,7 @@ import { MemoryStore } from "@/lib/agent/memory/store";
 import type { MemorySource } from "@/lib/agent/memory/types";
 import type { MemoryAccess } from "@/lib/agent/tools/types";
 import type { ChatRequest } from "@/lib/agent/types";
+import { hybridSearch, vectorOn } from "@/server/vector.server";
 
 const KEY = Symbol.for("sable.memory.store.v1");
 
@@ -40,11 +41,31 @@ export function memoryOn(store: MemoryStore) {
 export function accessFor(store: MemoryStore, canWrite: boolean, source: MemorySource, sourceRef?: string): MemoryAccess {
   return {
     canWrite,
-    recall: (query, limit) => {
-      const found = store.search(query, Math.min(20, Math.max(1, limit)));
+    recall: async (query, limit) => {
+      const n = Math.min(20, Math.max(1, limit));
+      const lexical = store.search(query, n);
+      let found = lexical;
+      // W5: hybrid (BM25 + vector + recency) over the indexed memory/journal, then fresh BM25 hits
+      // for anything saved since the last index sync. SABLE_VECTOR=0 → BM25 only (as before).
+      if (vectorOn()) {
+        try {
+          const hits = await hybridSearch(query, { k: n * 2, sources: ["memory", "journal"] });
+          const byId = new Map(store.list().map((m) => [m.id, m]));
+          const ordered = [...new Set([...hits.map((h) => h.chunk.ref), ...lexical.map((m) => m.id)])];
+          found = ordered.map((id) => byId.get(id)).filter((m): m is NonNullable<typeof m> => Boolean(m)).slice(0, n);
+        } catch {
+          found = lexical;
+        }
+      }
       store.markUsed(found.map((item) => item.id));
       return found.map((item) => ({ id: item.id, kind: item.kind, text: item.text, eventDate: item.eventDate }));
     },
+    knowledge: vectorOn()
+      ? async (query, opts) => {
+          const hits = await hybridSearch(query, { k: Math.min(12, Math.max(1, opts.k ?? 6)), sources: opts.sources as never });
+          return hits.map((h) => ({ source: h.chunk.source, title: h.chunk.title, ref: h.chunk.ref, at: h.chunk.at, text: h.chunk.text, score: h.score }));
+        }
+      : undefined,
     save: (text, kind, eventDate) => {
       if (!canWrite) return { status: "skipped" };
       const result = store.add({ text, kind, eventDate, source, sourceRef });

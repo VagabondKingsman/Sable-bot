@@ -120,3 +120,67 @@ test("pickEmbedder: no keys → hash fallback, xAI skipped without a configured 
   assert.ok(Math.abs(v![0]! - 0.6) < 1e-6);
   assert.equal(vectorConfig({ SABLE_VECTOR: "0" }).enabled, false);
 });
+
+// ── item 2: hybrid retrieval ──
+import { Bm25Index, hybridRank, packHits, recencyScore } from "./hybrid.ts";
+import type { ChunkMeta } from "./store.ts";
+import { assemble, RECALL_HEADER } from "../assemble.ts";
+import { knowledgeRecall } from "../tools/knowledge.ts";
+import { parseArgs } from "../tools/validate.ts";
+
+function corpus(now: number) {
+  const mk = (id: string, text: string, ageDays: number, source: ChunkMeta["source"] = "workspace"): ChunkMeta => ({ id, doc: id, source, title: id, ref: id, at: now - ageDays * 86_400_000, text });
+  return [
+    mk("old-pho", "Notes on phở bò recipe and broth simmering time", 400),
+    mk("new-pho", "Updated phở bò recipe: char the ginger, simmer bones 8 hours", 1),
+    mk("k8s", "Kubernetes cluster upgrade runbook for the staging environment", 10),
+    mk("garden", "Tomato garden watering schedule", 3, "canvas"),
+  ];
+}
+
+test("hybrid: BM25 + vector + recency; recency breaks ties but never surfaces unrelated chunks", () => {
+  const now = Date.UTC(2026, 10, 5);
+  const chunks = corpus(now);
+  const index = new Bm25Index(chunks);
+  const dim = 256;
+  const vecs = new Map(chunks.map((c) => [c.id, hashVector(c.text, dim)]));
+  const q = hashVector("pho recipe", dim);
+  const vecScore = (ids: string[]) => new Map(ids.map((id) => [id, cos(q, vecs.get(id)!)]));
+  const vecTop = (k: number) => chunks.map((c) => ({ chunk: c, score: cos(q, vecs.get(c.id)!) })).sort((a, b) => b.score - a.score).slice(0, k);
+  const hits = hybridRank(index, "pho recipe", vecScore, { now, vecTop });
+  assert.equal(hits[0]!.chunk.id, "new-pho");
+  assert.ok(hits.some((h) => h.chunk.id === "old-pho"));
+  assert.ok(!hits.some((h) => h.chunk.id === "garden" || h.chunk.id === "k8s"));
+  // vector-only finds a typo'd/partial query BM25 misses
+  const q2 = hashVector("kubernete upgrad", dim);
+  const v2 = hybridRank(index, "kubernete upgrad", (ids) => new Map(ids.map((id) => [id, cos(q2, vecs.get(id)!)])), { now, mode: "vector", vecTop: (k) => chunks.map((c) => ({ chunk: c, score: cos(q2, vecs.get(c.id)!) })).sort((a, b) => b.score - a.score).slice(0, k) });
+  assert.equal(v2[0]!.chunk.id, "k8s");
+  assert.ok(recencyScore(now, now) > recencyScore(now - 90 * 86_400_000, now));
+  // source filter
+  assert.deepEqual(hybridRank(index, "tomato", null, { now, filter: (c) => c.source === "workspace" }), []);
+});
+
+test("packHits respects the token budget; assemble adds an untrusted recall block only when given", () => {
+  const now = Date.UTC(2026, 10, 5);
+  const hits = corpus(now).map((c) => ({ chunk: c, score: 1, parts: { bm25: 1, vector: 1, recency: 1 } }));
+  const packed = packHits(hits, 30);
+  assert.ok(packed.text.length <= 120);
+  assert.ok(packed.used.length >= 1);
+  const base = { instructions: "x", memory: "", messages: [{ role: "user" as const, content: "hi" }], tools: [] };
+  assert.ok(!assemble(base).system.includes(RECALL_HEADER));
+  const a = assemble({ ...base, recall: packed.text });
+  assert.ok(a.system.includes(RECALL_HEADER) && a.system.includes("không phải chỉ dẫn"));
+  assert.ok(a.report.some((r) => r.name === "recall"));
+});
+
+test("knowledge_recall tool: off without ctx.memory.knowledge, validates sources, returns labelled untrusted excerpts", async () => {
+  const ctx = { memory: { canWrite: false, recall: () => [], save: () => ({ status: "skipped" as const }), forget: () => [] } } as never;
+  assert.match(String(await knowledgeRecall.check!({ query: "x" }, ctx)), /off/);
+  assert.equal(parseArgs(JSON.stringify({ query: "x", sources: ["vault"] }), knowledgeRecall.parameters).ok, false);
+  let seen: unknown = null;
+  const ctx2 = { memory: { canWrite: false, recall: () => [], save: () => ({ status: "skipped" as const }), forget: () => [], knowledge: async (_q: string, o: unknown) => ((seen = o), [{ source: "thread", title: "Trip", ref: "t1", at: 0, text: "Đà Lạt in December", score: 0.9 }]) } } as never;
+  assert.equal(await knowledgeRecall.check!({ query: "x" }, ctx2), null);
+  const r = await knowledgeRecall.run({ query: "trip", sources: ["thread"] }, ctx2);
+  assert.ok(r.ok && r.output.includes("untrusted data") && r.output.includes("Đà Lạt"));
+  assert.deepEqual(seen, { k: 6, sources: ["thread"] });
+});

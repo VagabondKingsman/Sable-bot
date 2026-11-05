@@ -18,7 +18,7 @@ import { createHttpFetch } from "@/lib/agent/tools/fetch";
 import { describeSchedule } from "@/lib/agent/jobs/schedule";
 import { isActive, summarize, type Job, type Routine } from "@/lib/agent/jobs/types";
 import type { ToolContext } from "@/lib/agent/tools/types";
-import { prepareTurn, workspaceDir } from "@/server/chat.server";
+import { prepareTurn, recallQuery, workspaceDir } from "@/server/chat.server";
 import { emitJobEvent } from "@/server/channel-bus";
 import { catchUpOn, tickHeartbeat } from "@/lib/agent/resilience/heartbeat";
 import { plannerBundle } from "@/server/planner.server";
@@ -82,7 +82,9 @@ const BACKGROUND_NOTE =
 
 const exec: JobExec = async (job, io) => {
   await mcpWarm();
-  const turn = prepareTurn(job.request, BACKGROUND_NOTE, { mode: "background", source: job.routineId ? "routine" : "job", sourceRef: job.id, mcp: true });
+  const { recallBlockFor } = await import("@/server/vector.server");
+  const recall = await recallBlockFor(recallQuery(job.request));
+  const turn = prepareTurn(job.request, BACKGROUND_NOTE, { mode: "background", source: job.routineId ? "routine" : "job", sourceRef: job.id, mcp: true, recall });
   if (!turn) throw new Error("Mô hình chưa sẵn sàng trong môi trường này.");
   for (const text of turn.notices) io.emit({ event: "notice", data: { text } });
   const { workspaces, budget } = plannerBundle();

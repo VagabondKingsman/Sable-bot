@@ -30,6 +30,8 @@ export function parseArgs(raw: string, schema: JsonSchema): Parsed {
       if (typeof item !== "boolean") return { ok: false, error: `${key} must be a boolean` };
     } else if (prop.type === "array") {
       if (!Array.isArray(item)) return { ok: false, error: `${key} must be an array` };
+      if (prop.maxItems !== undefined && item.length > prop.maxItems) return { ok: false, error: `${key} has more than ${prop.maxItems} items` };
+      if (prop.items?.type === "string" && item.some((x) => typeof x !== "string" || (prop.items!.enum && !prop.items!.enum.includes(x)))) return { ok: false, error: `${key} items must be ${prop.items.enum ? `one of ${prop.items.enum.join(", ")}` : "strings"}` };
     } else if (prop.type === "object") {
       if (typeof item !== "object" || Array.isArray(item)) return { ok: false, error: `${key} must be an object` };
     } else if (prop.type !== "number" && prop.type !== "integer") {

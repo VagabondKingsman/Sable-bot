@@ -18,6 +18,9 @@ export type JsonProp = {
   maxLength?: number;
   minimum?: number;
   maximum?: number;
+  /** Array item schema (arrays only). */
+  items?: JsonProp;
+  maxItems?: number;
 };
 
 /** "memory" = Sable's own learned-memory file (not the workspace, never the outside world). */
@@ -67,10 +70,15 @@ export type ToolContext = {
 export type SpawnProfile = string;
 export type SpawnFn = (req: { task: string; profile: SpawnProfile; context?: string }, ctx: ToolContext) => Promise<ToolResult>;
 
+export type RecallItem = { id: string; kind: string; text: string; eventDate?: string };
+export type KnowledgeHit = { source: string; title: string; ref: string; at: number; text: string; score: number };
+
 export type MemoryAccess = {
   /** May save (false for background runs and "don't remember this chat"). */
   canWrite: boolean;
-  recall(query: string, limit: number): { id: string; kind: string; text: string; eventDate?: string }[];
+  recall(query: string, limit: number): RecallItem[] | Promise<RecallItem[]>;
+  /** W5 hybrid recall over the local index (threads, pages, research, workspace docs, memory). Absent → off. */
+  knowledge?(query: string, opts: { k?: number; sources?: string[] }): Promise<KnowledgeHit[]>;
   save(text: string, kind: "profile" | "journal", eventDate?: string): { status: "added" | "merged" | "skipped"; text?: string };
   forget(query: string): string[];
 };

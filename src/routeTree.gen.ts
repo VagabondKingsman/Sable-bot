@@ -29,6 +29,7 @@ import { Route as ApiMcpRouteImport } from './routes/api/mcp'
 import { Route as ApiMediaRouteImport } from './routes/api/media'
 import { Route as ApiMemoryRouteImport } from './routes/api/memory'
 import { Route as ApiProfilesRouteImport } from './routes/api/profiles'
+import { Route as ApiRecallRouteImport } from './routes/api/recall'
 import { Route as ApiResearchRouteImport } from './routes/api/research'
 import { Route as ApiRouterRouteImport } from './routes/api/router'
 import { Route as ApiRoutinesRouteImport } from './routes/api/routines'
@@ -153,6 +154,11 @@ const ApiMemoryRoute = ApiMemoryRouteImport.update({
 const ApiProfilesRoute = ApiProfilesRouteImport.update({
   id: '/api/profiles',
   path: '/api/profiles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRecallRoute = ApiRecallRouteImport.update({
+  id: '/api/recall',
+  path: '/api/recall',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiResearchRoute = ApiResearchRouteImport.update({
@@ -302,6 +308,7 @@ export interface FileRoutesByFullPath {
   '/api/media': typeof ApiMediaRoute
   '/api/memory': typeof ApiMemoryRoute
   '/api/profiles': typeof ApiProfilesRoute
+  '/api/recall': typeof ApiRecallRoute
   '/api/research': typeof ApiResearchRoute
   '/api/router': typeof ApiRouterRoute
   '/api/routines': typeof ApiRoutinesRoute
@@ -349,6 +356,7 @@ export interface FileRoutesByTo {
   '/api/media': typeof ApiMediaRoute
   '/api/memory': typeof ApiMemoryRoute
   '/api/profiles': typeof ApiProfilesRoute
+  '/api/recall': typeof ApiRecallRoute
   '/api/research': typeof ApiResearchRoute
   '/api/router': typeof ApiRouterRoute
   '/api/routines': typeof ApiRoutinesRoute
@@ -397,6 +405,7 @@ export interface FileRoutesById {
   '/api/media': typeof ApiMediaRoute
   '/api/memory': typeof ApiMemoryRoute
   '/api/profiles': typeof ApiProfilesRoute
+  '/api/recall': typeof ApiRecallRoute
   '/api/research': typeof ApiResearchRoute
   '/api/router': typeof ApiRouterRoute
   '/api/routines': typeof ApiRoutinesRoute
@@ -446,6 +455,7 @@ export interface FileRouteTypes {
     | '/api/media'
     | '/api/memory'
     | '/api/profiles'
+    | '/api/recall'
     | '/api/research'
     | '/api/router'
     | '/api/routines'
@@ -493,6 +503,7 @@ export interface FileRouteTypes {
     | '/api/media'
     | '/api/memory'
     | '/api/profiles'
+    | '/api/recall'
     | '/api/research'
     | '/api/router'
     | '/api/routines'
@@ -540,6 +551,7 @@ export interface FileRouteTypes {
     | '/api/media'
     | '/api/memory'
     | '/api/profiles'
+    | '/api/recall'
     | '/api/research'
     | '/api/router'
     | '/api/routines'
@@ -588,6 +600,7 @@ export interface RootRouteChildren {
   ApiMediaRoute: typeof ApiMediaRoute
   ApiMemoryRoute: typeof ApiMemoryRoute
   ApiProfilesRoute: typeof ApiProfilesRoute
+  ApiRecallRoute: typeof ApiRecallRoute
   ApiResearchRoute: typeof ApiResearchRoute
   ApiRouterRoute: typeof ApiRouterRoute
   ApiRoutinesRoute: typeof ApiRoutinesRoute
@@ -754,6 +767,13 @@ declare module '@tanstack/react-router' {
       path: '/api/profiles'
       fullPath: '/api/profiles'
       preLoaderRoute: typeof ApiProfilesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/recall': {
+      id: '/api/recall'
+      path: '/api/recall'
+      fullPath: '/api/recall'
+      preLoaderRoute: typeof ApiRecallRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/research': {
@@ -967,6 +987,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMediaRoute: ApiMediaRoute,
   ApiMemoryRoute: ApiMemoryRoute,
   ApiProfilesRoute: ApiProfilesRoute,
+  ApiRecallRoute: ApiRecallRoute,
   ApiResearchRoute: ApiResearchRoute,
   ApiRouterRoute: ApiRouterRoute,
   ApiRoutinesRoute: ApiRoutinesRoute,

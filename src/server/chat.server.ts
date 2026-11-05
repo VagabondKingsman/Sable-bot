@@ -23,6 +23,7 @@ import { canvasOn } from "@/lib/agent/tools/canvas";
 import { voiceStatus } from "@/server/voice.server";
 import { accessFor, completerFor, learnedFor, memoryOn, memoryStore, queueExtraction } from "@/server/memory.server";
 import type { MemorySource } from "@/lib/agent/memory/types";
+import { recallBlockFor, vectorOn } from "@/server/vector.server";
 import {
   availableModels,
   endpointFor,
@@ -154,6 +155,8 @@ export type TurnScope = {
   depth?: 0 | 1;
   /** Offer MCP tools (chat + jobs only; never the memory extractor). */
   mcp?: boolean;
+  /** W5: precomputed hybrid-recall block (untrusted excerpts) for the context builder. */
+  recall?: string;
 };
 
 export function prepareTurn(
@@ -169,7 +172,9 @@ export function prepareTurn(
   // Only the interactive chat, when the user did not say "don't remember this chat", may write memory.
   const canWrite = memOn && scope.mode === "interactive" && input.remember !== false;
   const flags = { ...input.tools, learned: memOn && functionToolsOn(), agents: spawnOn() && functionToolsOn() && scope.depth !== 1, skills: skillsOn() && functionToolsOn() && skillStoreNow().list().length > 0, shell: shellOn() && functionToolsOn(), browser: browserOn() && functionToolsOn(), canvas: canvasOn() && functionToolsOn() && Boolean(input.tools.files) };
-  const base = selectTools(defaultRegistry(), flags, capabilitiesFor(endpoint));
+  const base0 = selectTools(defaultRegistry(), flags, capabilitiesFor(endpoint));
+  // W5: knowledge_recall only when the local index is on.
+  const base = vectorOn() ? base0 : { ...base0, active: base0.active.filter((t) => t.name !== "knowledge_recall"), functions: base0.functions.filter((t) => t.name !== "knowledge_recall") };
   const mcpDefs = scope.mcp && functionToolsOn() && scope.depth !== 1 ? [...mcpToolsFor(scope.source), ...connectorToolsFor(scope.source), ...mediaToolsFor(scope.source), ...desktopToolsFor(scope.source)] : [];
   const picked = mcpDefs.length ? { ...base, active: [...base.active, ...mcpDefs], functions: [...base.functions, ...mcpDefs] } : base;
   const selection = canWrite
@@ -183,6 +188,7 @@ export function prepareTurn(
     messages: input.messages,
     tools: selection.active,
     learned: memOn ? learnedFor(store, input) : "",
+    recall: memOn ? (scope.recall ?? "") : "",
     skills: skillTurn?.catalog ?? "",
     now: new Date(),
   });
@@ -198,13 +204,19 @@ export function prepareTurn(
   return { endpoint, adapter: adapterFor(endpoint.style), assembled, opts, functions: selection.functions, transport: transportFor(endpoint), notices, memory, canLearn: canWrite, active: selection.active, skills: skillTurn?.access };
 }
 
+/** Last two user messages = the recall query (same as the learned block). */
+export function recallQuery(input: ChatRequest) {
+  return input.messages.filter((m) => m.role === "user").slice(-2).map((m) => m.content).join("\n").slice(-2_000);
+}
+
 function writesMemoryNot(tool: { name: string }) {
   return tool.name !== "memory_save" && tool.name !== "memory_forget";
 }
 
 export async function streamChat(input: ChatRequest, notices: string[], signal: AbortSignal) {
   await mcpWarm();
-  const turn = prepareTurn(input, "", { mode: "interactive", source: "chat", sourceRef: input.threadId, mcp: true });
+  const recall = await recallBlockFor(recallQuery(input), input.threadId);
+  const turn = prepareTurn(input, "", { mode: "interactive", source: "chat", sourceRef: input.threadId, mcp: true, recall });
   if (!turn) return Response.json({ message: "Mô hình chưa sẵn sàng trong môi trường này." }, { status: 503 });
   if (CHAT_LIMIT > 0 && !takeSlot("chat", CHAT_LIMIT, WINDOW_MS)) {
     return Response.json({ message: "Đã chạm trần dùng trong vài phút. Đợi một lát rồi gửi lại." }, { status: 429 });

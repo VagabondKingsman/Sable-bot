@@ -7,6 +7,7 @@ import type { ToolFlags } from "../types.ts";
 import { createHttpFetch } from "./fetch.ts";
 import { fsList, fsRead, fsWrite } from "./fs.ts";
 import { MEMORY_TOOLS } from "./memory.ts";
+import { knowledgeRecall } from "./knowledge.ts";
 import { spawnAgent } from "./spawn.ts";
 import { loadSkill } from "./skill.ts";
 import { shellRun } from "./shell.ts";
@@ -32,6 +33,7 @@ export const FLAG_OF: Record<string, keyof ToolFlags> = {
   memory_recall: "learned",
   memory_save: "learned",
   memory_forget: "learned",
+  knowledge_recall: "learned",
   spawn_agent: "agents",
   load_skill: "skills",
   shell_run: "shell",
@@ -59,7 +61,7 @@ export function createRegistry(defs: ToolDef[]): Registry {
 }
 
 export function builtinTools(): ToolDef[] {
-  return [...SERVER_TOOLS, fsList, fsRead, fsWrite, createHttpFetch(), ...MEMORY_TOOLS, spawnAgent, loadSkill, shellRun, browserTool, canvasWrite];
+  return [...SERVER_TOOLS, fsList, fsRead, fsWrite, createHttpFetch(), ...MEMORY_TOOLS, knowledgeRecall, spawnAgent, loadSkill, shellRun, browserTool, canvasWrite];
 }
 
 let shared: Registry | null = null;

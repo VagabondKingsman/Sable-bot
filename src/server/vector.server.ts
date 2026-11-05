@@ -9,6 +9,8 @@ import { VectorStore, type ChunkMeta } from "@/lib/agent/vector/store";
 import { collectAll } from "@/lib/agent/vector/sources";
 import { syncIndex, type SyncReport } from "@/lib/agent/vector/indexer";
 import { pickEmbedder, type Picked } from "@/lib/agent/vector/select";
+import { Bm25Index, hybridRank, packHits, type Hit, type Mode } from "@/lib/agent/vector/hybrid";
+import type { SourceKind } from "@/lib/agent/vector/store";
 import { dataDir, workspaceDir } from "@/server/paths";
 
 type State = {
@@ -143,4 +145,42 @@ export function clearVector() {
 
 export function recallTokenBudget() {
   return st().cfg.recallTokens;
+}
+
+// ── W5 item 2: hybrid retrieval ──────────────────────────────────────────────
+
+let bmCache: { version: number; index: Bm25Index } | null = null;
+function bm25Index(): Bm25Index {
+  const st0 = store();
+  if (!bmCache || bmCache.version !== st0.version) bmCache = { version: st0.version, index: new Bm25Index(st0.chunks()) };
+  return bmCache.index;
+}
+
+export type RecallOpts = { k?: number; sources?: SourceKind[]; excludeDocs?: string[]; mode?: Mode; fresh?: boolean };
+
+/** BM25 + vector + recency over the local index. [] when SABLE_VECTOR=0. */
+export async function hybridSearch(query: string, opts: RecallOpts = {}): Promise<Hit[]> {
+  if (!vectorOn() || !query.trim()) return [];
+  if (opts.fresh !== false) await freshVector();
+  const q = opts.mode === "bm25" ? null : await embedQuery(query);
+  const s = store();
+  const want = opts.sources?.length ? new Set(opts.sources) : null;
+  const ex = new Set(opts.excludeDocs ?? []);
+  const filter = (c: { source: SourceKind; doc: string }) => (!want || want.has(c.source)) && !ex.has(c.doc);
+  return hybridRank(bm25Index(), query, q ? (ids) => s.scoreIds(q, ids) : null, { mode: opts.mode ?? "hybrid", k: opts.k ?? 8, filter, vecTop: q ? (k) => s.search(q, k, filter) : undefined });
+}
+
+/** Context-builder recall block: other threads, pages, research, workspace docs (memory/journal are in the learned block). */
+export async function recallBlockFor(query: string, threadId?: string, timeoutMs = 2_500): Promise<string> {
+  if (!vectorOn() || process.env.SABLE_RECALL_CONTEXT === "0" || recallTokenBudget() <= 0 || !query.trim()) return "";
+  try {
+    const hits = await Promise.race([
+      hybridSearch(query, { k: 6, sources: ["thread", "canvas", "research", "workspace"], excludeDocs: threadId ? [`thread:${threadId}`] : [], fresh: false }),
+      new Promise<Hit[]>((resolve) => setTimeout(() => resolve([]), timeoutMs).unref?.()),
+    ]);
+    // Only reasonably relevant hits go into the prompt.
+    return packHits(hits.filter((h) => h.score >= 0.25), recallTokenBudget()).text;
+  } catch {
+    return "";
+  }
 }

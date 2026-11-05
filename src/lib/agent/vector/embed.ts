@@ -43,7 +43,7 @@ export function hashVector(text: string, dim: number): Float32Array {
     add(`w:${w}`, 1);
     if (i + 1 < words.length) add(`b:${w}_${words[i + 1]}`, 0.5);
     const p = `^${w}$`;
-    for (let j = 0; j + 3 <= p.length; j += 1) add(`c:${p.slice(j, j + 3)}`, 0.25);
+    for (let j = 0; j + 3 <= p.length; j += 1) add(`c:${p.slice(j, j + 3)}`, 0.4);
   }
   let n = 0;
   for (let i = 0; i < dim; i += 1) n += v[i]! * v[i]!;
@@ -53,7 +53,7 @@ export function hashVector(text: string, dim: number): Float32Array {
 }
 
 export function hashEmbedder(dim = 512): Embedder {
-  return { id: `hash-v1-${dim}`, kind: "hash", dim, embed: async (texts) => texts.map((t) => hashVector(t, dim)) };
+  return { id: `hash-v2-${dim}`, kind: "hash", dim, embed: async (texts) => texts.map((t) => hashVector(t, dim)) };
 }
 
 export function openaiEmbedder(opts: { base: string; key: string; model: string; kind: "openai" | "xai"; dim?: number; fetchFn?: typeof fetch }): Embedder {

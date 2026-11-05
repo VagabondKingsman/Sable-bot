@@ -28,7 +28,7 @@ export const memoryRecall: FunctionTool<{ query: string; limit?: number }> = {
   label: (args) => `memory_recall · ${String(args.query).slice(0, 40)}`,
   check: async (_args, ctx) => noMemory(ctx),
   async run(args, ctx) {
-    const found = ctx.memory!.recall(args.query, args.limit ?? 8);
+    const found = await ctx.memory!.recall(args.query, args.limit ?? 8);
     if (!found.length) return { ok: true, output: "No matching memories.", detail: "Không có" };
     return {
       ok: true,

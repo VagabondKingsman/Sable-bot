@@ -163,7 +163,7 @@ test("registry: memory tools only with the learned flag; learned block in the pr
   const caps = { serverTools: false, functionTools: true };
   const base = { web: false, x: false, code: false, image: false };
   assert.equal(selectTools(registry, base, caps).functions.length, 0);
-  assert.deepEqual(selectTools(registry, { ...base, learned: true }, caps).functions.map((tool) => tool.name).sort(), ["memory_forget", "memory_recall", "memory_save"]);
+  assert.deepEqual(selectTools(registry, { ...base, learned: true }, caps).functions.map((tool) => tool.name).sort(), ["knowledge_recall", "memory_forget", "memory_recall", "memory_save"]);
   assert.equal(selectTools(registry, { ...base, learned: true }, { serverTools: false, functionTools: false }).functions.length, 0);
   const withBlock = assemble({ instructions: "x", memory: "", messages: [{ role: "user", content: "hi" }], tools: [], learned: "- Thích phở" });
   assert.ok(withBlock.system.includes(LEARNED_HEADER) && withBlock.system.includes("Thích phở"));

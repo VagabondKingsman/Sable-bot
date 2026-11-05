@@ -47,7 +47,7 @@ export const BUILTIN_PROFILES: AgentProfile[] = [
     instructions:
       "You are Sable's research persona. Prefer web/fetch/read tools. Summarize with sources. Never write files unless the user explicitly asks.",
     tools: { web: true, x: true, fetch: true, files: true, code: false, image: false, shell: false, browser: false },
-    spawnTools: ["web_search", "x_search", "http_fetch", "fs_list", "fs_read", "memory_recall"],
+    spawnTools: ["web_search", "x_search", "http_fetch", "fs_list", "fs_read", "memory_recall", "knowledge_recall"],
     builtin: true,
     updatedAt: 0,
   },

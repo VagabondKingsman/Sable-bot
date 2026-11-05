@@ -8,7 +8,7 @@ import type { FunctionTool, SpawnProfile } from "./types.ts";
 
 export const SPAWN_PROFILES: Record<SpawnProfile, { tools: readonly string[]; brief: string }> = {
   research: {
-    tools: ["web_search", "x_search", "http_fetch", "fs_list", "fs_read", "memory_recall"],
+    tools: ["web_search", "x_search", "http_fetch", "fs_list", "fs_read", "memory_recall", "knowledge_recall"],
     brief: "Research: find and read sources, then report findings with links. Never write files.",
   },
   writer: {

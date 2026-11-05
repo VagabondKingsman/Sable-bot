@@ -42,6 +42,8 @@ export class VectorStore {
   private rows = new Map<string, Row>();
   private docs = new Map<string, DocMeta>();
   private dirty = false;
+  /** Bumped on every mutation (BM25 index cache key). */
+  version = 0;
 
   constructor(dir: string) {
     this.dir = dir;
@@ -78,6 +80,7 @@ export class VectorStore {
     this.embedder = embedder;
     this.dim = dim;
     this.dirty = true;
+    this.version += 1;
   }
 
   docHash(key: string) {
@@ -96,6 +99,7 @@ export class VectorStore {
     for (const id of d.chunks) this.rows.delete(id);
     this.docs.delete(key);
     this.dirty = true;
+    this.version += 1;
     return d.chunks.length;
   }
 
@@ -108,6 +112,7 @@ export class VectorStore {
     }
     this.docs.set(key, { hash, source, chunks: chunks.map((c) => c.meta.id) });
     this.dirty = true;
+    this.version += 1;
   }
 
   chunks(): ChunkMeta[] {
@@ -166,6 +171,7 @@ export class VectorStore {
     this.rows.clear();
     this.docs.clear();
     this.dirty = false;
+    this.version += 1;
     for (const f of [META, BIN]) fs.rmSync(path.join(this.dir, f), { force: true });
   }
 
