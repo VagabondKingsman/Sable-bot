@@ -325,3 +325,5 @@ Backup: `/workspace/sable-backup-pre-w6-202611051251.tgz`. Sole builder. OAuth c
   - Fixes: CSRF exemption needed a restart (harden middleware); TS parameter properties not allowed in strip-only mode (NonceCache/SlidingLimiter); chip route text must not read like a send.
   - Results: tsc clean; npm test 197 + 401 pass, 0 fail; evals w0, w1, w2, w2a, w2b, w2c, w3 (11/11), w4, w5 (14/14), w6 (9/9) all pass; restart OK; ngrok `/` + `/api/bridge` 401 → 200 with basic auth; `/api/bridge/inbound` POST 401 at ngrok without auth, 403 `bridge_off` with auth.
   - `docs/FULL-AGENTIC-STATUS.md`: W0–W6 live table, credentials He must provide, known gaps, VPS pre-deploy checklist.
+
+**W6 package:** `/workspace/sable-source-w6-202611051307.tgz` (14.9 MB, 608 files) — key-pattern secret scan CLEAN (0 hits beyond known fixtures, no suspicious filenames). Live-value scan not run (per instruction). W6 complete — Full Agentic plan W0–W6 done; see `docs/FULL-AGENTIC-STATUS.md`.
