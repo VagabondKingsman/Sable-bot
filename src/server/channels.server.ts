@@ -4,6 +4,7 @@
  * SMTP: notifications to the one configured address. The model never chooses a
  * recipient: replies go back to the chat that asked, mail to SABLE_SMTP_TO.
  */
+import { recordIncoming } from "@/server/proactive.server";
 import fs from "node:fs";
 import path from "node:path";
 import { parseChatRequest } from "@/lib/agent/harness";
@@ -121,6 +122,7 @@ async function onTelegramMessage(state: State, msg: { chatId: number; text: stri
   }
   state.recent.push(now);
   const config = jobConfig();
+  recordIncoming({ id: `tg_${msg.chatId}_${now.toString(36)}`, source: "telegram", from: `telegram:${msg.chatId}`, title: "Telegram from you", body: text.slice(0, 2_000), at: now, meta: { kind: "message", fromOwner: true } });
   runner.enqueue({
     title: `Telegram: ${text.slice(0, 60)}`,
     request: parsed.request,
@@ -361,6 +363,8 @@ async function onWebhookInbound(state: State, event: import("@/lib/agent/channel
   const config = jobConfig();
   if (!jobService().runner.enabled()) return makeEvent("message.out", { text: "Việc nền đang tắt trên máy chủ." }, { peerId });
   state.recent.push(now);
+  const ownerPeer = state.webhook?.config.ownerPeerId;
+  recordIncoming({ id: `wh_${event.id}`.slice(0, 100), source: "webhook", from: `webhook:${peerId}`, title: typeof event.payload.title === "string" ? event.payload.title.slice(0, 200) : `Webhook from ${peerId}`, body: text.slice(0, 2_000), at: now, meta: { kind: "event", fromOwner: Boolean(ownerPeer && ownerPeer === peerId) } });
   const job = jobService().runner.enqueue({
     title: `Webhook: ${text.slice(0, 60)}`,
     request: parsed.request,
