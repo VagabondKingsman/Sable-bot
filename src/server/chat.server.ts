@@ -1,3 +1,4 @@
+import { mediaToolsFor } from "@/server/media.server";
 import { auditingEmit, auditSink } from "@/server/audit.server";
 import { USER } from "@/lib/agent/audit/types";
 import { MAX_OUTPUT_TOKENS, parseChatRequest, takeSlot, type ClientEvent } from "@/lib/agent/harness";
@@ -168,7 +169,7 @@ export function prepareTurn(
   const canWrite = memOn && scope.mode === "interactive" && input.remember !== false;
   const flags = { ...input.tools, learned: memOn && functionToolsOn(), agents: spawnOn() && functionToolsOn() && scope.depth !== 1, skills: skillsOn() && functionToolsOn() && skillStoreNow().list().length > 0, shell: shellOn() && functionToolsOn(), browser: browserOn() && functionToolsOn(), canvas: canvasOn() && functionToolsOn() && Boolean(input.tools.files) };
   const base = selectTools(defaultRegistry(), flags, capabilitiesFor(endpoint));
-  const mcpDefs = scope.mcp && functionToolsOn() && scope.depth !== 1 ? [...mcpToolsFor(scope.source), ...connectorToolsFor(scope.source)] : [];
+  const mcpDefs = scope.mcp && functionToolsOn() && scope.depth !== 1 ? [...mcpToolsFor(scope.source), ...connectorToolsFor(scope.source), ...mediaToolsFor(scope.source)] : [];
   const picked = mcpDefs.length ? { ...base, active: [...base.active, ...mcpDefs], functions: [...base.functions, ...mcpDefs] } : base;
   const selection = canWrite
     ? picked

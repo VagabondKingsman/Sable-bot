@@ -9,6 +9,10 @@ import { takeSlot } from "@/lib/agent/harness";
 import { MediaLibrary } from "@/lib/agent/media/library";
 import { generateImage, providersView, refreshVideo, startVideo, type BudgetLike, type GenResult, type MediaDeps } from "@/lib/agent/media/service";
 import { checkUrl, pinnedFetch } from "@/lib/agent/tools/fetch";
+import { costFor, mediaCap } from "@/lib/agent/media/providers";
+import { mediaImageTool, mediaToolOn } from "@/lib/agent/media/tool";
+import { forSource } from "@/lib/agent/connectors/select";
+import type { FunctionTool } from "@/lib/agent/tools/types";
 import { plannerBundle } from "@/server/planner.server";
 import { vaultStore } from "@/server/vault.server";
 import { dataDir, workspaceDir } from "@/server/paths";
@@ -143,4 +147,23 @@ export function deleteMedia(id: string) {
 
 export function fileUrl(id: string) {
   return `/api/media/file/${id}`;
+}
+
+/** W2c: the agent-facing media_image tool (approval + budget); none for routines or when switched off. */
+export function mediaToolsFor(source: string): FunctionTool[] {
+  if (!mediaToolOn() || source === "routine") return [];
+  const tool = mediaImageTool({
+    quote: () => {
+      const usd = costFor("image");
+      const b = budget();
+      const verdict = b.check({ addUsd: usd });
+      return { usd, spentUsd: b.mediaUsd(), capUsd: mediaCap(), budgetOk: verdict.ok, reason: verdict.ok ? undefined : verdict.error };
+    },
+    generate: async (prompt, aspect, signal) => {
+      const out = await createImage(prompt, signal, { aspect });
+      return out.ok ? { ok: true as const, id: out.item.id, model: out.item.model } : { ok: false as const, message: out.message };
+    },
+    fileUrl: (id) => `/api/media/file/${encodeURIComponent(id)}`,
+  });
+  return forSource([tool as FunctionTool], source);
 }
