@@ -371,7 +371,7 @@ export class DesktopSession {
     while (this.procs.length && Date.now() < deadline) await sleep(100);
     for (const p of [...this.procs]) p.child.kill("SIGKILL");
     this.procs = [];
-    await this.proxy?.close().catch(() => {});
+    await Promise.race([this.proxy?.close().catch(() => {}), sleep(2000)]);
     this.proxy = null;
     this.vncPassword = null;
     try {
@@ -407,7 +407,13 @@ export class DesktopSession {
     try {
       return (await this.xdotool(["getactivewindow", "getwindowname"])).trim();
     } catch {
-      return "";
+      // No WM (SABLE_DESKTOP_WM=none) → no _NET_ACTIVE_WINDOW; fall back to the visible Chrome window.
+      try {
+        const names = (await this.xdotool(["search", "--onlyvisible", "--class", "chrome", "getwindowname", "%@"])).split("\n").map((l) => l.trim());
+        return names.find((n) => / - Google Chrome$/.test(n)) ?? names.find(Boolean) ?? "";
+      } catch {
+        return "";
+      }
     }
   }
 }

@@ -1,0 +1,11 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>w3-start</title>
+<style>html,body{margin:0;font:20px sans-serif}#b{position:absolute;left:0;top:0;width:100%;height:300px;font-size:40px;background:#36c;color:#fff;border:0}#i{position:absolute;left:0;top:330px;width:100%;height:80px;font-size:32px}</style></head>
+<body>
+<button id="b" onclick="document.body.style.background='#2a2';this.style.background='#2a2';this.textContent='Done';document.title='clicked:'+document.getElementById('i').value">Click me</button>
+<input id="i" autocomplete="off" onkeydown="if(event.key==='Enter'){document.title='submitted:'+this.value}">
+<!-- egress probes: the desktop Chrome must not reach loopback / private / metadata addresses -->
+<img alt="" width="1" height="1" src="http://127.0.0.1:8080/api/health">
+<img alt="" width="1" height="1" src="http://169.254.169.254/latest/meta-data/">
+<img alt="" width="1" height="1" src="http://10.11.12.13/">
+</body></html>

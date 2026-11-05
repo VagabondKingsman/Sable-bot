@@ -264,3 +264,47 @@ test("heavy: max 2, third refused or waits", async () => {
   d!();
   assert.equal(h.active().length, 0);
 });
+
+import net from "node:net";
+import { resolveTarget, startEgressProxy } from "./proxy.ts";
+
+const pubLookup = async () => ["93.184.216.34"];
+
+test("egress resolveTarget: SSRF rules, pinned IP", async () => {
+  const ok = await resolveTarget("https://example.com/x", { lookup: pubLookup });
+  assert.equal(ok.ip, "93.184.216.34");
+  assert.equal(ok.port, 443);
+  for (const bad of ["http://127.0.0.1/", "http://localhost/", "http://10.0.0.1/", "http://169.254.169.254/latest/meta-data", "http://[::1]/", "file:///etc/passwd", "http://example.com:8080/"]) {
+    await assert.rejects(resolveTarget(bad, { lookup: pubLookup }), Error, bad);
+  }
+  // public name resolving to a private address (rebinding) is refused
+  await assert.rejects(resolveTarget("http://evil.example/", { lookup: async () => ["192.168.1.5"] }));
+});
+
+function rawProxy(port: number, payload: string): Promise<string> {
+  return new Promise((resolve) => {
+    const s = net.connect(port, "127.0.0.1", () => s.write(payload));
+    let buf = "";
+    s.on("data", (d) => {
+      buf += d.toString();
+      if (buf.includes("\r\n\r\n")) s.end();
+    });
+    s.on("close", () => resolve(buf));
+    s.on("error", () => resolve(buf));
+    setTimeout(() => s.destroy(), 3000);
+  });
+}
+
+test("egress proxy: CONNECT/GET to loopback or private → 403", async () => {
+  const blocks: string[] = [];
+  const px = await startEgressProxy({ lookup: pubLookup, onBlock: (t) => blocks.push(t) });
+  try {
+    const c = await rawProxy(px.port, "CONNECT 127.0.0.1:8080 HTTP/1.1\r\nHost: 127.0.0.1:8080\r\n\r\n");
+    assert.match(c, /^HTTP\/1\.1 403/);
+    const g = await rawProxy(px.port, "GET http://10.1.2.3/secret?token=abc HTTP/1.1\r\nHost: 10.1.2.3\r\n\r\n");
+    assert.match(g, /^HTTP\/1\.1 403/);
+    assert.equal(px.blocked(), 2);
+  } finally {
+    await px.close();
+  }
+});

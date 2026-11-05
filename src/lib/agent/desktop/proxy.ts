@@ -69,12 +69,18 @@ export async function startEgressProxy(deps: EgressDeps = {}): Promise<EgressPro
       res.end(`Sable desktop: blocked (${reason})`);
     }
   });
+  // Tunnels are detached from the http server, so track them for close().
+  const tunnels = new Set<net.Socket | import("node:stream").Duplex>();
   server.on("connect", async (req, socket, head) => {
     const target = req.url ?? "";
+    tunnels.add(socket);
+    socket.on("close", () => tunnels.delete(socket));
     socket.on("error", () => socket.destroy());
     try {
       const { ip, port } = await resolveTarget(`https://${target}/`, deps);
       const up = net.connect({ host: ip, port });
+      tunnels.add(up);
+      up.on("close", () => tunnels.delete(up));
       up.setTimeout(120_000, () => up.destroy());
       up.on("connect", () => {
         socket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
@@ -99,8 +105,11 @@ export async function startEgressProxy(deps: EgressDeps = {}): Promise<EgressPro
     blocked: () => blocked,
     close: () =>
       new Promise<void>((resolve) => {
+        for (const t of tunnels) t.destroy();
+        tunnels.clear();
         server.closeAllConnections?.();
-        server.close(() => resolve());
+        const timer = setTimeout(resolve, 1500); // never let a lingering socket wedge stop()
+        server.close(() => (clearTimeout(timer), resolve()));
       }),
   };
 }

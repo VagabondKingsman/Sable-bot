@@ -2,12 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { guarded, methodNotAllowed, readObjectBody } from "@/server/http";
 import { audit } from "@/server/audit.server";
 import { USER } from "@/lib/agent/audit/types";
-import { cancelRun, decideDesktop, desktopOn, desktopStatus, startDesktop, startRun, stopDesktop } from "@/server/desktop.server";
+import { cancelRun, decideDesktop, takeShot, desktopOn, desktopStatus, startDesktop, startRun, stopDesktop } from "@/server/desktop.server";
 
 /**
  * W3 desktop (owner-only, behind the desk auth).
  * GET  /api/desktop                     status (+ noVNC view URL while running)
- * POST {action:"start", url?} | {action:"stop"} | {action:"run", goal} | {action:"cancel"}
+ * POST {action:"start", url?} | {action:"stop"} | {action:"run", goal} | {action:"cancel"} | {action:"screenshot"}
  *      | {action:"decide", id, approve}   (owner web decision on a desktop approval card)
  */
 const NO_STORE = { "Cache-Control": "no-store" };
@@ -38,6 +38,12 @@ export const Route = createFileRoute("/api/desktop")({
             if (!r.ok) return Response.json({ message: r.message }, { status: r.status, headers: NO_STORE });
             return Response.json(desktopStatus(), { headers: NO_STORE });
           }
+          if (b.action === "screenshot") {
+            // Read-only: no approval (D2). Only while the session runs.
+            if (desktopStatus().state !== "running") return Response.json({ message: "Desktop chưa chạy." }, { status: 409 });
+            const shot = await takeShot();
+            return Response.json({ id: shot.id, url: shot.url }, { headers: NO_STORE });
+          }
           if (b.action === "cancel") {
             const ok = cancelRun();
             return Response.json({ ok, ...desktopStatus() }, { headers: NO_STORE });
@@ -54,7 +60,7 @@ export const Route = createFileRoute("/api/desktop")({
             audit({ type: "side_effect", initiator: USER, tool: "desktop.stop", summary: "stopped by owner", ok: true });
             return Response.json(st, { headers: NO_STORE });
           }
-          return Response.json({ message: "action phải là start | stop | run | cancel | decide." }, { status: 400 });
+          return Response.json({ message: "action phải là start | stop | run | cancel | decide | screenshot." }, { status: 400 });
         }),
       ANY: methodNotAllowed("GET, POST"),
     },
