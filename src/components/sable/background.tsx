@@ -28,7 +28,7 @@ import { ApprovalCard, WorkTrail } from "@/components/sable/desk";
 import { TracesTab } from "@/components/sable/traces-panel";
 import { MediaTab } from "@/components/sable/media-panel";
 import { CanvasTab } from "@/components/sable/canvas-panel";
-import { BriefCard } from "@/components/sable/proactive-panel";
+import { BriefCard, TasksInbox } from "@/components/sable/proactive-panel";
 
 export type PanelTab = "jobs" | "routines" | "inbox" | "tasks" | "traces" | "media" | "canvas";
 
@@ -105,6 +105,7 @@ export function BackgroundPanel({
   onFocusJob: (id: string | null) => void;
   onClose: () => void;
 }) {
+  const [planFocus, setPlanFocus] = useState<string | null>(null);
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
@@ -177,7 +178,9 @@ export function BackgroundPanel({
           ) : tab === "tasks" ? (
             <div className="flex flex-col gap-3">
               <BriefCard />
-              <TasksTab />
+              <TasksInbox onOpenPlan={setPlanFocus} onOpenJob={onFocusJob} />
+              <h3 className="pt-2 text-sm font-medium">Kế hoạch</h3>
+              <TasksTab focusId={planFocus} onFocusChange={setPlanFocus} />
             </div>
           ) : tab === "traces" ? (
             <TracesTab />
@@ -1109,9 +1112,16 @@ function InboxTab({ onOpenJob }: { onOpenJob: (id: string) => void }) {
 
 /** Sidebar entry with badges (unread inbox, jobs waiting for approval). */
 
-function TasksTab() {
+function TasksTab({ focusId, onFocusChange }: { focusId?: string | null; onFocusChange?: (id: string | null) => void } = {}) {
   const { data, error, refresh } = usePoll<{ enabled: boolean; items: TaskSummary[] }>((signal) => tasksApi.list(signal), 2_000, []);
-  const [focus, setFocus] = useState<string | null>(null);
+  const [focus, setFocusState] = useState<string | null>(focusId ?? null);
+  useEffect(() => {
+    if (focusId !== undefined) setFocusState(focusId);
+  }, [focusId]);
+  const setFocus = (id: string | null) => {
+    setFocusState(id);
+    onFocusChange?.(id);
+  };
   const [detail, setDetail] = useState<{
     plan?: {
       id: string;

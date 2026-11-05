@@ -2,6 +2,9 @@
 import { readError, withPrefix } from "@/lib/agent/client";
 import type { TriagedItem } from "@/lib/agent/proactive/feed";
 import type { BriefConfig, BriefRecord } from "@/lib/agent/proactive/store";
+import type { TaskState, UnifiedTask } from "@/lib/agent/proactive/unify";
+
+export type TasksInboxView = { triage: boolean; tasks: UnifiedTask[]; counts: Record<TaskState, number>; ignored: number };
 
 export type TriageFeed = { enabled: boolean; items: TriagedItem[]; counts: Record<string, number>; model?: string | null };
 export type BriefView = { enabled: boolean; config: BriefConfig; routineId: string; history: BriefRecord[]; preview: { title: string; text: string } | null };
@@ -19,6 +22,7 @@ async function post<T>(url: string, body: Record<string, unknown>, fallback = "T
 }
 
 export const proactiveApi = {
+  tasksInbox: (signal?: AbortSignal, snoozed = false) => get<TasksInboxView>(`/api/tasks?view=inbox${snoozed ? "&snoozed=1" : ""}`, signal, "Không tải được Tasks."),
   triage: (signal?: AbortSignal) => get<TriageFeed>("/api/triage", signal, "Không tải được triage."),
   itemState: (id: string, action: "snooze" | "unsnooze" | "done" | "undone", ms?: number) => post("/api/triage", { id, action, ms }),
   brief: (signal?: AbortSignal, preview = false) => get<BriefView>(`/api/brief${preview ? "?preview=1" : ""}`, signal, "Không tải được bản tin."),

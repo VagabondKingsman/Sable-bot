@@ -17,6 +17,7 @@ import { composeBrief, dueSlot, type BriefTask } from "@/lib/agent/proactive/bri
 import type { BriefConfig, BriefRecord } from "@/lib/agent/proactive/store";
 import type { InboxItem } from "@/lib/agent/jobs/types";
 import { plannerBundle } from "@/server/planner.server";
+import { stateCounts, unify } from "@/lib/agent/proactive/unify";
 
 const KEY = Symbol.for("sable.proactive.store");
 type G = typeof globalThis & { [KEY]?: ProactiveStore };
@@ -198,4 +199,21 @@ export function startBriefTicker(intervalMs = 60_000) {
       });
   }, intervalMs);
   g[TICK].unref?.();
+}
+
+// ── Unified Tasks inbox ──────────────────────────────────────────────────────
+
+
+export async function tasksInbox(opts: { includeSnoozed?: boolean } = {}) {
+  const feed = await triageFeed({ includeDone: true });
+  const plans = (() => {
+    try {
+      return plannerBundle().plans.list();
+    } catch {
+      return [];
+    }
+  })();
+  const jobs = jobService().db.listJobs().slice(0, 100);
+  const tasks = unify({ plans, triaged: feed.items, jobs, includeSnoozed: opts.includeSnoozed });
+  return { triage: feed.enabled, tasks, counts: stateCounts(tasks), ignored: feed.counts.ignore ?? 0 };
 }

@@ -1,7 +1,8 @@
 /** W2a proactive UI: morning-brief settings card (+ Tasks inbox, reply chips). */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Bell, Play } from "lucide-react";
-import { proactiveApi, type BriefView } from "@/lib/agent/proactive-client";
+import { proactiveApi, type BriefView, type TasksInboxView } from "@/lib/agent/proactive-client";
+import { TASK_STATES, type TaskState } from "@/lib/agent/proactive/unify";
 import { saigonTime } from "@/lib/agent/jobs-client";
 
 const btn =
@@ -81,3 +82,105 @@ export function BriefCard() {
     </section>
   );
 }
+
+// ---------- unified Tasks inbox ----------
+
+const STATE_LABEL: Record<TaskState, string> = { waiting_approval: "Chờ duyệt", todo: "Cần làm", doing: "Đang làm", done: "Xong" };
+const BUCKET_LABEL: Record<string, string> = { needs_reply: "Cần trả lời", needs_approval: "Cần duyệt", fyi: "Để biết", ignore: "Bỏ qua" };
+
+export function TasksInbox({ onOpenPlan, onOpenJob }: { onOpenPlan: (id: string) => void; onOpenJob: (id: string) => void }) {
+  const [view, setView] = useState<TasksInboxView | null>(null);
+  const [filter, setFilter] = useState<TaskState | "open">("open");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(async (signal?: AbortSignal) => {
+    try {
+      setView(await proactiveApi.tasksInbox(signal));
+      setError("");
+    } catch (e) {
+      if (!signal?.aborted) setError(e instanceof Error ? e.message : String(e));
+    }
+  }, []);
+  useEffect(() => {
+    const controller = new AbortController();
+    void load(controller.signal);
+    const timer = window.setInterval(() => void load(controller.signal), 4_000);
+    return () => {
+      controller.abort();
+      window.clearInterval(timer);
+    };
+  }, [load]);
+  if (!view) return <p className="text-sm text-muted">{error || "Đang tải Tasks…"}</p>;
+  const shown = view.tasks.filter((t) => (filter === "open" ? t.state !== "done" : t.state === filter));
+  async function act(fn: () => Promise<unknown>) {
+    setBusy(true);
+    try {
+      await fn();
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <section className="flex flex-col gap-2" aria-label="Tasks inbox">
+      <div className="flex flex-wrap gap-1" role="tablist" aria-label="Lọc trạng thái">
+        {(["open", ...TASK_STATES] as const).map((s) => (
+          <button
+            key={s}
+            type="button"
+            role="tab"
+            aria-selected={filter === s}
+            data-filter={s}
+            onClick={() => setFilter(s)}
+            className={"min-h-9 rounded-xl px-3 text-xs " + (filter === s ? "bg-fg/10 text-fg" : "text-muted hover:bg-fg/5")}
+          >
+            {s === "open" ? "Đang mở" : STATE_LABEL[s]}
+            {s !== "open" ? ` (${view.counts[s]})` : ""}
+          </button>
+        ))}
+      </div>
+      {!view.triage && <p className="text-xs text-muted">Triage đang tắt (SABLE_TRIAGE=0): chỉ hiện kế hoạch và việc nền.</p>}
+      {error && <p className="text-sm text-accent">{error}</p>}
+      {shown.length === 0 && <p className="text-sm text-muted">Không có mục nào.{view.ignored ? ` (${view.ignored} mục đã bỏ qua.)` : ""}</p>}
+      <ul className="flex flex-col gap-2">
+        {shown.map((t) => (
+          <li key={t.id} data-task-id={t.id} data-state={t.state} data-kind={t.kind} className="flex flex-col gap-1 rounded-2xl bg-bg px-4 py-3 shadow-ring">
+            <div className="flex items-center gap-2">
+              {t.urgency === "high" && <span aria-label="gấp" className="size-2 shrink-0 rounded-full bg-red-400" />}
+              <span className="min-w-0 flex-1 truncate text-sm font-medium">{t.title}</span>
+              {t.bucket && <span className="shrink-0 text-xs text-muted">{BUCKET_LABEL[t.bucket]}</span>}
+              <span className="shrink-0 text-xs text-accent">{STATE_LABEL[t.state]}</span>
+            </div>
+            <span className="text-xs text-muted">
+              {saigonTime(t.at)}
+              {t.reason ? ` · ${t.reason}` : ""}
+              {t.decidedBy ? ` · ${t.decidedBy}` : ""}
+            </span>
+            {t.detail && <span className="line-clamp-2 text-sm text-muted">{t.detail}</span>}
+            <div className="flex flex-wrap gap-1">
+              {t.ref.planId && (
+                <button type="button" className={chip} onClick={() => onOpenPlan(t.ref.planId!)}>
+                  Mở kế hoạch
+                </button>
+              )}
+              {t.ref.jobId && !t.ref.planId && (
+                <button type="button" className={chip} onClick={() => onOpenJob(t.ref.jobId!)}>
+                  Mở việc
+                </button>
+              )}
+              {t.ref.triageId && (
+                <button type="button" className={chip} disabled={busy} onClick={() => void act(() => proactiveApi.itemState(t.ref.triageId!, t.state === "done" ? "undone" : "done"))}>
+                  {t.state === "done" ? "Mở lại" : "Xong"}
+                </button>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+const chip = "inline-flex min-h-9 items-center gap-1 rounded-xl px-2 text-xs shadow-ring hover:text-fg disabled:opacity-40";

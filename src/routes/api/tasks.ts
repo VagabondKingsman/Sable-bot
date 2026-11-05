@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { guarded, methodNotAllowed, readObjectBody } from "@/server/http";
 import { plannerBundle } from "@/server/planner.server";
+import { tasksInbox } from "@/server/proactive.server";
 import type { StepKind } from "@/lib/agent/planner/types";
 
 const MAX_BODY = 100_000;
@@ -13,6 +14,11 @@ export const Route = createFileRoute("/api/tasks")({
         guarded("GET /api/tasks", () => {
           const url = new URL(request.url);
           const id = url.searchParams.get("id");
+          // W2a: one Tasks inbox (planner tasks + approvals + triaged items + active jobs).
+          if (url.searchParams.get("view") === "inbox")
+            return tasksInbox({ includeSnoozed: url.searchParams.get("snoozed") === "1" }).then((view) =>
+              Response.json(view, { headers: { "Cache-Control": "no-store" } }),
+            );
           const { plans, workspaces } = plannerBundle();
           if (id) {
             const plan = plans.get(id);
