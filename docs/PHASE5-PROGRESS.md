@@ -26,3 +26,10 @@ License: AIC is PolyForm Perimeter — designs studied, no AIC code copied. Fres
 - [x] Final · restart :8080; ngrok **401** without auth / **200** with basic auth; local 200; sable-watchdog + ngrok still running.
 - [x] Final · package + secret scan (see report below).
 - Package: /workspace/sable-source-phase5-202611050703.tgz
+
+## Phase 5b live (grok-4.7 / xAI) — 2026-11-05 Asia/Saigon
+- Live harness against :8080 with real XAI_API_KEY: curated **29/29** capability checks PASS (chat, attach, fetch, fs approve/deny/jail, shell bwrap approve/deny, browser read+click deny, memory chat save/recall/redact, spawn research/coder/writer, skills, MCP, profiles, webhook HMAC+replay, voice no-key, routines cron/webhook/watch, presets/desk sync, SSRF, headless, inbox).
+- Bugfix: `eventPrompt` now follows routine prompt before NO_CHANGE (commit e46951a).
+- Note: background jobs intentionally omit memory_save/forget (read-only memory in background).
+- Tokens/cost: jobs API does not surface usage yet (untested metric).
+- Webhook outbound to public URL not exercised (outbound unset; loopback correctly SSRF-blocked).
