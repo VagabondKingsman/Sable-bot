@@ -12,10 +12,11 @@ export type BodyResult =
 export const TOO_LARGE = "Yêu cầu quá lớn.";
 export const UNREADABLE = "Không đọc được yêu cầu.";
 
-export async function readJsonBody(request: Request, maxBytes: number): Promise<BodyResult> {
+/** W2c: bounded raw body (Content-Length pre-check + streaming cap). Empty body → "". */
+export async function readTextBody(request: Request, maxBytes: number): Promise<{ ok: true; text: string } | { ok: false; status: 400 | 413; message: string }> {
   const declared = Number(request.headers.get("content-length") || 0);
   if (declared > maxBytes) return { ok: false, status: 413, message: TOO_LARGE };
-  if (!request.body) return { ok: false, status: 400, message: UNREADABLE };
+  if (!request.body) return { ok: true, text: "" };
   const reader = request.body.getReader();
   const chunks: Uint8Array[] = [];
   let size = 0;
@@ -39,8 +40,15 @@ export async function readJsonBody(request: Request, maxBytes: number): Promise<
     bytes.set(chunk, offset);
     offset += chunk.byteLength;
   }
+  return { ok: true, text: new TextDecoder().decode(bytes) };
+}
+
+export async function readJsonBody(request: Request, maxBytes: number): Promise<BodyResult> {
+  if (!request.body && !(Number(request.headers.get("content-length") || 0) > maxBytes)) return { ok: false, status: 400, message: UNREADABLE };
+  const read = await readTextBody(request, maxBytes);
+  if (!read.ok) return read;
   try {
-    return { ok: true, value: JSON.parse(new TextDecoder().decode(bytes)) as unknown };
+    return { ok: true, value: JSON.parse(read.text) as unknown };
   } catch {
     return { ok: false, status: 400, message: UNREADABLE };
   }

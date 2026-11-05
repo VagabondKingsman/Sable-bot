@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getWebhookChannel } from "@/server/channels.server";
-import { guarded, methodNotAllowed } from "@/server/http";
+import { guarded, methodNotAllowed, readTextBody } from "@/server/http";
 import { MAX_BODY } from "@/lib/agent/channels/webhook";
 
 /**
@@ -14,10 +14,10 @@ export const Route = createFileRoute("/api/channels/webhook")({
     handlers: {
       POST: ({ request }) =>
         guarded("POST /api/channels/webhook", async () => {
-          const declared = Number(request.headers.get("content-length") || 0);
-          if (declared > MAX_BODY) return Response.json({ message: "Body quá lớn." }, { status: 413 });
-          const raw = request.body ? await request.text() : "";
-          if (raw.length > MAX_BODY) return Response.json({ message: "Body quá lớn." }, { status: 413 });
+          // W2c: streaming cap (no unbounded request.text()).
+          const read = await readTextBody(request, MAX_BODY);
+          if (!read.ok) return Response.json({ message: read.status === 413 ? "Body quá lớn." : read.message }, { status: read.status });
+          const raw = read.text;
           const wh = getWebhookChannel();
           if (!wh) return Response.json({ message: "Webhook chưa cấu hình (SABLE_WEBHOOK_SECRET)." }, { status: 409 });
           const sig = request.headers.get("x-sable-signature") || request.headers.get("X-Sable-Signature");

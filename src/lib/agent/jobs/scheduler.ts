@@ -650,6 +650,15 @@ export class RoutineScheduler {
   }
 
   /** Webhook entry: constant-time secret check first, same answer for unknown ids. */
+  /** W2c: authenticate a webhook caller without firing (used to refuse approval attempts). */
+  verifyWebhook(id: string, secret: unknown): Routine {
+    const routine = this.get(id);
+    const ok = verifySecret(secret, routine?.trigger?.webhook?.hash);
+    if (!this.opts.triggersOn()) throw new TriggerError(409, "Trigger sự kiện đang tắt (SABLE_TRIGGERS=0).");
+    if (!routine || !ok) throw new TriggerError(401, "Sai secret hoặc lịch chạy không có webhook.");
+    return routine;
+  }
+
   fireWebhook(id: string, secret: unknown, payload: string): Job {
     const routine = this.get(id);
     const ok = verifySecret(secret, routine?.trigger?.webhook?.hash);
