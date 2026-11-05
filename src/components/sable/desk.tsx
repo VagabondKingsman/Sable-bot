@@ -15,6 +15,7 @@ import {
   ImageIcon,
   Lightbulb,
   Menu,
+  Mic,
   Paperclip,
   Pencil,
   Plus,
@@ -24,6 +25,7 @@ import {
   Square,
   Trash2,
   Video,
+  Volume2,
   Wrench,
   X,
 } from "lucide-react";
@@ -32,7 +34,7 @@ import { DeskSyncPanel } from "@/components/sable/desk-sync-panel";
 import { SkillsPanel } from "@/components/sable/skills-panel";
 import { McpPanel } from "@/components/sable/mcp-panel";
 import { startDeskSync } from "@/lib/agent/desk/client";
-import { decideApproval, generateImage, generateVideo, modelInfo, streamReply, type ModelCaps } from "@/lib/agent/client";
+import { decideApproval, generateImage, generateVideo, modelInfo, streamReply, voiceStt, voiceTts, type ModelCaps } from "@/lib/agent/client";
 import { UserButton, SignedOut } from "@/lib/auth/gates";
 import { authEnabled } from "@/lib/auth/client";
 import { Link } from "@tanstack/react-router";
@@ -137,6 +139,11 @@ export function Desk() {
   const [models, setModels] = useState<readonly string[]>(MODELS);
   const [caps, setCaps] = useState<Record<string, ModelCaps>>({});
   const [imagine, setImagine] = useState(true);
+  const [voiceOn, setVoiceOn] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const mediaRec = useRef<MediaRecorder | null>(null);
+  const mediaChunks = useRef<Blob[]>([]);
+  const speakUrl = useRef<string | null>(null);
   /** Web/X/Mã/Ảnh chat are xAI server tools: grey them out for chat-style models. */
   const xaiOnly = caps[settings.model] ? !caps[settings.model].serverTools : false;
   const [navOpen, setNavOpen] = useState(false);
@@ -186,6 +193,7 @@ export function Desk() {
         setModels(info.models);
         setCaps(info.capabilities);
         setImagine(info.imagine);
+        setVoiceOn(Boolean(info.voice?.enabled && info.voice?.configured));
         // A saved grok-* pick is meaningless once only another provider is wired.
         const current = useAgent.getState().settings.model;
         if (!info.models.includes(current)) useAgent.getState().patchSettings({ model: info.models[0] });
@@ -491,7 +499,75 @@ export function Desk() {
     deleteThread(id);
   }
 
-  async function onFile(file: File | undefined) {
+  async function toggleMic() {
+    if (!voiceOn) {
+      setHint("Giọng nói chưa cấu hình (VOICE_API_KEY / OPENAI_API_KEY).");
+      return;
+    }
+    if (recording) {
+      mediaRec.current?.stop();
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mime = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
+      const rec = new MediaRecorder(stream, { mimeType: mime });
+      mediaChunks.current = [];
+      rec.ondataavailable = (ev) => {
+        if (ev.data.size) mediaChunks.current.push(ev.data);
+      };
+      rec.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        setRecording(false);
+        mediaRec.current = null;
+        const blob = new Blob(mediaChunks.current, { type: mime });
+        mediaChunks.current = [];
+        if (blob.size < 200) {
+          setHint("Không ghi được âm thanh.");
+          return;
+        }
+        void (async () => {
+          setReading(true);
+          try {
+            const buf = new Uint8Array(await blob.arrayBuffer());
+            let binary = "";
+            for (let i = 0; i < buf.length; i++) binary += String.fromCharCode(buf[i]!);
+            const text = await voiceStt({ audioBase64: btoa(binary), mime, filename: mime.includes("webm") ? "mic.webm" : "mic.m4a" });
+            if (text) setDraft((d) => (d ? `${d.trim()} ${text}` : text));
+            else setHint("Không nghe được nội dung.");
+          } catch (error) {
+            setHint(error instanceof Error ? error.message : "Nhận dạng giọng thất bại.");
+          } finally {
+            setReading(false);
+          }
+        })();
+      };
+      mediaRec.current = rec;
+      rec.start();
+      setRecording(true);
+      setHint("Đang nghe… bấm mic lần nữa để dừng.");
+    } catch {
+      setHint("Không mở được micro (cần quyền mic trên trình duyệt).");
+    }
+  }
+
+  async function speakText(text: string) {
+    if (!voiceOn || !text.trim()) return;
+    try {
+      if (speakUrl.current) {
+        URL.revokeObjectURL(speakUrl.current);
+        speakUrl.current = null;
+      }
+      const url = await voiceTts({ text: text.slice(0, 4_000) });
+      speakUrl.current = url;
+      const audio = new Audio(url);
+      void audio.play();
+    } catch (error) {
+      setHint(error instanceof Error ? error.message : "Không đọc được câu trả lời.");
+    }
+  }
+
+    async function onFile(file: File | undefined) {
     if (!file) return;
     if (file.size > FILE_MAX_BYTES) {
       setHint("Chỉ nhận tệp chữ dưới 512 KB.");
@@ -679,6 +755,7 @@ export function Desk() {
                         if (user) void regenerate(user.id, content || user.content);
                       }}
                       onPdf={() => void exportPdf(user?.content ?? "", message.content)}
+                      onSpeak={voiceOn && message.role === "assistant" && message.content ? () => void speakText(message.content) : undefined}
                       onDecide={(approval, approve) => void decide(thread.id, message.id, approval, approve)}
                     />
                   );
@@ -758,6 +835,16 @@ export function Desk() {
                   </div>
                 )}
                 <div className="flex items-end gap-2 rounded-2xl bg-surface p-2 shadow-ring">
+                  <button
+                    type="button"
+                    aria-label={recording ? "Dừng ghi âm" : "Nói"}
+                    title={voiceOn ? (recording ? "Dừng ghi âm" : "Nói vào micro") : "Giọng nói chưa cấu hình"}
+                    disabled={reading || busy}
+                    onClick={() => void toggleMic()}
+                    className={`grid size-11 shrink-0 place-items-center rounded-xl ${recording ? "bg-accent text-ink" : "text-muted hover:bg-fg/5 hover:text-fg"} disabled:opacity-40`}
+                  >
+                    <Mic className="size-4" />
+                  </button>
                   <label className="grid size-11 shrink-0 place-items-center rounded-xl text-muted hover:bg-fg/5 hover:text-fg">
                     <span className="sr-only">Đính kèm tệp chữ</span>
                     <Paperclip className="size-4" />
@@ -1055,6 +1142,7 @@ function MessageView({
   onCancelEdit,
   onRegenerate,
   onPdf,
+  onSpeak,
   onDecide,
 }: {
   message: ChatMessage;
@@ -1067,6 +1155,7 @@ function MessageView({
   onCancelEdit: () => void;
   onRegenerate: (content: string) => void;
   onPdf: () => void;
+  onSpeak?: () => void;
 }) {
   if (message.role === "user") {
     return (
@@ -1111,6 +1200,11 @@ function MessageView({
           <IconButton label="Xuất PDF" onClick={onPdf}>
             <FileDown className="size-4" />
           </IconButton>
+          {onSpeak && (
+            <IconButton label="Đọc to" onClick={onSpeak}>
+              <Volume2 className="size-4" />
+            </IconButton>
+          )}
         </div>
       )}
     </article>

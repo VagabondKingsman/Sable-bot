@@ -93,12 +93,21 @@ function wait(ms: number, signal: AbortSignal) {
 
 export type ModelCaps = { serverTools: boolean; style: "responses" | "chat" };
 
+export type VoiceInfo = {
+  enabled: boolean;
+  configured: boolean;
+  sttModel?: string;
+  ttsModel?: string;
+  voice?: string;
+};
+
 export type ModelInfo = {
   ready: boolean;
   models: string[];
   provider: string | null;
   serverTools: boolean;
   imagine: boolean;
+  voice?: VoiceInfo;
   functionTools: boolean;
   capabilities: Record<string, ModelCaps>;
 };
@@ -106,7 +115,7 @@ export type ModelInfo = {
 /** What the server has wired: any OpenAI-compatible provider(s) and their models. */
 export async function modelInfo(signal?: AbortSignal): Promise<ModelInfo> {
   const res = await fetch(withPrefix("/api/chat"), { signal });
-  if (!res.ok) return { ready: false, models: [], provider: null, serverTools: false, imagine: false, functionTools: false, capabilities: {} };
+  if (!res.ok) return { ready: false, models: [], provider: null, serverTools: false, imagine: false, voice: { enabled: false, configured: false }, functionTools: false, capabilities: {} };
   const body = (await res.json()) as Partial<ModelInfo>;
   return {
     ready: Boolean(body.ready),
@@ -114,6 +123,7 @@ export async function modelInfo(signal?: AbortSignal): Promise<ModelInfo> {
     provider: typeof body.provider === "string" ? body.provider : null,
     serverTools: Boolean(body.serverTools),
     imagine: Boolean(body.imagine),
+    voice: body.voice && typeof body.voice === "object" ? (body.voice as VoiceInfo) : { enabled: false, configured: false },
     functionTools: body.functionTools !== false,
     capabilities: body.capabilities && typeof body.capabilities === "object" ? body.capabilities : {},
   };
@@ -231,3 +241,34 @@ export async function streamReply(body: ChatRequest, handlers: StreamHandlers) {
 }
 
 export type { ClientEvent };
+
+
+/** STT: send recorded audio; returns transcribed text. */
+export async function voiceStt(params: { audioBase64: string; mime?: string; filename?: string; language?: string; signal?: AbortSignal }) {
+  const res = await fetch(withPrefix("/api/voice"), {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ kind: "stt", ...params }),
+    signal: params.signal,
+  });
+  const body = (await res.json().catch(() => ({}))) as { text?: string; message?: string };
+  if (!res.ok) throw new Error(body.message || `STT ${res.status}`);
+  return body.text ?? "";
+}
+
+/** TTS: synthesize speech; returns a playable object URL (caller must revoke). */
+export async function voiceTts(params: { text: string; voice?: string; signal?: AbortSignal }) {
+  const res = await fetch(withPrefix("/api/voice"), {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ kind: "tts", text: params.text, voice: params.voice }),
+    signal: params.signal,
+  });
+  const body = (await res.json().catch(() => ({}))) as { audioBase64?: string; mime?: string; message?: string };
+  if (!res.ok) throw new Error(body.message || `TTS ${res.status}`);
+  const raw = atob(body.audioBase64 || "");
+  const bytes = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+  const blob = new Blob([bytes], { type: body.mime || "audio/mpeg" });
+  return URL.createObjectURL(blob);
+}

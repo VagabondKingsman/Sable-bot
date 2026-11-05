@@ -13,6 +13,7 @@ import { mcpToolsFor, mcpWarm } from "@/server/mcp.server";
 import { skills as skillStoreNow, skillsForTurn, skillsOn } from "@/server/skills.server";
 import { shellOn } from "@/lib/agent/tools/shell";
 import { browserOn } from "@/lib/agent/tools/browser";
+import { voiceStatus } from "@/server/voice.server";
 import { accessFor, completerFor, learnedFor, memoryOn, memoryStore, queueExtraction } from "@/server/memory.server";
 import type { MemorySource } from "@/lib/agent/memory/types";
 import {
@@ -64,6 +65,7 @@ export function providerInfo() {
       }),
     ),
     imagine: Boolean(imagine),
+    voice: voiceStatus(),
   };
 }
 
