@@ -162,3 +162,19 @@ Gaps / follow-ups:
 - Gmail sends text/plain only, with no attachments. Sync covers the last 2 days, 25 messages, every 10 minutes; there is no push or history-id incremental sync.
 - Pending OAuth states are in memory, so a server restart during consent means clicking Connect again.
 - A per-connector "error" status clears on the next successful connect.
+
+
+## W2c · Harden (started 2026-11-05 16:54 Asia/Saigon)
+
+Backup: `/workspace/sable-backup-pre-w2c-202611050953.tgz`
+
+Checklist:
+- [ ] 1. Canvas: iframe cannot navigate its own frame / top (sandbox + CSP + navigation guard); revocable, expiring, read-only owner share links
+- [ ] 2. Agent media tool (image gen via media module; approval + budget)
+- [ ] 3. Morning brief as a real routine (no private timer)
+- [ ] 4. Plan traces labelled by real initiator (owner vs agent)
+- [ ] 5. Live HTTP test: routine-initiated approval rejected
+- [ ] 6. Pending OAuth sign-ins persisted across restart (encrypted, 10-min TTL)
+- [ ] 7. Triage eval on a separate 60-item held-out set (honest score)
+- [ ] 8. Hardening: rate limits, body size limits, CSRF/origin checks, npm audit, memory footprint
+- [ ] 9. eval:w2c + all evals; tsc; npm test; restart; ngrok 401/200; package CLEAN
