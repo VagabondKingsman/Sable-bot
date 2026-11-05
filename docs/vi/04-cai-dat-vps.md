@@ -52,6 +52,8 @@ export SABLE_WORKSPACE=/var/lib/sable-workspace
 
 ## 3. File môi trường `.env.local`
 
+**Hướng dẫn đầy đủ + bảng mọi biến:** [08-cau-hinh-env.md](./08-cau-hinh-env.md) và gốc repo [`.env.example`](../../.env.example).
+
 Tạo `/opt/sable/.env.local` (mode **0600**, trong `.gitignore`). `startup.sh` và
 headless load file này; **không commit**.
 
@@ -87,7 +89,10 @@ openssl rand -base64 32 >> /opt/sable/.env.local   # gắn vào SABLE_VAULT_KEY=
 chmod 600 /opt/sable/.env.local
 ```
 
-### 3.2 Bảng biến thường dùng (nghĩa rút gọn)
+### 3.2 Biến thường dùng
+
+Danh sách **đầy đủ có mặc định** nằm trong `.env.example` (mỗi dòng một chú thích tiếng Việt).
+Tóm tắt nhóm — chi tiết xem [08](./08-cau-hinh-env.md):
 
 Nhóm **LLM / model**
 

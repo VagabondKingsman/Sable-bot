@@ -14,6 +14,7 @@ credential của chủ sở hữu được ghi **cần cấu hình**.
 | [05-tinh-nang.md](./05-tinh-nang.md) | Danh mục tính năng theo Phase 1–5 và W0–W7 |
 | [06-bao-mat-van-hanh.md](./06-bao-mat-van-hanh.md) | Mô hình bảo mật, kill switch, bí mật, ops (log, watchdog, eval) |
 | [07-faq.md](./07-faq.md) | Câu hỏi thường gặp + thuật ngữ |
+| [08-cau-hinh-env.md](./08-cau-hinh-env.md) | `.env.example` / `.env.local`: tối thiểu boot, lấy credential, vault, kill switch, checklist |
 
 Tài liệu tiếng Anh gốc (chi tiết kỹ thuật / protocol):
 
