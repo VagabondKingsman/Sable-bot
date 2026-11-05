@@ -79,6 +79,7 @@ export function parseChatRequest(body: unknown): ParsedChat {
         image: Boolean(tools.image),
         files: Boolean(tools.files),
         fetch: Boolean(tools.fetch),
+        shell: Boolean(tools.shell),
       },
       ...(raw.remember === false ? { remember: false } : {}),
       ...(typeof raw.threadId === "string" && /^[A-Za-z0-9_-]{1,80}$/.test(raw.threadId) ? { threadId: raw.threadId } : {}),

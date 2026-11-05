@@ -10,6 +10,7 @@ import {
   FileDown,
   FolderOpen,
   Globe,
+  Terminal,
   ImageIcon,
   Lightbulb,
   Menu,
@@ -278,6 +279,7 @@ export function Desk() {
             image: snapshot.settings.image,
             files: snapshot.settings.files !== false,
             fetch: snapshot.settings.fetch !== false,
+            shell: snapshot.settings.shell === true,
           },
           messages: history,
           threadId,
@@ -356,6 +358,7 @@ export function Desk() {
             image: false,
             files: snapshot.settings.files !== false,
             fetch: snapshot.settings.fetch !== false,
+            shell: snapshot.settings.shell === true,
           },
           messages: [...history, { role: "user", content }],
         },
@@ -695,6 +698,7 @@ export function Desk() {
                   <ToolChip on={settings.image} unavailable={xaiOnly} label="Ảnh chat" icon={<ImageIcon className="size-4" />} onClick={() => patchSettings({ image: !settings.image })} />
                   <ToolChip on={settings.files !== false} label="Tệp" icon={<FolderOpen className="size-4" />} onClick={() => patchSettings({ files: settings.files === false })} />
                   <ToolChip on={settings.fetch !== false} label="Tải trang" icon={<Globe className="size-4" />} onClick={() => patchSettings({ fetch: settings.fetch === false })} />
+                  <ToolChip on={settings.shell === true} label="Shell" icon={<Terminal className="size-4" />} onClick={() => patchSettings({ shell: settings.shell !== true })} />
                   <button type="button" disabled={busy || !imagine} title={imagine ? undefined : "Ảnh/Video cần khóa xAI"} onClick={() => void runMedia("image")} className="flex h-11 items-center gap-2 rounded-xl bg-surface px-3 text-sm text-fg shadow-ring hover:shadow-ring-strong disabled:opacity-40">
                     <ImageIcon className="size-4" />
                     Ảnh

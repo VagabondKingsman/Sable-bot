@@ -374,6 +374,7 @@ type Draft = {
   code: boolean;
   files: boolean;
   fetch: boolean;
+  shell: boolean;
   catchUp: boolean;
   enabled: boolean;
 };
@@ -413,6 +414,7 @@ function draftFrom(
     code: false,
     files: true,
     fetch: true,
+    shell: false,
     catchUp: true,
     enabled: true,
   };
@@ -431,6 +433,7 @@ function draftFrom(
     code: routine.tools.code,
     files: routine.tools.files !== false,
     fetch: routine.tools.fetch !== false,
+    shell: routine.tools.shell === true,
     catchUp: routine.catchUp,
     enabled: routine.enabled,
   };
@@ -788,6 +791,7 @@ function RoutineForm({
             image: false,
             files: draft.files,
             fetch: draft.fetch,
+            shell: draft.shell,
           },
           catchUp: draft.catchUp,
           enabled: draft.enabled,
@@ -964,6 +968,7 @@ function RoutineForm({
         <Toggle label="Mã" on={draft.code} onChange={(code) => patch({ code })} />
         <Toggle label="Tệp" on={draft.files} onChange={(files) => patch({ files })} />
         <Toggle label="Tải trang" on={draft.fetch} onChange={(fetch) => patch({ fetch })} />
+        <Toggle label="Shell (luôn duyệt)" on={draft.shell} onChange={(shell) => patch({ shell })} />
       </fieldset>
       <div className="flex flex-wrap gap-x-4">
         <Toggle
