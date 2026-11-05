@@ -138,7 +138,7 @@ Checklist:
 
 Backup: `/workspace/sable-backup-pre-w2b-202611050938.tgz`. Live Google sign-in: **needs He's OAuth client ID/secret** (see `docs/OAUTH-SETUP.md`); everything is E2E-tested against a local mock.
 
-- [ ] 1. Generic OAuth2 (PKCE S256 + state, auth-code, refresh, revoke); tokens only in the W0 vault, redacted everywhere; redirect URI on the public origin; owner-only; `SABLE_OAUTH` kill switch; connector registry + Settings Connect/Disconnect
-- [ ] 2. Gmail: search/read threads, read message, labels; create draft; send only via approval card (never background initiators); new mail → triage + brief
+- [x] 1. Generic OAuth2 (PKCE S256 + state, auth-code, refresh, revoke); tokens only in the W0 vault, redacted everywhere; redirect URI on the public origin; owner-only; `SABLE_OAUTH` kill switch; connector registry + Settings Connect/Disconnect
+- [x] 2. Gmail: search/read threads, read message, labels; create draft; send only via approval card (never background initiators); new mail → triage + brief
 - [ ] 3. Google Calendar: calendars/events/free-busy; create/update/delete need approval; today's events → brief
 - [ ] 4. Mock OAuth + Gmail/Calendar E2E; eval:w2b; tsc; evals w0/w1/w2/w2a; restart; ngrok 401/200; package CLEAN

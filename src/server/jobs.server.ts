@@ -212,6 +212,9 @@ export function jobService(): Service {
   void import("@/server/proactive.server")
     .then((mod) => mod.startBriefTicker())
     .catch((error) => console.warn(`[sable-brief] ticker not started: ${error instanceof Error ? error.message : String(error)}`));
+  void import("@/server/connectors.server")
+    .then((mod) => mod.startConnectorTicker())
+    .catch((error) => console.warn(`[sable-connectors] ticker not started: ${error instanceof Error ? error.message : String(error)}`));
   return service;
 }
 

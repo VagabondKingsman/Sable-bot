@@ -13,6 +13,7 @@ import { dataDir, workspaceDir } from "@/server/paths";
 import { makeAssertScope } from "@/server/scope.server";
 import { createSpawner, spawnOn } from "@/server/spawn.server";
 import { mcpToolsFor, mcpWarm } from "@/server/mcp.server";
+import { connectorToolsFor } from "@/server/connectors.server";
 import { skills as skillStoreNow, skillsForTurn, skillsOn } from "@/server/skills.server";
 import { shellOn } from "@/lib/agent/tools/shell";
 import { browserOn } from "@/lib/agent/tools/browser";
@@ -167,7 +168,7 @@ export function prepareTurn(
   const canWrite = memOn && scope.mode === "interactive" && input.remember !== false;
   const flags = { ...input.tools, learned: memOn && functionToolsOn(), agents: spawnOn() && functionToolsOn() && scope.depth !== 1, skills: skillsOn() && functionToolsOn() && skillStoreNow().list().length > 0, shell: shellOn() && functionToolsOn(), browser: browserOn() && functionToolsOn(), canvas: canvasOn() && functionToolsOn() && Boolean(input.tools.files) };
   const base = selectTools(defaultRegistry(), flags, capabilitiesFor(endpoint));
-  const mcpDefs = scope.mcp && functionToolsOn() && scope.depth !== 1 ? mcpToolsFor(scope.source) : [];
+  const mcpDefs = scope.mcp && functionToolsOn() && scope.depth !== 1 ? [...mcpToolsFor(scope.source), ...connectorToolsFor(scope.source)] : [];
   const picked = mcpDefs.length ? { ...base, active: [...base.active, ...mcpDefs], functions: [...base.functions, ...mcpDefs] } : base;
   const selection = canWrite
     ? picked
