@@ -93,6 +93,7 @@ Checklist:
 - Restart: dev server killed → watchdog relaunched in ~21 s; `/api/health` 200.
 - ngrok: unauth **401**, basic auth **200** (`/`, `/api/canvas`; `/api/traces`, `/api/media` 200 with auth).
 - Unit: 197 + 284 pass; `npm run eval:w2` 10/10 PASS (7 offline + 3 live); eval:w0/w1 still PASS; `tsc --noEmit` clean.
+- Package: `/workspace/sable-source-w2-202611050911.tgz` SECRET_SCAN=CLEAN (4 live secrets + key patterns checked; one deliberate `ghp_fixture…` test fixture allow-listed)
 - HARD SCOPE held: no RE/pentest/CTF skills; Content scope untouched.
 
 ### Bugs found/fixed (W2)
