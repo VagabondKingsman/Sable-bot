@@ -2,12 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { guarded, methodNotAllowed, readObjectBody } from "@/server/http";
 import { audit } from "@/server/audit.server";
 import { USER } from "@/lib/agent/audit/types";
-import { desktopOn, desktopStatus, startDesktop, stopDesktop } from "@/server/desktop.server";
+import { cancelRun, decideDesktop, desktopOn, desktopStatus, startDesktop, startRun, stopDesktop } from "@/server/desktop.server";
 
 /**
  * W3 desktop (owner-only, behind the desk auth).
  * GET  /api/desktop                     status (+ noVNC view URL while running)
- * POST {action:"start", url?} | {action:"stop"}
+ * POST {action:"start", url?} | {action:"stop"} | {action:"run", goal} | {action:"cancel"}
+ *      | {action:"decide", id, approve}   (owner web decision on a desktop approval card)
  */
 const NO_STORE = { "Cache-Control": "no-store" };
 export const Route = createFileRoute("/api/desktop")({
@@ -30,12 +31,30 @@ export const Route = createFileRoute("/api/desktop")({
               return Response.json({ message: error instanceof Error ? error.message : String(error), status: desktopStatus() }, { status: 409, headers: NO_STORE });
             }
           }
+          if (b.action === "run") {
+            const goal = typeof b.goal === "string" ? b.goal.trim() : "";
+            if (!goal) return Response.json({ message: "Cần mục tiêu (goal)." }, { status: 400 });
+            const r = await startRun(goal);
+            if (!r.ok) return Response.json({ message: r.message }, { status: r.status, headers: NO_STORE });
+            return Response.json(desktopStatus(), { headers: NO_STORE });
+          }
+          if (b.action === "cancel") {
+            const ok = cancelRun();
+            return Response.json({ ok, ...desktopStatus() }, { headers: NO_STORE });
+          }
+          if (b.action === "decide") {
+            if (typeof b.id !== "string" || typeof b.approve !== "boolean") return Response.json({ message: "id + approve required." }, { status: 400 });
+            const r = decideDesktop(b.id.slice(0, 100), b.approve);
+            if (!r.ok) return Response.json({ message: r.reason }, { status: r.status, headers: NO_STORE });
+            return Response.json(desktopStatus(), { headers: NO_STORE });
+          }
           if (b.action === "stop") {
+            cancelRun();
             const st = await stopDesktop();
             audit({ type: "side_effect", initiator: USER, tool: "desktop.stop", summary: "stopped by owner", ok: true });
             return Response.json(st, { headers: NO_STORE });
           }
-          return Response.json({ message: "action phải là start | stop." }, { status: 400 });
+          return Response.json({ message: "action phải là start | stop | run | cancel | decide." }, { status: 400 });
         }),
       ANY: methodNotAllowed("GET, POST"),
     },

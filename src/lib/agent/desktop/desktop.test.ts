@@ -179,3 +179,88 @@ test("screenshot + wait need no approval", async () => {
   const w = await execute(h.by("desktop_wait"), JSON.stringify({ ms: 100 }), c.ctx);
   assert.equal(w.ok, true, w.output);
 });
+
+import { parseProposal, runDesktopAgent, type AgentDeps } from "./agent.ts";
+import { createHeavy } from "./heavy.ts";
+
+test("parseProposal: done / handover / action / invalid / bounds", () => {
+  assert.equal(parseProposal('{"done":true,"summary":"ok"}', B).kind, "done");
+  assert.equal(parseProposal('sure! {"handover":"captcha"}', B).kind, "handover");
+  const a = parseProposal('```json\n{"thought":"t","action":{"kind":"click","x":10,"y":20}}\n```', B);
+  assert.equal(a.kind, "action");
+  assert.equal(parseProposal('{"action":{"kind":"click","x":9999,"y":20}}', B).kind, "invalid");
+  assert.equal(parseProposal("no json", B).kind, "invalid");
+  const t = parseProposal('{"action":{"kind":"type","text":"x","secret":true}}', B);
+  assert.ok(t.kind === "action" && t.action.kind === "type" && t.action.secret === false);
+});
+
+function agentDeps(replies: string[], approve: (n: number) => boolean, extra: Partial<AgentDeps> = {}) {
+  const execd: string[] = [];
+  const asks: { image: string }[] = [];
+  let i = 0;
+  let shots = 0;
+  const deps: AgentDeps = {
+    bounds: B,
+    maxSteps: 5,
+    signal: new AbortController().signal,
+    settleMs: 1,
+    shot: async () => ({ id: String(++shots), url: `/api/desktop/shot/${shots}`, jpeg: Buffer.from(`img${shots}`) }),
+    model: async () => replies[Math.min(i++, replies.length - 1)]!,
+    approve: async (ask) => (asks.push(ask), approve(asks.length)),
+    exec: async (a) => void execd.push(a.kind),
+    budget: () => ({ ok: true }),
+    ...extra,
+  };
+  return { deps, execd, asks };
+}
+
+test("agent: approve → exec → done", async () => {
+  const h = agentDeps(['{"action":{"kind":"click","x":200,"y":280}}', '{"action":{"kind":"wait","ms":200}}', '{"done":true,"summary":"clicked"}'], () => true);
+  const r = await runDesktopAgent("click the button", h.deps);
+  assert.equal(r.status, "done");
+  assert.deepEqual(h.execd, ["click", "wait"]);
+  assert.equal(h.asks.length, 1, "wait needs no approval");
+  assert.match(h.asks[0]!.image, /shot/);
+  assert.equal(r.steps[0]!.changed, true);
+});
+
+test("agent: rejection stops the run, nothing executed", async () => {
+  const h = agentDeps(['{"action":{"kind":"click","x":200,"y":280}}'], () => false);
+  const r = await runDesktopAgent("x", h.deps);
+  assert.equal(r.status, "rejected");
+  assert.deepEqual(h.execd, []);
+});
+
+test("agent: step cap + budget hook + invalid streak + cancel", async () => {
+  const cap = agentDeps(['{"action":{"kind":"wait","ms":100}}'], () => true, { maxSteps: 3 });
+  assert.equal((await runDesktopAgent("x", cap.deps)).status, "step_cap");
+  assert.equal(cap.execd.length, 3);
+  const bud = agentDeps(['{"action":{"kind":"wait","ms":100}}'], () => true, { budget: () => ({ ok: false, error: "budget exceeded" }) });
+  assert.equal((await runDesktopAgent("x", bud.deps)).status, "budget");
+  const inv = agentDeps(["garbage"], () => true);
+  assert.equal((await runDesktopAgent("x", inv.deps)).status, "error");
+  const ac = new AbortController();
+  ac.abort();
+  const can = agentDeps(['{"action":{"kind":"wait","ms":100}}'], () => true, { signal: ac.signal });
+  assert.equal((await runDesktopAgent("x", can.deps)).status, "cancelled");
+  const ho = agentDeps(['{"handover":"login required"}'], () => true);
+  assert.equal((await runDesktopAgent("x", ho.deps)).status, "handover");
+});
+
+test("heavy: max 2, third refused or waits", async () => {
+  const h = createHeavy(() => 2);
+  const a = await h.acquire("a");
+  const b = await h.acquire("b");
+  assert.ok(a && b);
+  assert.equal(await h.acquire("c"), null);
+  const waiting = h.acquire("d", { waitMs: 2000 });
+  a!();
+  const d = await waiting;
+  assert.ok(d);
+  assert.deepEqual(h.active().sort(), ["b", "d"]);
+  const timeout = await h.acquire("e", { waitMs: 50 });
+  assert.equal(timeout, null);
+  b!();
+  d!();
+  assert.equal(h.active().length, 0);
+});

@@ -220,6 +220,8 @@ Checklist:
   - Verified live: start ≈0.6 s; x11vnc 127.0.0.1:5999 + websockify 127.0.0.1:6099 only; WS upgrade 403 without/with foreign Origin, 101 same-origin (local + ngrok with auth), ngrok 401 without auth; stop removes all procs and /tmp/.X99-lock.
 - [x] 2. Tools desktop_screenshot/click/type/key/scroll/wait (xdotool, bounds, secret text never logged, redaction)
   - `src/lib/agent/desktop/{actions,tools,vision}.ts`; server `desktopToolsFor("chat")` (only interactive chat; jobs/routines get none); `/api/desktop/shot/<id>` (ring of 40, no-store). Approval asks carry `image`+`mark` (card renders screenshot + red target); `canDecide(..., tool)` — desktop asks decidable only by owner web, never when the ask chain has a background initiator. Typed text via `xdotool type --file -` (stdin), secret text redacted in labels/cards/audit. Unit tests `src/lib/agent/desktop/desktop.test.ts` (13).
-- [ ] 3. Vision loop (screenshot → grok-4.7 proposes → approval card → execute → verify; step cap + budget; heavy-slot limit)
+- [x] 3. Vision loop (screenshot → grok-4.7 proposes → approval card → execute → verify; step cap + budget; heavy-slot limit)
+  - `src/lib/agent/desktop/{agent,heavy}.ts` (pure), server `startRun/cancelRun/decideDesktop`, POST `/api/desktop` actions run|cancel|decide. Budget scope "desktop" (per-run cap `SABLE_DESKTOP_RUN_USD`, default $0.5, + global meter check before each model call). Heavy slots (≤2) shared with spawned subagents (spawn waits ≤30 s then refuses).
+  - Live (local test page, grok-4.7): 4 steps, 3 owner approvals, page turned green, done, $0.036.
 - [ ] 4. UI: Desktop panel (live view, pending action card, Stop)
 - [ ] 5. Tests: unit + E2E on :99 with a local test page; eval:w3; full verification; package CLEAN

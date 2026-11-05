@@ -312,7 +312,7 @@ export class DesktopSession {
       ];
       const chromeArgs = [
         "--no-sandbox", // the bwrap jail above is the sandbox boundary
-        "--user-data-dir=/profile", "--no-first-run", "--no-default-browser-check", "--disable-sync",
+        "--user-data-dir=/profile", "--no-first-run", "--no-default-browser-check", "--disable-sync", "--hide-crash-restore-bubble", "--disable-session-crashed-bubble", "--noerrdialogs",
         "--disable-gpu", "--disable-dev-shm-usage", "--password-store=basic", "--renderer-process-limit=3",
         "--disable-features=Translate,MediaRouter,OptimizationHints", "--disable-background-networking",
         `--window-position=0,0`, `--window-size=${cfg.width},${cfg.height}`,

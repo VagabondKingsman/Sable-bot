@@ -17,6 +17,11 @@ import { estimateUsd } from "@/lib/agent/budget/prices";
 import { forSource } from "@/lib/agent/connectors/select";
 import type { FunctionTool } from "@/lib/agent/tools/types";
 import { plannerBundle } from "@/server/planner.server";
+import { createHeavy, type Heavy } from "@/lib/agent/desktop/heavy";
+import { runDesktopAgent, type RunStatus, type RunStep } from "@/lib/agent/desktop/agent";
+import { sharedApprovals } from "@/lib/agent/tools/approvals";
+import { auditingEmit, audit, decideAs } from "@/server/audit.server";
+import { USER } from "@/lib/agent/audit/types";
 
 export type PendingAsk = { id: string; tool: string; summary: string; image: string; mark?: { x: number; y: number; w: number; h: number }; at: number; source: "chat" | "agent" };
 type State = {
@@ -103,6 +108,9 @@ export function desktopStatus() {
     enabled: cfg.enabled,
     ...s,
     viewers: st.viewers,
+    pending: pendingAsks(),
+    run: currentRun(),
+    heavy: { active: heavySlots().active(), max: cfg.heavyMax },
     idleMin: cfg.idleMin,
     // Owner-only (behind the desk auth) and no-store; the VNC password is per session and lives in the URL hash.
     viewUrl:
@@ -187,4 +195,109 @@ export function desktopToolsFor(source: string): FunctionTool[] {
     settleAsk: (id) => settlePending(id),
   });
   return forSource(tools, source);
+}
+
+// ---- D7 heavy-agent slots (desktop runs + spawned subagents) ----
+const HEAVY = Symbol.for("sable.heavy.v1");
+export function heavySlots(): Heavy {
+  const g = globalThis as unknown as Record<symbol, Heavy | undefined>;
+  return (g[HEAVY] ??= createHeavy(() => desktopConfig().heavyMax));
+}
+
+// ---- vision-loop runs (owner-started only; one at a time — one display) ----
+export type DesktopRun = { id: string; goal: string; status: RunStatus; summary: string; steps: RunStep[]; startedAt: number; endedAt: number | null; usd: number };
+type RunState = { run: DesktopRun | null; ctl: AbortController | null };
+const RUN = Symbol.for("sable.desktop.run.v1");
+function runState(): RunState {
+  const g = globalThis as unknown as Record<symbol, RunState | undefined>;
+  return (g[RUN] ??= { run: null, ctl: null });
+}
+
+export function currentRun(): DesktopRun | null {
+  return runState().run;
+}
+
+function runCapUsd() {
+  const n = Number(process.env.SABLE_DESKTOP_RUN_USD);
+  return Number.isFinite(n) && n > 0 ? n : 0.5;
+}
+
+/** Start a vision run. Owner only: the route passes USER; nothing in the background calls this. */
+export async function startRun(goal: string): Promise<{ ok: true; run: DesktopRun } | { ok: false; status: number; message: string }> {
+  if (!desktopOn()) return { ok: false, status: 403, message: "Desktop đang tắt (SABLE_DESKTOP=0)." };
+  const rs = runState();
+  if (rs.run?.status === "running") return { ok: false, status: 409, message: "Đang có một lượt desktop agent chạy." };
+  if (!visionEndpoint()) return { ok: false, status: 409, message: "Chưa cấu hình model vision." };
+  const release = await heavySlots().acquire("desktop", { waitMs: 0 });
+  if (!release) return { ok: false, status: 429, message: `Đã có ${desktopConfig().heavyMax} agent nặng đang chạy (D7). Thử lại sau.` };
+  try {
+    if (desktopSession().state !== "running") await startDesktop();
+  } catch (error) {
+    release();
+    return { ok: false, status: 409, message: error instanceof Error ? error.message : String(error) };
+  }
+  const cfg = desktopConfig();
+  const run: DesktopRun = { id: crypto.randomBytes(8).toString("hex"), goal: goal.slice(0, 1000), status: "running", summary: "", steps: [], startedAt: Date.now(), endedAt: null, usd: 0 };
+  const ctl = new AbortController();
+  rs.run = run;
+  rs.ctl = ctl;
+  setDesktopBusy(() => runState().run?.status === "running");
+  audit({ type: "side_effect", initiator: USER, tool: "desktop.agent", summary: `start run ${run.id}`, ok: true });
+  const emit = auditingEmit(() => {}, USER);
+  void runDesktopAgent(run.goal, {
+    bounds: { width: cfg.width, height: cfg.height },
+    maxSteps: cfg.maxSteps,
+    signal: ctl.signal,
+    shot: (signal) => takeShot(signal),
+    model: async (jpeg, system, prompt, signal) => {
+      const r = await lookAt(jpeg, system, prompt, signal, `run:${run.id}`, true, 400);
+      run.usd += estimateUsd(cfg.model, r.promptTokens, r.completionTokens);
+      return r.text;
+    },
+    budget: () => (run.usd >= runCapUsd() ? { ok: false, error: `run budget reached ($${run.usd.toFixed(3)} ≥ $${runCapUsd()})` } : plannerBundle().budget.check({ addUsd: 0.01 })),
+    approve: (ask, signal) =>
+      sharedApprovals().request(
+        {
+          ...ask,
+          onId: (id) => addPending({ id, tool: ask.tool, summary: ask.summary, image: ask.image, mark: ask.mark, at: Date.now(), source: "agent" }),
+          onSettle: (id) => settlePending(id),
+        },
+        emit,
+        signal,
+      ),
+    exec: (a, signal) => execAction(a, signal),
+    onStep: (_s, all) => {
+      run.steps = all.map((x) => ({ ...x }));
+    },
+  })
+    .then((res) => {
+      run.status = res.status;
+      run.summary = res.summary;
+      run.steps = res.steps.map((x) => ({ ...x }));
+    })
+    .catch((error) => {
+      run.status = "error";
+      run.summary = String(error instanceof Error ? error.message : error).slice(0, 300);
+    })
+    .finally(() => {
+      run.endedAt = Date.now();
+      release();
+      audit({ type: "side_effect", initiator: USER, tool: "desktop.agent", summary: `run ${run.id} → ${run.status}`, ok: run.status === "done" });
+      desktopSession().touch();
+    });
+  return { ok: true, run };
+}
+
+export function cancelRun(): boolean {
+  const rs = runState();
+  if (rs.run?.status !== "running" || !rs.ctl) return false;
+  rs.ctl.abort();
+  return true;
+}
+
+/** Owner web decision on a desktop card (policy: decideAs → canDecide desktop rule). */
+export function decideDesktop(id: string, approve: boolean) {
+  const out = decideAs(id, approve, USER);
+  if (out.ok) settlePending(id);
+  return out;
 }
