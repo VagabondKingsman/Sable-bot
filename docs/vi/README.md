@@ -63,3 +63,5 @@ hiện tại trên box phát triển dùng `npm run dev` / `npm run headless:sta
 
 Cập nhật tài liệu này: khi đổi code/tính năng, sửa file `docs/vi/` tương ứng và
 các nguồn tiếng Anh nêu trên.
+
+**Bàn giao agent:** [../HANDOFF-VI.md](../HANDOFF-VI.md) (tiếng Việt, đủ context không cần lịch sử chat).

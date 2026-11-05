@@ -9,6 +9,7 @@ Single-operator desk agent (UI + jobs + Telegram/webhook) — source for
 |---|---|
 | **Tiếng Việt (đầy đủ)** | **[docs/vi/README.md](./docs/vi/README.md)** — giới thiệu, kiến trúc, yêu cầu, cài VPS, **[cấu hình env](./docs/vi/08-cau-hinh-env.md)**, tính năng Phase→W7, bảo mật, FAQ |
 | Env template | **[.env.example](./.env.example)** → copy thành `.env.local` |
+| **Handoff (VI)** | **[docs/HANDOFF-VI.md](./docs/HANDOFF-VI.md)** — bàn giao cho agent/người tiếp tục (không cần lịch sử chat) |
 | English (technical) | [docs/FULL-AGENTIC-STATUS.md](./docs/FULL-AGENTIC-STATUS.md), [docs/DEPLOY.md](./docs/DEPLOY.md), [docs/PHASE6-PROGRESS.md](./docs/PHASE6-PROGRESS.md), [docs/WEBHOOK-API.md](./docs/WEBHOOK-API.md), [docs/BRIDGE-PROTOCOL.md](./docs/BRIDGE-PROTOCOL.md), [docs/OAUTH-SETUP.md](./docs/OAUTH-SETUP.md) |
 
 ## Quick start (dev)
