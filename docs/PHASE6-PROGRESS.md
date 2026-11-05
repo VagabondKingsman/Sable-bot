@@ -288,5 +288,8 @@ Backup: `/workspace/sable-backup-pre-w5-202611051225.tgz`. Sole builder. Kill sw
   - Tasks inbox: new kind `review` with state-only chips "Đã xem" / "Bỏ qua" (never send). `/api/evals` GET view; POST review | settings | run (409 while running; audited; 403 when `SABLE_SELFEVAL=0`, except review state).
   - Tests: `evals/evals.test.ts` 7 tests. npm test 197 + 392 pass, 0 fail. Live: chat turn graded (rules, success 1/grounded 1); manual regression `w0` run → 15 pass, diff vs previous shown; nightly routine listed disabled; CSRF POST → 403, bad review → 400.
   - Fix found live: the redactor treats `PASS <name>` as a password pair, so names were parsed before redaction.
-- [ ] 4. UI: Memory search panel + Eval dashboard
+- [x] 4. UI: Memory search panel + Eval dashboard
+  - `memory-search-panel.tsx` (tab "Tìm nhớ"): index status (embedder that ran + why others were skipped, docs/chunks/bytes per source, last sync in VN time, redaction count), Sync / Rebuild, query with source filters (memory, journal, threads, Canvas, research, workspace docs) + mode (hybrid / BM25 / vector), hits with per-signal score parts (BM25 / vector / recency).
+  - `eval-panel.tsx` (tab "Eval"): summary (runs, failed, avg success / groundedness, grader), review queue (Đã xem / Chấp nhận đề xuất / Bỏ qua — state only, accepting a proposal applies nothing), nightly toggle + time + suites (default off), run-now with suite picker, regression runs with diffs, recent grades.
+  - Headless Chrome check (no display used): both tabs render; search returned 12 hits; dashboard showed 1 grade, 2 regression runs, nightly unchecked; 0 page errors.
 - [ ] 5. Tests, eval:w5 (retrieval quality set, honest recall@k), tsc, npm test, evals w0..w4, restart, ngrok 401/200, memory footprint; package CLEAN
