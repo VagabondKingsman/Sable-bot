@@ -37,6 +37,7 @@ import { SkillsPanel } from "@/components/sable/skills-panel";
 import { ProfilesPanel } from "@/components/sable/profiles-panel";
 import { McpPanel } from "@/components/sable/mcp-panel";
 import { ConnectorsPanel } from "@/components/sable/connectors-panel";
+import { BridgePanel } from "@/components/sable/bridge-panel";
 import { startDeskSync } from "@/lib/agent/desk/client";
 import { decideApproval, generateImage, generateVideo, modelInfo, streamReply, voiceStt, voiceTts, type ModelCaps } from "@/lib/agent/client";
 import { ScopeApprovalStrip } from "@/components/sable/scope-cards";
@@ -1429,6 +1430,7 @@ function Settings({
         <SkillsPanel />
         <McpPanel />
         <ConnectorsPanel />
+        <BridgePanel />
         <LearnedMemory noMemory={noMemory} onNoMemory={onNoMemory} />
         <div className="grid grid-cols-2 gap-3">
           <Choice label="Model ảnh" value={settings.imageModel} options={IMAGE_MODELS} onChange={(imageModel) => onChange({ imageModel })} />

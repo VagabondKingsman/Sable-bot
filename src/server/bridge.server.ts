@@ -182,14 +182,11 @@ export async function pingMock() {
     const msg = makeMessage("ping", { text: "ping" });
     const body = JSON.stringify(msg);
     const first = await sendSigned(peer.url, secret, body, { loopbackOrigin: peer.origin });
-    // Same signed request again must be refused by the peer (replay).
-    const replay = await (async () => {
-      const r = await sendSigned(peer.url, "wrong-secret-wrong-secret-wrong-secret", body, { loopbackOrigin: peer.origin });
-      return r.status;
-    })();
+    // A request signed with the wrong secret must be refused by the peer (401).
+    const badSignature = (await sendSigned(peer.url, newId("wrong") + newId("k"), body, { loopbackOrigin: peer.origin })).status;
     const h: Handoff = { id: msg.id, at: msg.at, kind: "ping", title: "mock ping", text: "ping", bytes: body.length, redactions: 0, clipped: false, state: first.ok && first.replyVerified ? "sent" : "failed", via: "panel", initiator: { kind: "user", id: USER.id }, target: "mock", sentAt: Date.now(), status: first.status, ms: first.ms, replies: first.reply ? 1 : 0, ...(first.ok && first.replyVerified ? {} : { error: first.error ?? "pong not verified" }) };
     st().store.putHandoff(h);
-    return { ok: first.ok && !!first.replyVerified, status: first.status, ms: first.ms, pong: first.reply?.type === "pong", pongVerified: !!first.replyVerified, badSignatureStatus: replay, peerReceived: peer.received.length };
+    return { ok: first.ok && !!first.replyVerified, status: first.status, ms: first.ms, pong: first.reply?.type === "pong", pongVerified: !!first.replyVerified, badSignatureStatus: badSignature, peerReceived: peer.received.length };
   } finally {
     await peer.close();
   }
