@@ -1,3 +1,4 @@
+import { bridgeToolsFor } from "@/server/bridge.server";
 import { mediaToolsFor } from "@/server/media.server";
 import { desktopToolsFor } from "@/server/desktop.server";
 import { auditingEmit, auditSink } from "@/server/audit.server";
@@ -177,6 +178,8 @@ export function prepareTurn(
   // W5: knowledge_recall only when the local index is on.
   const base = vectorOn() ? base0 : { ...base0, active: base0.active.filter((t) => t.name !== "knowledge_recall"), functions: base0.functions.filter((t) => t.name !== "knowledge_recall") };
   const mcpDefs = scope.mcp && functionToolsOn() && scope.depth !== 1 ? [...mcpToolsFor(scope.source), ...connectorToolsFor(scope.source), ...mediaToolsFor(scope.source), ...desktopToolsFor(scope.source)] : [];
+  // W6: bridge_handoff only in the owner's interactive chat, only when the bridge is configured.
+  if (scope.mode === "interactive" && functionToolsOn()) mcpDefs.push(...bridgeToolsFor({ mode: scope.mode, source: scope.source, depth: scope.depth }));
   const picked = mcpDefs.length ? { ...base, active: [...base.active, ...mcpDefs], functions: [...base.functions, ...mcpDefs] } : base;
   const selection = canWrite
     ? picked

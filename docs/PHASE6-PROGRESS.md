@@ -309,8 +309,13 @@ Backup: `/workspace/sable-backup-pre-w5-202611051225.tgz`. Sole builder. Kill sw
 
 Backup: `/workspace/sable-backup-pre-w6-202611051251.tgz`. Sole builder. OAuth connectors already shipped in W2b. Kill switch `SABLE_BRIDGE` (`0` = off; otherwise on only once peer URL + secret are configured). Every outbound handoff needs an owner approval card; background initiators can never send; inbound content is untrusted data only.
 
-- [ ] 1. Outbound bridge: HMAC-SHA256 + timestamp + nonce + replay window; redacted, size-capped payload; owner approval card per handoff; background never sends; `SABLE_BRIDGE`
-- [ ] 2. Inbound `/api/bridge/inbound`: HMAC verify, replay → 409, rate limit, untrusted content (no instructions, no approvals, no side effects) → Tasks inbox + optional thread
+- [x] 1. Outbound bridge: HMAC-SHA256 + timestamp + nonce + replay window; redacted, size-capped payload; owner approval card per handoff; background never sends; `SABLE_BRIDGE`
+  - `src/lib/agent/bridge/{protocol,config,outbound,store,mock,policy}.ts`, `src/server/bridge.server.ts`. Signature `v1=hex(HMAC-SHA256(secret, "sable.bridge.v1:<ts>:<nonce>:<body>"))`, 300 s window, 64 KB body / 16 KB text cap, known-secret + key-pattern redaction before signing. Outbound https only + SSRF `checkUrl`, `redirect: manual`, 64 KB reply cap, signed-pong verify. Only exception: the exact in-process `127.0.0.1` mock origin (throwaway secret) for the self-test.
+  - Approval: panel → pending card (owner clicks Duyệt gửi); chat → `bridge_handoff` tool (interactive chat only, needsApproval, owner-only in `canDecide`). `mayStart` refuses every non-user initiator and any background via-chain. Pending cards expire after 30 min. Config: vault `BRIDGE_PEER_URL` / `BRIDGE_SECRET` (≥32 chars) / `BRIDGE_PEER_TOKEN`, env fallback `SABLE_BRIDGE_URL` / `SABLE_BRIDGE_SECRET` / `SABLE_BRIDGE_PEER_TOKEN`; live: unconfigured → off.
+  - Tests: `src/lib/agent/bridge/bridge.test.ts` (9) with a local mock peer.
+- [x] 2. Inbound `/api/bridge/inbound`: HMAC verify, replay → 409, rate limit, untrusted content (no instructions, no approvals, no side effects) → Tasks inbox + optional thread
+  - Order: off 403 → size 413 → rate 429 → signature/timestamp 401 → nonce replay 409 → JSON 400 → schema 422 (peer may only send result/message/ping/pong) → message-id replay 409. Extra fields are dropped; text redacted; links http(s) only. CSRF-exempt (HMAC-authenticated); `/api/bridge` stays same-origin.
+  - Lands in the Tasks inbox as kind `bridge` ("dữ liệu không tin cậy") with state-only chips Đã xem / Bỏ qua; optional (default off) new noMemory thread with an untrusted banner. No path to approvals, tools or runs. Live: 403 `bridge_off` until configured.
 - [ ] 3. `docs/BRIDGE-PROTOCOL.md` (sable.bridge.v1 schema, signing, error codes, curl, setup for He)
 - [ ] 4. UI: Bridge panel in Settings (status, mock-peer test ping, recent handoffs)
 - [ ] 5. Tests with a local mock peer, eval:w6, tsc, npm test, evals w0..w5, restart, ngrok 401/200, package CLEAN; `docs/FULL-AGENTIC-STATUS.md`

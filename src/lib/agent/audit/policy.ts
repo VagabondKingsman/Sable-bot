@@ -12,7 +12,7 @@ export type Decision = { ok: true } | { ok: false; reason: string };
 /** W3 (D2): desktop actions are approved only by the owner in the web UI (who sees the screenshot). */
 export const isDesktopTool = (tool?: string | null) => Boolean(tool && /^desktop[_.]/.test(tool));
 /** W4: actions only the owner (web UI) can approve: desktop input + applying agent code to a real repo. */
-export const isOwnerOnlyTool = (tool?: string | null) => isDesktopTool(tool) || tool === "code.apply";
+export const isOwnerOnlyTool = (tool?: string | null) => isDesktopTool(tool) || tool === "code.apply" || tool === "bridge_handoff" || tool === "bridge.handoff";
 
 export function canDecide(decider: Initiator, askInitiator: Initiator | null, tool?: string | null): Decision {
   if (BACKGROUND_KINDS.includes(decider.kind))
