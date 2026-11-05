@@ -10,6 +10,7 @@ import { gmailTools, mailToTriage } from "@/lib/agent/connectors/gmail-tools";
 import type { ApiCall } from "@/lib/agent/connectors/http";
 import { calendarClient, dayBounds, type CalendarClient, type CalEvent } from "@/lib/agent/connectors/calendar";
 import { calendarTools } from "@/lib/agent/connectors/calendar-tools";
+import { forSource } from "@/lib/agent/connectors/select";
 import type { FunctionTool } from "@/lib/agent/tools/types";
 import { oauthManager, oauthOn } from "@/server/oauth.server";
 
@@ -45,7 +46,7 @@ export function connectorToolsFor(source: string): FunctionTool[] {
   const out: FunctionTool[] = [];
   if (oauthManager().hasToken("gmail")) out.push(...gmailTools(gmailFor));
   if (oauthManager().hasToken("gcal")) out.push(...calendarTools(calendarFor));
-  return source === "routine" ? out.filter((t) => !t.needsApproval) : out;
+  return forSource(out, source);
 }
 
 export async function syncGmail(): Promise<{ synced: number }> {
