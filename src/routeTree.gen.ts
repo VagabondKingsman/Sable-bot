@@ -14,15 +14,21 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ApiChannelsRouteImport } from './routes/api/channels'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiDeskRouteImport } from './routes/api/desk'
+import { Route as ApiFieldJournalRouteImport } from './routes/api/field-journal'
+import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiInboxRouteImport } from './routes/api/inbox'
 import { Route as ApiJobsRouteImport } from './routes/api/jobs'
 import { Route as ApiMcpRouteImport } from './routes/api/mcp'
 import { Route as ApiMediaRouteImport } from './routes/api/media'
 import { Route as ApiMemoryRouteImport } from './routes/api/memory'
 import { Route as ApiProfilesRouteImport } from './routes/api/profiles'
+import { Route as ApiRouterRouteImport } from './routes/api/router'
 import { Route as ApiRoutinesRouteImport } from './routes/api/routines'
+import { Route as ApiScopeRouteImport } from './routes/api/scope'
 import { Route as ApiSkillsRouteImport } from './routes/api/skills'
+import { Route as ApiToolIndexRouteImport } from './routes/api/tool-index'
 import { Route as ApiToolsRouteImport } from './routes/api/tools'
+import { Route as ApiVaultRouteImport } from './routes/api/vault'
 import { Route as ApiVoiceRouteImport } from './routes/api/voice'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiChannelsWebhookRouteImport } from './routes/api/channels.webhook'
@@ -51,6 +57,16 @@ const ApiChatRoute = ApiChatRouteImport.update({
 const ApiDeskRoute = ApiDeskRouteImport.update({
   id: '/api/desk',
   path: '/api/desk',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFieldJournalRoute = ApiFieldJournalRouteImport.update({
+  id: '/api/field-journal',
+  path: '/api/field-journal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiInboxRoute = ApiInboxRouteImport.update({
@@ -83,9 +99,19 @@ const ApiProfilesRoute = ApiProfilesRouteImport.update({
   path: '/api/profiles',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiRouterRoute = ApiRouterRouteImport.update({
+  id: '/api/router',
+  path: '/api/router',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiRoutinesRoute = ApiRoutinesRouteImport.update({
   id: '/api/routines',
   path: '/api/routines',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiScopeRoute = ApiScopeRouteImport.update({
+  id: '/api/scope',
+  path: '/api/scope',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSkillsRoute = ApiSkillsRouteImport.update({
@@ -93,9 +119,19 @@ const ApiSkillsRoute = ApiSkillsRouteImport.update({
   path: '/api/skills',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiToolIndexRoute = ApiToolIndexRouteImport.update({
+  id: '/api/tool-index',
+  path: '/api/tool-index',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiToolsRoute = ApiToolsRouteImport.update({
   id: '/api/tools',
   path: '/api/tools',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiVaultRoute = ApiVaultRouteImport.update({
+  id: '/api/vault',
+  path: '/api/vault',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiVoiceRoute = ApiVoiceRouteImport.update({
@@ -125,15 +161,21 @@ export interface FileRoutesByFullPath {
   '/api/channels': typeof ApiChannelsRouteWithChildren
   '/api/chat': typeof ApiChatRoute
   '/api/desk': typeof ApiDeskRoute
+  '/api/field-journal': typeof ApiFieldJournalRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/inbox': typeof ApiInboxRoute
   '/api/jobs': typeof ApiJobsRoute
   '/api/mcp': typeof ApiMcpRoute
   '/api/media': typeof ApiMediaRoute
   '/api/memory': typeof ApiMemoryRoute
   '/api/profiles': typeof ApiProfilesRoute
+  '/api/router': typeof ApiRouterRoute
   '/api/routines': typeof ApiRoutinesRoute
+  '/api/scope': typeof ApiScopeRoute
   '/api/skills': typeof ApiSkillsRoute
+  '/api/tool-index': typeof ApiToolIndexRoute
   '/api/tools': typeof ApiToolsRoute
+  '/api/vault': typeof ApiVaultRoute
   '/api/voice': typeof ApiVoiceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/channels/webhook': typeof ApiChannelsWebhookRoute
@@ -145,15 +187,21 @@ export interface FileRoutesByTo {
   '/api/channels': typeof ApiChannelsRouteWithChildren
   '/api/chat': typeof ApiChatRoute
   '/api/desk': typeof ApiDeskRoute
+  '/api/field-journal': typeof ApiFieldJournalRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/inbox': typeof ApiInboxRoute
   '/api/jobs': typeof ApiJobsRoute
   '/api/mcp': typeof ApiMcpRoute
   '/api/media': typeof ApiMediaRoute
   '/api/memory': typeof ApiMemoryRoute
   '/api/profiles': typeof ApiProfilesRoute
+  '/api/router': typeof ApiRouterRoute
   '/api/routines': typeof ApiRoutinesRoute
+  '/api/scope': typeof ApiScopeRoute
   '/api/skills': typeof ApiSkillsRoute
+  '/api/tool-index': typeof ApiToolIndexRoute
   '/api/tools': typeof ApiToolsRoute
+  '/api/vault': typeof ApiVaultRoute
   '/api/voice': typeof ApiVoiceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/channels/webhook': typeof ApiChannelsWebhookRoute
@@ -166,15 +214,21 @@ export interface FileRoutesById {
   '/api/channels': typeof ApiChannelsRouteWithChildren
   '/api/chat': typeof ApiChatRoute
   '/api/desk': typeof ApiDeskRoute
+  '/api/field-journal': typeof ApiFieldJournalRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/inbox': typeof ApiInboxRoute
   '/api/jobs': typeof ApiJobsRoute
   '/api/mcp': typeof ApiMcpRoute
   '/api/media': typeof ApiMediaRoute
   '/api/memory': typeof ApiMemoryRoute
   '/api/profiles': typeof ApiProfilesRoute
+  '/api/router': typeof ApiRouterRoute
   '/api/routines': typeof ApiRoutinesRoute
+  '/api/scope': typeof ApiScopeRoute
   '/api/skills': typeof ApiSkillsRoute
+  '/api/tool-index': typeof ApiToolIndexRoute
   '/api/tools': typeof ApiToolsRoute
+  '/api/vault': typeof ApiVaultRoute
   '/api/voice': typeof ApiVoiceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/channels/webhook': typeof ApiChannelsWebhookRoute
@@ -188,15 +242,21 @@ export interface FileRouteTypes {
     | '/api/channels'
     | '/api/chat'
     | '/api/desk'
+    | '/api/field-journal'
+    | '/api/health'
     | '/api/inbox'
     | '/api/jobs'
     | '/api/mcp'
     | '/api/media'
     | '/api/memory'
     | '/api/profiles'
+    | '/api/router'
     | '/api/routines'
+    | '/api/scope'
     | '/api/skills'
+    | '/api/tool-index'
     | '/api/tools'
+    | '/api/vault'
     | '/api/voice'
     | '/api/auth/$'
     | '/api/channels/webhook'
@@ -208,15 +268,21 @@ export interface FileRouteTypes {
     | '/api/channels'
     | '/api/chat'
     | '/api/desk'
+    | '/api/field-journal'
+    | '/api/health'
     | '/api/inbox'
     | '/api/jobs'
     | '/api/mcp'
     | '/api/media'
     | '/api/memory'
     | '/api/profiles'
+    | '/api/router'
     | '/api/routines'
+    | '/api/scope'
     | '/api/skills'
+    | '/api/tool-index'
     | '/api/tools'
+    | '/api/vault'
     | '/api/voice'
     | '/api/auth/$'
     | '/api/channels/webhook'
@@ -228,15 +294,21 @@ export interface FileRouteTypes {
     | '/api/channels'
     | '/api/chat'
     | '/api/desk'
+    | '/api/field-journal'
+    | '/api/health'
     | '/api/inbox'
     | '/api/jobs'
     | '/api/mcp'
     | '/api/media'
     | '/api/memory'
     | '/api/profiles'
+    | '/api/router'
     | '/api/routines'
+    | '/api/scope'
     | '/api/skills'
+    | '/api/tool-index'
     | '/api/tools'
+    | '/api/vault'
     | '/api/voice'
     | '/api/auth/$'
     | '/api/channels/webhook'
@@ -249,15 +321,21 @@ export interface RootRouteChildren {
   ApiChannelsRoute: typeof ApiChannelsRouteWithChildren
   ApiChatRoute: typeof ApiChatRoute
   ApiDeskRoute: typeof ApiDeskRoute
+  ApiFieldJournalRoute: typeof ApiFieldJournalRoute
+  ApiHealthRoute: typeof ApiHealthRoute
   ApiInboxRoute: typeof ApiInboxRoute
   ApiJobsRoute: typeof ApiJobsRoute
   ApiMcpRoute: typeof ApiMcpRoute
   ApiMediaRoute: typeof ApiMediaRoute
   ApiMemoryRoute: typeof ApiMemoryRoute
   ApiProfilesRoute: typeof ApiProfilesRoute
+  ApiRouterRoute: typeof ApiRouterRoute
   ApiRoutinesRoute: typeof ApiRoutinesRoute
+  ApiScopeRoute: typeof ApiScopeRoute
   ApiSkillsRoute: typeof ApiSkillsRoute
+  ApiToolIndexRoute: typeof ApiToolIndexRoute
   ApiToolsRoute: typeof ApiToolsRoute
+  ApiVaultRoute: typeof ApiVaultRoute
   ApiVoiceRoute: typeof ApiVoiceRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiRoutinesIdFireRoute: typeof ApiRoutinesIdFireRoute
@@ -298,6 +376,20 @@ declare module '@tanstack/react-router' {
       path: '/api/desk'
       fullPath: '/api/desk'
       preLoaderRoute: typeof ApiDeskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/field-journal': {
+      id: '/api/field-journal'
+      path: '/api/field-journal'
+      fullPath: '/api/field-journal'
+      preLoaderRoute: typeof ApiFieldJournalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/inbox': {
@@ -342,11 +434,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiProfilesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/router': {
+      id: '/api/router'
+      path: '/api/router'
+      fullPath: '/api/router'
+      preLoaderRoute: typeof ApiRouterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/routines': {
       id: '/api/routines'
       path: '/api/routines'
       fullPath: '/api/routines'
       preLoaderRoute: typeof ApiRoutinesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/scope': {
+      id: '/api/scope'
+      path: '/api/scope'
+      fullPath: '/api/scope'
+      preLoaderRoute: typeof ApiScopeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/skills': {
@@ -356,11 +462,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSkillsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/tool-index': {
+      id: '/api/tool-index'
+      path: '/api/tool-index'
+      fullPath: '/api/tool-index'
+      preLoaderRoute: typeof ApiToolIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/tools': {
       id: '/api/tools'
       path: '/api/tools'
       fullPath: '/api/tools'
       preLoaderRoute: typeof ApiToolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/vault': {
+      id: '/api/vault'
+      path: '/api/vault'
+      fullPath: '/api/vault'
+      preLoaderRoute: typeof ApiVaultRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/voice': {
@@ -412,15 +532,21 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChannelsRoute: ApiChannelsRouteWithChildren,
   ApiChatRoute: ApiChatRoute,
   ApiDeskRoute: ApiDeskRoute,
+  ApiFieldJournalRoute: ApiFieldJournalRoute,
+  ApiHealthRoute: ApiHealthRoute,
   ApiInboxRoute: ApiInboxRoute,
   ApiJobsRoute: ApiJobsRoute,
   ApiMcpRoute: ApiMcpRoute,
   ApiMediaRoute: ApiMediaRoute,
   ApiMemoryRoute: ApiMemoryRoute,
   ApiProfilesRoute: ApiProfilesRoute,
+  ApiRouterRoute: ApiRouterRoute,
   ApiRoutinesRoute: ApiRoutinesRoute,
+  ApiScopeRoute: ApiScopeRoute,
   ApiSkillsRoute: ApiSkillsRoute,
+  ApiToolIndexRoute: ApiToolIndexRoute,
   ApiToolsRoute: ApiToolsRoute,
+  ApiVaultRoute: ApiVaultRoute,
   ApiVoiceRoute: ApiVoiceRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiRoutinesIdFireRoute: ApiRoutinesIdFireRoute,
