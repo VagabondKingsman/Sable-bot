@@ -12,3 +12,6 @@ License: AIC is PolyForm Perimeter — designs studied, no AIC code copied. Fres
 - [x] 5. Voice STT/TTS — OpenAI-compatible `/v1/audio/transcriptions` + `/v1/audio/speech` via VOICE_* (fallback OPENAI_*). `src/lib/agent/voice.ts`, `src/server/voice.server.ts`, `POST/GET /api/voice`, desk mic + Đọc to. Kill switch SABLE_VOICE=0; rate-limited; no key leakage. Unit tests vs local mock.
 - [x] 6. Multi-agent profiles — `src/lib/agent/profiles.ts` builtins (sable/research/writer/coder) + customs in dataDir/profiles.json; Settings panel; activate applies instructions/tools; spawn_agent resolves custom ids via spawnTools; SABLE_PROFILES=0. Unit tests.
 - [x] 7. Headless 24/7 + DEPLOY.md — `scripts/headless.mjs` watchdog (start/stop/status/restart, crash backoff, /api/jobs ping), npm `headless:*`, `docs/DEPLOY.md` (systemd, ngrok, kill switches, data dir). Jobs already auto-boot via jobsBootPlugin.
+- [x] Final · unit regression (phase5 modules): 50/50 pass; tsc clean.
+- [x] Final · restart :8080; ngrok 401 without auth / 200 with basic auth; local 200; sable-watchdog + ngrok still running.
+- [x] Final · package + secret scan (see report).
