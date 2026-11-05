@@ -106,3 +106,36 @@ npm run headless:status
 
 Telegram / routines keep running as long as this one process is up — that is the
 24/7 contract.
+
+## Phase 6 W0 — suspend resilience + vault + router/scope
+
+### Heartbeat / catch-up after box suspend
+
+* `POST /api/health` stamps `heartbeat.json` under `$SABLE_DATA_DIR`.
+* A gap ≥ 90s marks `wokeFromSuspend`; job service logs the wake and the routine
+  scheduler still fires **at most one** catch-up per routine (`planDue`).
+* Kill switch: `SABLE_CATCHUP=0` (alias of `SABLE_ROUTINE_CATCHUP=0`) disables catch-up.
+* `/home/box/bin/sable-watchdog.sh` restarts Sable via `startup.sh`, ticks `/api/health`,
+  and keeps ngrok answering **401** (no auth) / **200** (basic auth).
+
+### Secrets vault (skeleton)
+
+* Encrypted store: `$SABLE_DATA_DIR/vault.json` (mode 0600).
+* Master key: `SABLE_VAULT_KEY` (passphrase or 32-byte base64).
+* Kill switch: `SABLE_VAULT=0`.
+* API: `GET /api/vault` lists **names only**; `POST` actions `put|get|delete|has`.
+* Optional migrate: copy provider keys from `.env.local` into the vault; keep
+  `.env.local` for bootstrap (`SABLE_VAULT_KEY`, process env still works).
+
+### Router / ScopeGate / tool-index / field-journal
+
+| Switch | Effect |
+|--------|--------|
+| `SABLE_ROUTER=0` | Disable 3-axis skill router (`/api/router`) |
+| `SABLE_SCOPE=0` | **Fail-closed**: deny all ACT that require scope |
+| `SABLE_TOOLINDEX=0` | Disable PATH scan / install proposals |
+| (memory) `SABLE_MEMORY=0` | field-journal writes refused |
+
+Router config: `skills/routing.json` (benign skills only). Attribution: `skills/_meta/NOTICE-reverse-skill.md`.
+Scope records: `$SABLE_DATA_DIR/scopes.json` — owner approve/deny via `/api/scope`.
+Background jobs never bypass ScopeGate.

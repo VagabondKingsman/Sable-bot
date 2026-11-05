@@ -19,6 +19,7 @@ import { isActive, summarize, type Job, type Routine } from "@/lib/agent/jobs/ty
 import type { ToolContext } from "@/lib/agent/tools/types";
 import { prepareTurn, workspaceDir } from "@/server/chat.server";
 import { emitJobEvent } from "@/server/channel-bus";
+import { catchUpOn, tickHeartbeat } from "@/lib/agent/resilience/heartbeat";
 
 function num(name: string, fallback: number, min: number, max: number) {
   const raw = Number(process.env[name]);
@@ -62,7 +63,7 @@ export function jobConfig() {
       (process.env.SABLE_JOB_RECOVERY ?? "requeue").trim() === "fail"
         ? ("fail" as const)
         : ("requeue" as const),
-    catchUpMs: flagOn("SABLE_ROUTINE_CATCHUP")
+    catchUpMs: flagOn("SABLE_CATCHUP") && flagOn("SABLE_ROUTINE_CATCHUP")
       ? num("SABLE_ROUTINE_CATCHUP_HOURS", 24, 0.1, 24 * 14) * 3_600_000
       : 0,
     tickMs: Math.round(num("SABLE_ROUTINE_TICK_SEC", 30, 5, 300) * 1000),
@@ -180,6 +181,12 @@ export function jobService(): Service {
   if (recovered.requeued || recovered.failed || recovered.cancelled) {
     console.log(
       `[sable-jobs] restart recovery: ${recovered.requeued} requeued, ${recovered.failed} failed, ${recovered.cancelled} cancelled`,
+    );
+  }
+  const beat = tickHeartbeat(dir);
+  if (beat.wokeFromSuspend) {
+    console.log(
+      `[sable-jobs] wake after gap ${beat.lastGapMs}ms; catch-up ${catchUpOn() ? "enabled" : "disabled (SABLE_CATCHUP=0)"}`,
     );
   }
   scheduler.start();

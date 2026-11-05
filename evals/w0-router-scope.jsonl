@@ -1,0 +1,9 @@
+{"id":"w0-router-research","cat":"router","hint":"research and summarize this article","expectRoute":"R1","expectSkill":"research-summary"}
+{"id":"w0-router-code","cat":"router","hint":"code review my own repo","expectRoute":"R2","expectSkill":"code-review"}
+{"id":"w0-router-fallback","cat":"router","hint":"xin chào","expectRoute":"G0"}
+{"id":"w0-scope-deny-pending","cat":"scope","expect":"deny_pending"}
+{"id":"w0-scope-allow-approved","cat":"scope","expect":"allow_approved"}
+{"id":"w0-scope-expire","cat":"scope","expect":"deny_expired"}
+{"id":"w0-scope-kill","cat":"scope","expect":"deny_kill"}
+{"id":"w0-vault-redact","cat":"vault","expect":"redact_name"}
+{"id":"w0-journal-roundtrip","cat":"journal","expect":"write_recall"}

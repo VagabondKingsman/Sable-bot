@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "fallbackId": "G0",
+    "notice": "Adapted routing idea from reverse-skill (MIT © zhaoxuya520). Sable benign routes only — no RE/pentest/CTF scenario skills.",
+    "axes": ["targetType", "intent", "toolchain"]
+  },
+  "priority": ["R1", "R2", "R3", "R4", "G0"],
+  "routes": {
+    "R1": {
+      "label": "Research / web summary",
+      "skill": "research-summary",
+      "axes": { "targetType": "document", "intent": "research", "toolchain": "fetch" },
+      "keywords": [{ "must": "\\bresearch\\b|nghiên\\s*cứu|tìm\\s*hiểu|tóm\\s*tắt\\s*(web|bài|báo)|summarize\\s+(url|article|page)" }]
+    },
+    "R2": {
+      "label": "Code review of own files",
+      "skill": "code-review",
+      "axes": { "targetType": "source", "intent": "review", "toolchain": "static" },
+      "keywords": [{ "must": "\\bcode\\s*review\\b|review\\s+(code|pr|diff)|đọc\\s*code|rà\\s*soát\\s*code|audit\\s+my\\s+(repo|code|files)" }]
+    },
+    "R3": {
+      "label": "Doc / notes audit (own files)",
+      "skill": "daily-briefing",
+      "axes": { "targetType": "document", "intent": "audit", "toolchain": "static" },
+      "keywords": [{ "must": "\\bdoc\\s*audit\\b|audit\\s+(docs?|notes?|markdown)|kiểm\\s*tra\\s*tài\\s*liệu|rà\\s*soát\\s*ghi\\s*chú|daily\\s*brief" }]
+    },
+    "R4": {
+      "label": "Coding help (own workspace)",
+      "skill": "code-review",
+      "axes": { "targetType": "source", "intent": "implement", "toolchain": "edit" },
+      "keywords": [{ "must": "\\bimplement\\b|viết\\s*(hàm|module|test)|fix\\s+bug|refactor\\b|thêm\\s*tính\\s*năng" }]
+    },
+    "G0": {
+      "label": "General",
+      "skill": "research-summary",
+      "axes": { "targetType": "general", "intent": "assist", "toolchain": "chat" },
+      "keywords": [{ "must": "." }]
+    }
+  }
+}

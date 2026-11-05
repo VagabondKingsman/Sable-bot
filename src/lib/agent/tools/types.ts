@@ -42,6 +42,10 @@ export type ToolContext = {
   spawn?: SpawnFn;
   /** Skill runtime for load_skill (absent → refused). */
   skills?: { load(name: string): string | null; names(): string[] };
+  /** Active owner-approved scope id for ACT tools (ScopeGate). */
+  scopeId?: string | null;
+  /** Server-side ScopeGate; when set, tools with requiresScope must pass. */
+  assertScope?: (tool: string, requiresScope: boolean) => { ok: true } | { ok: false; reason: string };
 };
 
 /** Builtin research|writer|coder, or a custom profile id from Settings → Profiles. */
@@ -78,6 +82,8 @@ export interface FunctionTool<A extends Args = Args> {
   maxOutput: number;
   /** Ask the user before running (write tools). */
   needsApproval?: boolean;
+  /** When true, ScopeGate must allow ACT (declared target). Background never bypasses. */
+  requiresScope?: boolean;
   /** Short trace label, e.g. "fs_read · notes.md". */
   label(args: A): string;
   /** Approval card text for needsApproval tools. */

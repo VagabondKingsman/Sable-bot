@@ -17,7 +17,17 @@ export async function execute(def: FunctionTool, raw: string, ctx: ToolContext):
       return { ok: false, output: `tool error: ${(error instanceof Error ? error.message : String(error)).slice(0, 300)}` };
     }
   }
+  if (ctx.assertScope) {
+    const needsGate =
+      Boolean(def.requiresScope) ||
+      Boolean(ctx.scopeId && (def.risk === "write" || def.risk === "network"));
+    const scope = ctx.assertScope(def.name, needsGate);
+    if (!scope.ok) {
+      return { ok: false, output: `refused: scope gate — ${scope.reason}`, detail: "ScopeGate" };
+    }
+  }
   if (def.needsApproval) {
+
     // Interactive chat and background jobs both pass an approver that waits for the
     // user's click; nothing auto-approves. No approver → refuse.
     if (!ctx.approve) {
