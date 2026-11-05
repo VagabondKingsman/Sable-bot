@@ -33,6 +33,12 @@ const RULES: Rule[] = [
   { name: "slack", re: /\bxox[abposr]-[A-Za-z0-9-]{10,}\b/g },
   { name: "aws", re: /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g },
   { name: "google", re: /\bAIza[0-9A-Za-z_-]{30,}\b/g },
+  // W2b: Google OAuth access / refresh tokens, client secrets, auth codes in URLs.
+  { name: "google_oauth", re: /\bya29\.[A-Za-z0-9._-]{10,}/g },
+  { name: "google_refresh", re: /\b1\/\/[A-Za-z0-9._-]{10,}/g },
+  { name: "google_client_secret", re: /\bGOCSPX-[A-Za-z0-9_-]{10,}/g },
+  { name: "oauth_param", re: /([?&](?:code|access_token|refresh_token|id_token|client_secret|code_verifier)=)[^&\s"']+/gi, replace: (_m, k) => `${k}[đã ẩn]` },
+  { name: "oauth_json", re: /("(?:access_token|refresh_token|id_token|client_secret)"\s*:\s*")[^"]+"/gi, replace: (_m, k) => `${k}[đã ẩn]"` },
   { name: "telegram", re: /\b\d{6,12}:[A-Za-z0-9_-]{30,}\b/g },
   { name: "jwt", re: /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g },
   { name: "ngrok", re: /\b[0-9][A-Za-z0-9]{20,}_[A-Za-z0-9]{15,}\b/g },

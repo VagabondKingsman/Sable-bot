@@ -17,6 +17,7 @@ import { Route as ApiBudgetRouteImport } from './routes/api/budget'
 import { Route as ApiCanvasRouteImport } from './routes/api/canvas'
 import { Route as ApiChannelsRouteImport } from './routes/api/channels'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as ApiConnectorsRouteImport } from './routes/api/connectors'
 import { Route as ApiDeskRouteImport } from './routes/api/desk'
 import { Route as ApiFieldJournalRouteImport } from './routes/api/field-journal'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
@@ -40,6 +41,7 @@ import { Route as ApiVoiceRouteImport } from './routes/api/voice'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCanvasIdRouteImport } from './routes/api/canvas_.$id'
 import { Route as ApiChannelsWebhookRouteImport } from './routes/api/channels.webhook'
+import { Route as ApiOauthCallbackRouteImport } from './routes/api/oauth.callback'
 import { Route as ApiTracesIdRouteImport } from './routes/api/traces_.$id'
 import { Route as ApiCanvasIdViewRouteImport } from './routes/api/canvas_.$id_.view'
 import { Route as ApiMediaFileIdRouteImport } from './routes/api/media_.file.$id'
@@ -83,6 +85,11 @@ const ApiChannelsRoute = ApiChannelsRouteImport.update({
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiConnectorsRoute = ApiConnectorsRouteImport.update({
+  id: '/api/connectors',
+  path: '/api/connectors',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiDeskRoute = ApiDeskRouteImport.update({
@@ -200,6 +207,11 @@ const ApiChannelsWebhookRoute = ApiChannelsWebhookRouteImport.update({
   path: '/webhook',
   getParentRoute: () => ApiChannelsRoute,
 } as any)
+const ApiOauthCallbackRoute = ApiOauthCallbackRouteImport.update({
+  id: '/api/oauth/callback',
+  path: '/api/oauth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTracesIdRoute = ApiTracesIdRouteImport.update({
   id: '/api/traces_/$id',
   path: '/api/traces/$id',
@@ -230,6 +242,7 @@ export interface FileRoutesByFullPath {
   '/api/canvas': typeof ApiCanvasRoute
   '/api/channels': typeof ApiChannelsRouteWithChildren
   '/api/chat': typeof ApiChatRoute
+  '/api/connectors': typeof ApiConnectorsRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/field-journal': typeof ApiFieldJournalRoute
   '/api/health': typeof ApiHealthRoute
@@ -253,6 +266,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/canvas/$id': typeof ApiCanvasIdRoute
   '/api/channels/webhook': typeof ApiChannelsWebhookRoute
+  '/api/oauth/callback': typeof ApiOauthCallbackRoute
   '/api/traces/$id': typeof ApiTracesIdRoute
   '/api/canvas/$id/view': typeof ApiCanvasIdViewRoute
   '/api/media/file/$id': typeof ApiMediaFileIdRoute
@@ -267,6 +281,7 @@ export interface FileRoutesByTo {
   '/api/canvas': typeof ApiCanvasRoute
   '/api/channels': typeof ApiChannelsRouteWithChildren
   '/api/chat': typeof ApiChatRoute
+  '/api/connectors': typeof ApiConnectorsRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/field-journal': typeof ApiFieldJournalRoute
   '/api/health': typeof ApiHealthRoute
@@ -290,6 +305,7 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/canvas/$id': typeof ApiCanvasIdRoute
   '/api/channels/webhook': typeof ApiChannelsWebhookRoute
+  '/api/oauth/callback': typeof ApiOauthCallbackRoute
   '/api/traces/$id': typeof ApiTracesIdRoute
   '/api/canvas/$id/view': typeof ApiCanvasIdViewRoute
   '/api/media/file/$id': typeof ApiMediaFileIdRoute
@@ -305,6 +321,7 @@ export interface FileRoutesById {
   '/api/canvas': typeof ApiCanvasRoute
   '/api/channels': typeof ApiChannelsRouteWithChildren
   '/api/chat': typeof ApiChatRoute
+  '/api/connectors': typeof ApiConnectorsRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/field-journal': typeof ApiFieldJournalRoute
   '/api/health': typeof ApiHealthRoute
@@ -328,6 +345,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/canvas_/$id': typeof ApiCanvasIdRoute
   '/api/channels/webhook': typeof ApiChannelsWebhookRoute
+  '/api/oauth/callback': typeof ApiOauthCallbackRoute
   '/api/traces_/$id': typeof ApiTracesIdRoute
   '/api/canvas_/$id_/view': typeof ApiCanvasIdViewRoute
   '/api/media_/file/$id': typeof ApiMediaFileIdRoute
@@ -344,6 +362,7 @@ export interface FileRouteTypes {
     | '/api/canvas'
     | '/api/channels'
     | '/api/chat'
+    | '/api/connectors'
     | '/api/desk'
     | '/api/field-journal'
     | '/api/health'
@@ -367,6 +386,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/canvas/$id'
     | '/api/channels/webhook'
+    | '/api/oauth/callback'
     | '/api/traces/$id'
     | '/api/canvas/$id/view'
     | '/api/media/file/$id'
@@ -381,6 +401,7 @@ export interface FileRouteTypes {
     | '/api/canvas'
     | '/api/channels'
     | '/api/chat'
+    | '/api/connectors'
     | '/api/desk'
     | '/api/field-journal'
     | '/api/health'
@@ -404,6 +425,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/canvas/$id'
     | '/api/channels/webhook'
+    | '/api/oauth/callback'
     | '/api/traces/$id'
     | '/api/canvas/$id/view'
     | '/api/media/file/$id'
@@ -418,6 +440,7 @@ export interface FileRouteTypes {
     | '/api/canvas'
     | '/api/channels'
     | '/api/chat'
+    | '/api/connectors'
     | '/api/desk'
     | '/api/field-journal'
     | '/api/health'
@@ -441,6 +464,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/canvas_/$id'
     | '/api/channels/webhook'
+    | '/api/oauth/callback'
     | '/api/traces_/$id'
     | '/api/canvas_/$id_/view'
     | '/api/media_/file/$id'
@@ -456,6 +480,7 @@ export interface RootRouteChildren {
   ApiCanvasRoute: typeof ApiCanvasRoute
   ApiChannelsRoute: typeof ApiChannelsRouteWithChildren
   ApiChatRoute: typeof ApiChatRoute
+  ApiConnectorsRoute: typeof ApiConnectorsRoute
   ApiDeskRoute: typeof ApiDeskRoute
   ApiFieldJournalRoute: typeof ApiFieldJournalRoute
   ApiHealthRoute: typeof ApiHealthRoute
@@ -478,6 +503,7 @@ export interface RootRouteChildren {
   ApiVoiceRoute: typeof ApiVoiceRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCanvasIdRoute: typeof ApiCanvasIdRoute
+  ApiOauthCallbackRoute: typeof ApiOauthCallbackRoute
   ApiTracesIdRoute: typeof ApiTracesIdRoute
   ApiCanvasIdViewRoute: typeof ApiCanvasIdViewRoute
   ApiMediaFileIdRoute: typeof ApiMediaFileIdRoute
@@ -540,6 +566,13 @@ declare module '@tanstack/react-router' {
       path: '/api/chat'
       fullPath: '/api/chat'
       preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/connectors': {
+      id: '/api/connectors'
+      path: '/api/connectors'
+      fullPath: '/api/connectors'
+      preLoaderRoute: typeof ApiConnectorsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/desk': {
@@ -703,6 +736,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiChannelsWebhookRouteImport
       parentRoute: typeof ApiChannelsRoute
     }
+    '/api/oauth/callback': {
+      id: '/api/oauth/callback'
+      path: '/api/oauth/callback'
+      fullPath: '/api/oauth/callback'
+      preLoaderRoute: typeof ApiOauthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/traces_/$id': {
       id: '/api/traces_/$id'
       path: '/api/traces/$id'
@@ -755,6 +795,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCanvasRoute: ApiCanvasRoute,
   ApiChannelsRoute: ApiChannelsRouteWithChildren,
   ApiChatRoute: ApiChatRoute,
+  ApiConnectorsRoute: ApiConnectorsRoute,
   ApiDeskRoute: ApiDeskRoute,
   ApiFieldJournalRoute: ApiFieldJournalRoute,
   ApiHealthRoute: ApiHealthRoute,
@@ -777,6 +818,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiVoiceRoute: ApiVoiceRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCanvasIdRoute: ApiCanvasIdRoute,
+  ApiOauthCallbackRoute: ApiOauthCallbackRoute,
   ApiTracesIdRoute: ApiTracesIdRoute,
   ApiCanvasIdViewRoute: ApiCanvasIdViewRoute,
   ApiMediaFileIdRoute: ApiMediaFileIdRoute,

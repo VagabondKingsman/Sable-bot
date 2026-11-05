@@ -27,6 +27,9 @@ export const Route = createFileRoute("/api/vault")({
           const body = read.body;
           const store = vaultStore();
           const action = body.action;
+          // W2b: OAuth tokens are server-internal — never revealed, written or deleted over HTTP (use Disconnect).
+          if (typeof body.name === "string" && body.name.startsWith("OAUTH_TOKEN_") && action !== "has")
+            return Response.json({ message: "OAuth token chỉ dùng nội bộ máy chủ (Disconnect trong Cài đặt để xoá)." }, { status: 403 });
           if (action === "put") {
             if (typeof body.name !== "string" || typeof body.value !== "string")
               return Response.json({ message: "Thiếu name/value." }, { status: 400 });
