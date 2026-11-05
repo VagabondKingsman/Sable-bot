@@ -169,7 +169,7 @@ Gaps / follow-ups:
 Backup: `/workspace/sable-backup-pre-w2c-202611050953.tgz`
 
 Checklist:
-- [ ] 1. Canvas: iframe cannot navigate its own frame / top (sandbox + CSP + navigation guard); revocable, expiring, read-only owner share links
+- [x] 1. Canvas: iframe cannot navigate its own frame / top (sandbox + CSP + navigation guard); revocable, expiring, read-only owner share links
 - [ ] 2. Agent media tool (image gen via media module; approval + budget)
 - [ ] 3. Morning brief as a real routine (no private timer)
 - [ ] 4. Plan traces labelled by real initiator (owner vs agent)

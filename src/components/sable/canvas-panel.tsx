@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ExternalLink, PanelRight, Plus, Trash2, X } from "lucide-react";
-import { canvasApi, type CanvasDetail, type CanvasSummary } from "@/lib/agent/w2-client";
+import { canvasApi, type CanvasDetail, type CanvasShareView, type CanvasSummary } from "@/lib/agent/w2-client";
 import { saigonTime } from "@/lib/agent/jobs-client";
 
 export const CANVAS_OPEN_EVENT = "sable:canvas-open";
@@ -11,9 +11,137 @@ export function openCanvasBeside(id: string, version?: number) {
   window.dispatchEvent(new CustomEvent<CanvasOpen>(CANVAS_OPEN_EVENT, { detail: { id, version } }));
 }
 
-/** Absolute share link (the desk's own origin; owner auth still required). */
+/** Absolute desk link (the desk's own origin; owner auth still required). */
 function shareHref(id: string, version?: number) {
   return new URL(canvasApi.viewUrl(id, version), window.location.href).toString();
+}
+
+/**
+ * W2c: a sandboxed canvas frame that cannot keep a self-navigation. The first
+ * `load` is the canvas; any later load means the page navigated its own frame,
+ * so the original is restored (remount). After 3 attempts the frame is replaced
+ * by a notice. Top/parent navigation, popups and forms are blocked by the sandbox.
+ */
+export function GuardedFrame({ src, srcDoc, title, className }: { src?: string; srcDoc?: string; title: string; className?: string }) {
+  const [gen, setGen] = useState(0);
+  const [blocked, setBlocked] = useState(0);
+  const loads = useRef(0);
+  useEffect(() => {
+    loads.current = 0;
+    setBlocked(0);
+  }, [src, srcDoc]);
+  if (blocked > 3) return <p className={`${className ?? ""} grid place-items-center p-6 text-sm text-amber-400`}>Đã chặn: trang liên tục tự điều hướng.</p>;
+  return (
+    <>
+      {blocked > 0 && <p className="px-3 text-xs text-amber-400">Đã chặn {blocked} lần trang tự điều hướng.</p>}
+      <iframe
+        key={gen}
+        title={title}
+        sandbox="allow-scripts"
+        referrerPolicy="no-referrer"
+        src={src}
+        srcDoc={srcDoc}
+        className={className}
+        onLoad={() => {
+          loads.current += 1;
+          if (loads.current > 1) {
+            loads.current = 0;
+            setBlocked((b) => b + 1);
+            setGen((g) => g + 1);
+          }
+        }}
+      />
+    </>
+  );
+}
+
+const TTL_CHOICES: { h: number; label: string }[] = [
+  { h: 1, label: "1 giờ" },
+  { h: 24, label: "1 ngày" },
+  { h: 24 * 7, label: "7 ngày" },
+  { h: 24 * 30, label: "30 ngày" },
+];
+
+/** W2c: owner-created, expiring, revocable, read-only links (/s/<token>). */
+function ShareLinks({ id, version }: { id: string; version: number }) {
+  const [items, setItems] = useState<CanvasShareView[]>([]);
+  const [enabled, setEnabled] = useState(true);
+  const [ttl, setTtl] = useState(24 * 7);
+  const [pin, setPin] = useState(false);
+  const [fresh, setFresh] = useState<string | null>(null);
+  const [err, setErr] = useState("");
+  const load = useCallback(async () => {
+    try {
+      const d = await canvasApi.shares(id);
+      setEnabled(d.enabled);
+      setItems(d.items);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Lỗi.");
+    }
+  }, [id]);
+  useEffect(() => {
+    setFresh(null);
+    void load();
+  }, [load]);
+  if (!enabled) return <p className="text-xs text-muted">Link chia sẻ đang tắt (SABLE_SHARE=0).</p>;
+  const active = items.filter((s) => s.state === "active");
+  return (
+    <div className="space-y-2 rounded-xl bg-surface p-3 text-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-medium">Link chỉ xem</span>
+        <select aria-label="Thời hạn" className="h-9 rounded-lg bg-bg px-2" value={ttl} onChange={(e) => setTtl(Number(e.target.value))}>
+          {TTL_CHOICES.map((c) => (
+            <option key={c.h} value={c.h}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+        <label className="flex items-center gap-1 text-xs text-muted">
+          <input type="checkbox" checked={pin} onChange={(e) => setPin(e.target.checked)} /> ghim v{version}
+        </label>
+        <button
+          type="button"
+          className="h-9 rounded-lg bg-fg px-3 text-bg"
+          onClick={() =>
+            void canvasApi
+              .share(id, ttl, pin ? version : undefined)
+              .then((r) => {
+                setFresh(r.url);
+                setErr("");
+                return load();
+              })
+              .catch((e) => setErr(e instanceof Error ? e.message : "Lỗi."))
+          }
+        >
+          Tạo link
+        </button>
+      </div>
+      {fresh && (
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <code className="min-w-0 flex-1 truncate rounded bg-bg px-2 py-1">{fresh}</code>
+          <button type="button" className="h-8 rounded-lg px-2 hover:bg-fg/5" onClick={() => void navigator.clipboard?.writeText(fresh)}>
+            Chép
+          </button>
+          <span className="w-full text-muted">Link chỉ hiện một lần. Ai có link đều xem được (chỉ đọc) đến khi hết hạn hoặc bạn thu hồi. Qua ngrok vẫn cần basic-auth trừ khi bạn mở /s/ trong traffic policy (docs/CANVAS-SHARE.md).</span>
+        </div>
+      )}
+      {err && <p className="text-xs text-red-400">{err}</p>}
+      {active.length > 0 && (
+        <ul className="space-y-1 text-xs">
+          {active.map((s) => (
+            <li key={s.id} className="flex items-center gap-2">
+              <span className="min-w-0 flex-1 truncate text-muted">
+                {s.id} · {s.version ? `v${s.version}` : "bản mới nhất"} · hết hạn {saigonTime(s.expiresAt)} · {s.views} lượt xem
+              </span>
+              <button type="button" className="h-8 rounded-lg px-2 text-red-400 hover:bg-fg/5" onClick={() => void canvasApi.revokeShare(s.id).then(load).catch((e) => setErr(e instanceof Error ? e.message : "Lỗi."))}>
+                Thu hồi
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 /** Background → Canvas: list, versions, preview, create, delete. */
@@ -101,15 +229,14 @@ export function CanvasTab({ onOpened }: { onOpened?: () => void }) {
             <ExternalLink className="size-4" /> Tab mới
           </a>
           <button type="button" className="h-11 rounded-xl px-3 text-muted hover:bg-fg/5 hover:text-fg" onClick={() => void navigator.clipboard?.writeText(shareHref(sel.id, sel.shownVersion))}>
-            Chép link chia sẻ
+            Chép link desk
           </button>
         </div>
-        <p className="text-xs text-muted">Link chia sẻ dùng chung đăng nhập của desk (basic-auth qua ngrok). Trang chạy trong sandbox: không mạng, không truy cập desk.</p>
-        <iframe
+        <p className="text-xs text-muted">Link desk cần đăng nhập của desk (basic-auth qua ngrok). Trang chạy trong sandbox: không mạng, không truy cập desk, không tự điều hướng.</p>
+        <ShareLinks id={sel.id} version={sel.shownVersion} />
+        <GuardedFrame
           key={`${sel.id}-${sel.shownVersion}`}
           title={sel.title}
-          sandbox="allow-scripts"
-          referrerPolicy="no-referrer"
           src={canvasApi.viewUrl(sel.id, sel.shownVersion)}
           className="min-h-[50vh] w-full flex-1 rounded-xl bg-fg shadow-ring"
         />
@@ -204,11 +331,9 @@ export function CanvasPane({ open, mobile, onClose }: { open: { id: string; vers
           <X className="size-4" />
         </button>
       </div>
-      <iframe
+      <GuardedFrame
         key={`${open.id}-${open.version ?? "latest"}`}
         title={title}
-        sandbox="allow-scripts"
-        referrerPolicy="no-referrer"
         src={canvasApi.viewUrl(open.id, open.version)}
         className="m-3 mt-0 min-h-0 flex-1 rounded-xl bg-fg shadow-ring"
       />

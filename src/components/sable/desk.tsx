@@ -60,7 +60,8 @@ import {
 } from "@/lib/agent/types";
 import { RichText } from "@/components/sable/rich-text";
 import { BackgroundNavButton, BackgroundPanel, type PanelTab } from "@/components/sable/background";
-import { CANVAS_OPEN_EVENT, CanvasPane, type CanvasOpen } from "@/components/sable/canvas-panel";
+import { CANVAS_OPEN_EVENT, CanvasPane, GuardedFrame, type CanvasOpen } from "@/components/sable/canvas-panel";
+import { sanitizeCanvasHtml, withNavGuard } from "@/lib/agent/canvas/render";
 import { jobsApi, type JobsCounts } from "@/lib/agent/jobs-client";
 
 const STARTERS = [
@@ -1348,7 +1349,7 @@ function PagePane({ html, mobile }: { html: string; mobile: boolean }) {
           Tải
         </button>
       </div>
-      <iframe title="Bản xem" sandbox="allow-scripts allow-forms" referrerPolicy="no-referrer" srcDoc={html} className="m-3 mt-0 min-h-0 flex-1 rounded-xl bg-fg shadow-ring" />
+      <GuardedFrame title="Bản xem" srcDoc={withNavGuard(sanitizeCanvasHtml(html))} className="m-3 mt-0 min-h-0 flex-1 rounded-xl bg-fg shadow-ring" />
     </aside>
   );
 }

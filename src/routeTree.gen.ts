@@ -38,8 +38,10 @@ import { Route as ApiTracesRouteImport } from './routes/api/traces'
 import { Route as ApiTriageRouteImport } from './routes/api/triage'
 import { Route as ApiVaultRouteImport } from './routes/api/vault'
 import { Route as ApiVoiceRouteImport } from './routes/api/voice'
+import { Route as STokenRouteImport } from './routes/s.$token'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCanvasIdRouteImport } from './routes/api/canvas_.$id'
+import { Route as ApiCanvasSharesRouteImport } from './routes/api/canvas_.shares'
 import { Route as ApiChannelsWebhookRouteImport } from './routes/api/channels.webhook'
 import { Route as ApiOauthCallbackRouteImport } from './routes/api/oauth.callback'
 import { Route as ApiTracesIdRouteImport } from './routes/api/traces_.$id'
@@ -192,6 +194,11 @@ const ApiVoiceRoute = ApiVoiceRouteImport.update({
   path: '/api/voice',
   getParentRoute: () => rootRouteImport,
 } as any)
+const STokenRoute = STokenRouteImport.update({
+  id: '/s/$token',
+  path: '/s/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -200,6 +207,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 const ApiCanvasIdRoute = ApiCanvasIdRouteImport.update({
   id: '/api/canvas_/$id',
   path: '/api/canvas/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCanvasSharesRoute = ApiCanvasSharesRouteImport.update({
+  id: '/api/canvas_/shares',
+  path: '/api/canvas/shares',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiChannelsWebhookRoute = ApiChannelsWebhookRouteImport.update({
@@ -263,8 +275,10 @@ export interface FileRoutesByFullPath {
   '/api/triage': typeof ApiTriageRoute
   '/api/vault': typeof ApiVaultRoute
   '/api/voice': typeof ApiVoiceRoute
+  '/s/$token': typeof STokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/canvas/$id': typeof ApiCanvasIdRoute
+  '/api/canvas/shares': typeof ApiCanvasSharesRoute
   '/api/channels/webhook': typeof ApiChannelsWebhookRoute
   '/api/oauth/callback': typeof ApiOauthCallbackRoute
   '/api/traces/$id': typeof ApiTracesIdRoute
@@ -302,8 +316,10 @@ export interface FileRoutesByTo {
   '/api/triage': typeof ApiTriageRoute
   '/api/vault': typeof ApiVaultRoute
   '/api/voice': typeof ApiVoiceRoute
+  '/s/$token': typeof STokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/canvas/$id': typeof ApiCanvasIdRoute
+  '/api/canvas/shares': typeof ApiCanvasSharesRoute
   '/api/channels/webhook': typeof ApiChannelsWebhookRoute
   '/api/oauth/callback': typeof ApiOauthCallbackRoute
   '/api/traces/$id': typeof ApiTracesIdRoute
@@ -342,8 +358,10 @@ export interface FileRoutesById {
   '/api/triage': typeof ApiTriageRoute
   '/api/vault': typeof ApiVaultRoute
   '/api/voice': typeof ApiVoiceRoute
+  '/s/$token': typeof STokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/canvas_/$id': typeof ApiCanvasIdRoute
+  '/api/canvas_/shares': typeof ApiCanvasSharesRoute
   '/api/channels/webhook': typeof ApiChannelsWebhookRoute
   '/api/oauth/callback': typeof ApiOauthCallbackRoute
   '/api/traces_/$id': typeof ApiTracesIdRoute
@@ -383,8 +401,10 @@ export interface FileRouteTypes {
     | '/api/triage'
     | '/api/vault'
     | '/api/voice'
+    | '/s/$token'
     | '/api/auth/$'
     | '/api/canvas/$id'
+    | '/api/canvas/shares'
     | '/api/channels/webhook'
     | '/api/oauth/callback'
     | '/api/traces/$id'
@@ -422,8 +442,10 @@ export interface FileRouteTypes {
     | '/api/triage'
     | '/api/vault'
     | '/api/voice'
+    | '/s/$token'
     | '/api/auth/$'
     | '/api/canvas/$id'
+    | '/api/canvas/shares'
     | '/api/channels/webhook'
     | '/api/oauth/callback'
     | '/api/traces/$id'
@@ -461,8 +483,10 @@ export interface FileRouteTypes {
     | '/api/triage'
     | '/api/vault'
     | '/api/voice'
+    | '/s/$token'
     | '/api/auth/$'
     | '/api/canvas_/$id'
+    | '/api/canvas_/shares'
     | '/api/channels/webhook'
     | '/api/oauth/callback'
     | '/api/traces_/$id'
@@ -501,8 +525,10 @@ export interface RootRouteChildren {
   ApiTriageRoute: typeof ApiTriageRoute
   ApiVaultRoute: typeof ApiVaultRoute
   ApiVoiceRoute: typeof ApiVoiceRoute
+  STokenRoute: typeof STokenRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCanvasIdRoute: typeof ApiCanvasIdRoute
+  ApiCanvasSharesRoute: typeof ApiCanvasSharesRoute
   ApiOauthCallbackRoute: typeof ApiOauthCallbackRoute
   ApiTracesIdRoute: typeof ApiTracesIdRoute
   ApiCanvasIdViewRoute: typeof ApiCanvasIdViewRoute
@@ -715,6 +741,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiVoiceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/s/$token': {
+      id: '/s/$token'
+      path: '/s/$token'
+      fullPath: '/s/$token'
+      preLoaderRoute: typeof STokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -727,6 +760,13 @@ declare module '@tanstack/react-router' {
       path: '/api/canvas/$id'
       fullPath: '/api/canvas/$id'
       preLoaderRoute: typeof ApiCanvasIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/canvas_/shares': {
+      id: '/api/canvas_/shares'
+      path: '/api/canvas/shares'
+      fullPath: '/api/canvas/shares'
+      preLoaderRoute: typeof ApiCanvasSharesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/channels/webhook': {
@@ -816,8 +856,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTriageRoute: ApiTriageRoute,
   ApiVaultRoute: ApiVaultRoute,
   ApiVoiceRoute: ApiVoiceRoute,
+  STokenRoute: STokenRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCanvasIdRoute: ApiCanvasIdRoute,
+  ApiCanvasSharesRoute: ApiCanvasSharesRoute,
   ApiOauthCallbackRoute: ApiOauthCallbackRoute,
   ApiTracesIdRoute: ApiTracesIdRoute,
   ApiCanvasIdViewRoute: ApiCanvasIdViewRoute,

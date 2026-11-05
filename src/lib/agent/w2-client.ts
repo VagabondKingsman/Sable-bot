@@ -87,6 +87,8 @@ export const mediaApi = {
 export type CanvasSummary = { id: string; title: string; version: number; createdAt: number; updatedAt: number; bytes: number };
 export type CanvasDetail = CanvasSummary & { versions: { version: number; at: number; bytes: number; note?: string }[]; html: string; shownVersion: number };
 
+export type CanvasShareView = { id: string; canvasId: string; version: number | null; createdAt: number; expiresAt: number; revokedAt?: number; views: number; lastViewAt?: number; state: "active" | "expired" | "revoked" };
+
 export const canvasApi = {
   list(signal?: AbortSignal) {
     return getJson<{ enabled: boolean; items: CanvasSummary[] }>("/api/canvas", "Không tải được canvas.", signal);
@@ -100,6 +102,15 @@ export const canvasApi = {
   },
   remove(id: string) {
     return postJson<{ ok: true }>("/api/canvas", { action: "delete", id }, "Không xóa được canvas.");
+  },
+  shares(id: string, signal?: AbortSignal) {
+    return getJson<{ enabled: boolean; items: CanvasShareView[] }>(`/api/canvas/shares?canvas=${encodeURIComponent(id)}`, "Không tải được link chia sẻ.", signal);
+  },
+  share(canvasId: string, ttlHours: number, version?: number) {
+    return postJson<{ share: CanvasShareView; url: string }>("/api/canvas/shares", { action: "create", canvasId, ttlHours, ...(version ? { version } : {}) }, "Không tạo được link chia sẻ.");
+  },
+  revokeShare(id: string) {
+    return postJson<{ share: CanvasShareView }>("/api/canvas/shares", { action: "revoke", id }, "Không thu hồi được link.");
   },
   viewUrl(id: string, version?: number) {
     const qs = version ? `?v=${version}` : "";

@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { CanvasStore, MAX_HTML, MAX_VERSIONS, validCanvasId } from "./store.ts";
-import { CANVAS_CSP, IFRAME_SANDBOX, canvasHeaders, renderCanvasDocument, sanitizeCanvasHtml } from "./render.ts";
+import { CANVAS_CSP, IFRAME_SANDBOX, canvasHeaders, renderCanvasDocument, sanitizeCanvasHtml, withNavGuard } from "./render.ts";
 
 function tmp() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "sable-canvas-"));
@@ -74,7 +74,7 @@ test("canvas: sanitize strips meta refresh / base / frames; fragments get a skel
   assert.ok(doc.startsWith("<!doctype html>"));
   assert.ok(doc.includes("<title>&lt;T&gt;</title>"));
   const full = "<!doctype html><html><body>x</body></html>";
-  assert.equal(renderCanvasDocument(full, "t"), full);
+  assert.equal(renderCanvasDocument(full, "t"), withNavGuard(full)); // W2c: guard script injected
 });
 
 test("canvas_write tool: write risk, approval, kill switch, registered under its own server-set flag", async () => {
