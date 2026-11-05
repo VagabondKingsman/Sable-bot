@@ -133,3 +133,12 @@ Checklist:
 ### W2a bugs fixed / gaps
 - Fixed: triage heuristic missed "please update/pay"; webhook fromOwner now uses configured ownerPeerId; `decideAs` initially widened channel reach → `jobsOnly` for Telegram/webhook; `@ts-nocheck` on evals/triage/run.mjs (triage commit alone had tsc errors, fixed in next commit).
 - Gaps: morning brief is a built-in ticker (`builtin:morning-brief`), not a routines.json entry; brief is deterministic (no LLM); model triage only when SABLE_MODEL_LIGHT is set (else rules + heuristic); old archived traces have no initiator badge; plan traces are labelled `agent` (planner) even though the owner created the plan; decideAs/HTTP decide paths covered by eval policy + live 404/405 checks, not by an end-to-end routine-ask live test.
+
+## W2b — OAuth connectors (Gmail + Google Calendar)
+
+Backup: `/workspace/sable-backup-pre-w2b-202611050938.tgz`. Live Google sign-in: **needs He's OAuth client ID/secret** (see `docs/OAUTH-SETUP.md`); everything is E2E-tested against a local mock.
+
+- [ ] 1. Generic OAuth2 (PKCE S256 + state, auth-code, refresh, revoke); tokens only in the W0 vault, redacted everywhere; redirect URI on the public origin; owner-only; `SABLE_OAUTH` kill switch; connector registry + Settings Connect/Disconnect
+- [ ] 2. Gmail: search/read threads, read message, labels; create draft; send only via approval card (never background initiators); new mail → triage + brief
+- [ ] 3. Google Calendar: calendars/events/free-busy; create/update/delete need approval; today's events → brief
+- [ ] 4. Mock OAuth + Gmail/Calendar E2E; eval:w2b; tsc; evals w0/w1/w2/w2a; restart; ngrok 401/200; package CLEAN
