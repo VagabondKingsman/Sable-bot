@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ApiBudgetRouteImport } from './routes/api/budget'
 import { Route as ApiChannelsRouteImport } from './routes/api/channels'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiDeskRouteImport } from './routes/api/desk'
@@ -26,6 +27,7 @@ import { Route as ApiRouterRouteImport } from './routes/api/router'
 import { Route as ApiRoutinesRouteImport } from './routes/api/routines'
 import { Route as ApiScopeRouteImport } from './routes/api/scope'
 import { Route as ApiSkillsRouteImport } from './routes/api/skills'
+import { Route as ApiTasksRouteImport } from './routes/api/tasks'
 import { Route as ApiToolIndexRouteImport } from './routes/api/tool-index'
 import { Route as ApiToolsRouteImport } from './routes/api/tools'
 import { Route as ApiVaultRouteImport } from './routes/api/vault'
@@ -42,6 +44,11 @@ const IndexRoute = IndexRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBudgetRoute = ApiBudgetRouteImport.update({
+  id: '/api/budget',
+  path: '/api/budget',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiChannelsRoute = ApiChannelsRouteImport.update({
@@ -119,6 +126,11 @@ const ApiSkillsRoute = ApiSkillsRouteImport.update({
   path: '/api/skills',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTasksRoute = ApiTasksRouteImport.update({
+  id: '/api/tasks',
+  path: '/api/tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiToolIndexRoute = ApiToolIndexRouteImport.update({
   id: '/api/tool-index',
   path: '/api/tool-index',
@@ -158,6 +170,7 @@ const ApiRoutinesIdFireRoute = ApiRoutinesIdFireRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/api/budget': typeof ApiBudgetRoute
   '/api/channels': typeof ApiChannelsRouteWithChildren
   '/api/chat': typeof ApiChatRoute
   '/api/desk': typeof ApiDeskRoute
@@ -173,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/api/routines': typeof ApiRoutinesRoute
   '/api/scope': typeof ApiScopeRoute
   '/api/skills': typeof ApiSkillsRoute
+  '/api/tasks': typeof ApiTasksRoute
   '/api/tool-index': typeof ApiToolIndexRoute
   '/api/tools': typeof ApiToolsRoute
   '/api/vault': typeof ApiVaultRoute
@@ -184,6 +198,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/api/budget': typeof ApiBudgetRoute
   '/api/channels': typeof ApiChannelsRouteWithChildren
   '/api/chat': typeof ApiChatRoute
   '/api/desk': typeof ApiDeskRoute
@@ -199,6 +214,7 @@ export interface FileRoutesByTo {
   '/api/routines': typeof ApiRoutinesRoute
   '/api/scope': typeof ApiScopeRoute
   '/api/skills': typeof ApiSkillsRoute
+  '/api/tasks': typeof ApiTasksRoute
   '/api/tool-index': typeof ApiToolIndexRoute
   '/api/tools': typeof ApiToolsRoute
   '/api/vault': typeof ApiVaultRoute
@@ -211,6 +227,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/api/budget': typeof ApiBudgetRoute
   '/api/channels': typeof ApiChannelsRouteWithChildren
   '/api/chat': typeof ApiChatRoute
   '/api/desk': typeof ApiDeskRoute
@@ -226,6 +243,7 @@ export interface FileRoutesById {
   '/api/routines': typeof ApiRoutinesRoute
   '/api/scope': typeof ApiScopeRoute
   '/api/skills': typeof ApiSkillsRoute
+  '/api/tasks': typeof ApiTasksRoute
   '/api/tool-index': typeof ApiToolIndexRoute
   '/api/tools': typeof ApiToolsRoute
   '/api/vault': typeof ApiVaultRoute
@@ -239,6 +257,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/api/budget'
     | '/api/channels'
     | '/api/chat'
     | '/api/desk'
@@ -254,6 +273,7 @@ export interface FileRouteTypes {
     | '/api/routines'
     | '/api/scope'
     | '/api/skills'
+    | '/api/tasks'
     | '/api/tool-index'
     | '/api/tools'
     | '/api/vault'
@@ -265,6 +285,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/api/budget'
     | '/api/channels'
     | '/api/chat'
     | '/api/desk'
@@ -280,6 +301,7 @@ export interface FileRouteTypes {
     | '/api/routines'
     | '/api/scope'
     | '/api/skills'
+    | '/api/tasks'
     | '/api/tool-index'
     | '/api/tools'
     | '/api/vault'
@@ -291,6 +313,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/login'
+    | '/api/budget'
     | '/api/channels'
     | '/api/chat'
     | '/api/desk'
@@ -306,6 +329,7 @@ export interface FileRouteTypes {
     | '/api/routines'
     | '/api/scope'
     | '/api/skills'
+    | '/api/tasks'
     | '/api/tool-index'
     | '/api/tools'
     | '/api/vault'
@@ -318,6 +342,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
+  ApiBudgetRoute: typeof ApiBudgetRoute
   ApiChannelsRoute: typeof ApiChannelsRouteWithChildren
   ApiChatRoute: typeof ApiChatRoute
   ApiDeskRoute: typeof ApiDeskRoute
@@ -333,6 +358,7 @@ export interface RootRouteChildren {
   ApiRoutinesRoute: typeof ApiRoutinesRoute
   ApiScopeRoute: typeof ApiScopeRoute
   ApiSkillsRoute: typeof ApiSkillsRoute
+  ApiTasksRoute: typeof ApiTasksRoute
   ApiToolIndexRoute: typeof ApiToolIndexRoute
   ApiToolsRoute: typeof ApiToolsRoute
   ApiVaultRoute: typeof ApiVaultRoute
@@ -355,6 +381,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/budget': {
+      id: '/api/budget'
+      path: '/api/budget'
+      fullPath: '/api/budget'
+      preLoaderRoute: typeof ApiBudgetRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/channels': {
@@ -462,6 +495,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSkillsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/tasks': {
+      id: '/api/tasks'
+      path: '/api/tasks'
+      fullPath: '/api/tasks'
+      preLoaderRoute: typeof ApiTasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/tool-index': {
       id: '/api/tool-index'
       path: '/api/tool-index'
@@ -529,6 +569,7 @@ const ApiChannelsRouteWithChildren = ApiChannelsRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
+  ApiBudgetRoute: ApiBudgetRoute,
   ApiChannelsRoute: ApiChannelsRouteWithChildren,
   ApiChatRoute: ApiChatRoute,
   ApiDeskRoute: ApiDeskRoute,
@@ -544,6 +585,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiRoutinesRoute: ApiRoutinesRoute,
   ApiScopeRoute: ApiScopeRoute,
   ApiSkillsRoute: ApiSkillsRoute,
+  ApiTasksRoute: ApiTasksRoute,
   ApiToolIndexRoute: ApiToolIndexRoute,
   ApiToolsRoute: ApiToolsRoute,
   ApiVaultRoute: ApiVaultRoute,
