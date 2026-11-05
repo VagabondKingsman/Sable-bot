@@ -13,7 +13,7 @@ export function isActive(status: JobStatus) {
   return ACTIVE_STATUSES.includes(status);
 }
 
-export type JobOrigin = { channel: "telegram"; chatId: number };
+export type JobOrigin = { channel: "telegram"; chatId: number } | { channel: "webhook"; peerId: string };
 
 export type JobApproval = ApprovalRequest & { expiresAt?: number };
 

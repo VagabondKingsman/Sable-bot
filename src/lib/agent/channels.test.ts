@@ -114,3 +114,148 @@ test("smtp: config needs exactly one owner address; mail goes only there, redact
   assert.equal(await failing.notify({ subject: "x", text: "y" }), false);
   assert.ok(!failing.lastError.includes("s3cretpass"));
 });
+
+import {
+  WebhookChannel,
+  webhookConfigFrom,
+  makeEvent,
+  signBody,
+  verifySignature,
+  parseEvent,
+  RateLimiter,
+} from "./channels/webhook.ts";
+
+const SECRET = "test-webhook-secret-32chars!!";
+
+function signed(body: string, secret = SECRET) {
+  return { body, sig: `sha256=${signBody(secret, body)}` };
+}
+
+test("webhook: HMAC sign/verify rejects bad/missing/truncated signatures", () => {
+  const body = '{"v":1}';
+  const good = signBody(SECRET, body);
+  assert.equal(verifySignature(SECRET, body, `sha256=${good}`), true);
+  assert.equal(verifySignature(SECRET, body, good), true);
+  assert.equal(verifySignature(SECRET, body, null), false);
+  assert.equal(verifySignature(SECRET, body, "sha256=deadbeef"), false);
+  assert.equal(verifySignature(SECRET, body + "x", `sha256=${good}`), false);
+  assert.equal(verifySignature(SECRET, body, `sha256=${"0".repeat(63)}`), false);
+});
+
+test("webhook: parseEvent enforces v=1 schema", () => {
+  assert.equal(parseEvent(null).ok, false);
+  assert.equal(parseEvent({ v: 2, type: "ping", id: "1", at: 1, channel: "webhook", payload: {} }).ok, false);
+  assert.equal(parseEvent({ v: 1, type: "nope", id: "1", at: 1, channel: "webhook", payload: {} }).ok, false);
+  const ok = parseEvent({ v: 1, type: "ping", id: "evt_1", at: 1, channel: "webhook", payload: {} });
+  assert.equal(ok.ok, true);
+});
+
+test("webhook: inbound ping/pong with owner gate and rate limit", async () => {
+  const seen: string[] = [];
+  const wh = new WebhookChannel({
+    secret: SECRET,
+    ownerPeerId: "owner",
+    rate: { windowMs: 60_000, max: 3 },
+    onInbound: async (ev) => {
+      seen.push(ev.type);
+      return makeEvent("pong", { echoed: ev.type }, { peerId: ev.peerId });
+    },
+  });
+  const ping = signed(JSON.stringify(makeEvent("ping", {}, { id: "evt_p", at: 1 })));
+  const r1 = await wh.handleInbound(ping.body, ping.sig);
+  assert.equal(r1.status, 200);
+  assert.equal((r1.body as { type: string }).type, "pong");
+
+  const bad = await wh.handleInbound(ping.body, "sha256=" + "ab".repeat(32));
+  assert.equal(bad.status, 401);
+
+  const stranger = signed(JSON.stringify(makeEvent("message.in", { text: "hi" }, { id: "evt_s", at: 2, peerId: "stranger" })));
+  assert.equal((await wh.handleInbound(stranger.body, stranger.sig)).status, 403);
+
+  const owner = signed(JSON.stringify(makeEvent("message.in", { text: "hi" }, { id: "evt_o", at: 3, peerId: "owner" })));
+  assert.equal((await wh.handleInbound(owner.body, owner.sig)).status, 202);
+  assert.deepEqual(seen, ["message.in"]);
+
+  // rate max=3: ping + stranger(403 still counts after HMAC) + owner → next is 429
+  const p2 = signed(JSON.stringify(makeEvent("ping", {}, { id: "evt_p2", at: 4 })));
+  assert.equal((await wh.handleInbound(p2.body, p2.sig)).status, 429);
+});
+
+test("webhook: outbound delivers signed body and refuses SSRF / redirects", async () => {
+  const posts: { url: string; headers: HeadersInit; body: string }[] = [];
+  const wh = new WebhookChannel({
+    secret: SECRET,
+    outboundUrl: "https://app.example/hooks/sable",
+    ownerPeerId: "owner",
+    allow: ["app.example"],
+    fakeIpEgress: true,
+    checkUrl: async () => new URL("https://app.example/hooks/sable"),
+    fetchImpl: (async (url, init) => {
+      posts.push({ url: String(url), headers: init!.headers as HeadersInit, body: String(init!.body) });
+      return new Response("ok", { status: 200 });
+    }) as typeof fetch,
+  });
+  const event = makeEvent("job.result", { text: "done", status: "done", title: "t" }, { peerId: "owner", ref: { jobId: "job_1" } });
+  assert.equal(await wh.deliver(event), true);
+  assert.equal(wh.sent, 1);
+  assert.equal(posts.length, 1);
+  const hdr = posts[0].headers as Record<string, string>;
+  assert.ok(verifySignature(SECRET, posts[0].body, hdr["x-sable-signature"]));
+  assert.equal(JSON.parse(posts[0].body).type, "job.result");
+
+  const ssrf = new WebhookChannel({
+    secret: SECRET,
+    outboundUrl: "http://127.0.0.1/steal",
+    checkUrl: async () => {
+      throw new Error("blocked private");
+    },
+    fetchImpl: (async () => new Response("no")) as typeof fetch,
+  });
+  assert.equal(await ssrf.deliver(event), false);
+  assert.match(ssrf.lastError, /blocked/);
+
+  const redir = new WebhookChannel({
+    secret: SECRET,
+    outboundUrl: "https://app.example/hooks/sable",
+    checkUrl: async () => new URL("https://app.example/hooks/sable"),
+    fetchImpl: (async () => new Response(null, { status: 302, headers: { location: "https://evil" } })) as typeof fetch,
+  });
+  assert.equal(await redir.deliver(event), false);
+  assert.match(redir.lastError, /redirect/);
+});
+
+test("webhook: send() maps approvals to job.approval events", async () => {
+  const posts: string[] = [];
+  const wh = new WebhookChannel({
+    secret: SECRET,
+    outboundUrl: "https://app.example/h",
+    checkUrl: async () => new URL("https://app.example/h"),
+    fetchImpl: (async (_u, init) => {
+      posts.push(String(init!.body));
+      return new Response("ok");
+    }) as typeof fetch,
+  });
+  await wh.send({ peerId: "owner", text: "Cần duyệt: viết file", approvals: [{ id: "ap1", summary: "write note.md" }] });
+  const ev = JSON.parse(posts[0]);
+  assert.equal(ev.type, "job.approval");
+  assert.equal(ev.ref.approvalId, "ap1");
+  assert.equal(ev.payload.approvals[0].id, "ap1");
+});
+
+test("webhook: webhookConfigFrom needs secret ≥16; kill switch", () => {
+  assert.equal(webhookConfigFrom({}).config, null);
+  assert.ok(webhookConfigFrom({ SABLE_WEBHOOK_SECRET: "short" }).error);
+  assert.equal(webhookConfigFrom({ SABLE_WEBHOOK: "0", SABLE_WEBHOOK_SECRET: SECRET }).config, null);
+  const ok = webhookConfigFrom({ SABLE_WEBHOOK_SECRET: SECRET, SABLE_WEBHOOK_URL: "https://x.example/h", SABLE_WEBHOOK_OWNER: "me" });
+  assert.equal(ok.config?.secret, SECRET);
+  assert.equal(ok.config?.ownerPeerId, "me");
+  assert.equal(ok.config?.outboundUrl, "https://x.example/h");
+});
+
+test("webhook: RateLimiter window", () => {
+  const lim = new RateLimiter(1000, 2);
+  assert.equal(lim.allow(1000), true);
+  assert.equal(lim.allow(1001), true);
+  assert.equal(lim.allow(1002), false);
+  assert.equal(lim.allow(2100), true);
+});

@@ -10,6 +10,7 @@ import { parseChatRequest } from "@/lib/agent/harness";
 import { availableModels } from "@/lib/agent/provider";
 import { parseOwners, TelegramChannel } from "@/lib/agent/channels/telegram";
 import { SmtpChannel, smtpConfigFrom } from "@/lib/agent/channels/smtp";
+import { WebhookChannel, webhookConfigFrom, makeEvent, MAX_TEXT } from "@/lib/agent/channels/webhook";
 import { writeAtomic } from "@/lib/agent/jobs/db";
 import { isActive, type Job, type JobApproval } from "@/lib/agent/jobs/types";
 import { onJobEvents } from "@/server/channel-bus";
@@ -25,8 +26,12 @@ type State = {
   telegramError?: string;
   smtp: SmtpChannel | null;
   smtpError?: string;
+  webhook: WebhookChannel | null;
+  webhookError?: string;
   /** Recent exchange per Telegram chat (in memory only). */
   history: Map<number, { role: "user" | "assistant"; content: string }[]>;
+  /** Webhook peer conversation history. */
+  webhookHistory: Map<string, { role: "user" | "assistant"; content: string }[]>;
   /** approvalId → the Telegram message holding its buttons. */
   cards: Map<string, { chatId: number; messageId: number; summary: string }>;
   recent: number[];
@@ -138,6 +143,18 @@ async function onTelegramCallback(state: State, cb: { chatId: number; data: stri
   return match[1] === "a" ? "Đã duyệt" : "Đã từ chối";
 }
 
+
+function wantsWebhook(job: Job) {
+  const mode = notifyMode("SABLE_WEBHOOK_NOTIFY", "own");
+  if (mode === "off") return job.origin?.channel === "webhook";
+  return job.origin?.channel === "webhook" || mode === "all";
+}
+
+function webhookTarget(job: Job) {
+  if (job.origin?.channel === "webhook") return job.origin.peerId;
+  return process.env.SABLE_WEBHOOK_OWNER?.trim() || "owner";
+}
+
 function wantsTelegram(job: Job) {
   const mode = notifyMode("SABLE_TELEGRAM_NOTIFY", "own");
   if (mode === "off") return job.origin?.channel === "telegram";
@@ -153,7 +170,19 @@ function telegramTarget(job: Job) {
 function wire(state: State) {
   onJobEvents("channels", {
     finish(job) {
-      const tg = state.telegram;
+      const wh = state.webhook;
+      if (wh && wantsWebhook(job)) {
+        const peerId = webhookTarget(job);
+        if (peerId) {
+          const text = job.origin?.channel === "webhook" ? resultText(job) : `${job.title}\n\n${resultText(job)}`;
+          void wh.deliver(makeEvent("job.result", { text: text.slice(0, MAX_TEXT), status: job.status, title: job.title }, { peerId, ref: { jobId: job.id, routineId: job.routineId } }));
+          if (job.origin?.channel === "webhook" && job.status === "done" && job.text.trim()) {
+            const history = state.webhookHistory.get(peerId) ?? [];
+            state.webhookHistory.set(peerId, [...history, { role: "assistant" as const, content: job.text.slice(0, 4_000) }].slice(-HISTORY));
+          }
+        }
+      }
+            const tg = state.telegram;
       if (tg && wantsTelegram(job)) {
         const chatId = telegramTarget(job);
         if (chatId !== undefined) {
@@ -173,6 +202,17 @@ function wire(state: State) {
       }
     },
     waiting(job, approval) {
+      const wh = state.webhook;
+      if (wh && wantsWebhook(job)) {
+        const peerId = webhookTarget(job);
+        if (peerId) {
+          void wh.send({
+            peerId,
+            text: `Cần duyệt: ${approval.summary}\n(${job.title})`,
+            approvals: [{ id: approval.id, summary: approval.summary, preview: approval.preview }],
+          });
+        }
+      }
       const tg = state.telegram;
       if (tg && wantsTelegram(job)) {
         const chatId = telegramTarget(job);
@@ -204,7 +244,7 @@ function wire(state: State) {
 export function startChannels(): State {
   const existing = scope()[KEY];
   if (existing) return existing;
-  const state: State = { telegram: null, smtp: null, history: new Map(), cards: new Map(), recent: [] };
+  const state: State = { telegram: null, smtp: null, webhook: null, history: new Map(), webhookHistory: new Map(), cards: new Map(), recent: [] };
   scope()[KEY] = state;
   if (!channelsOn()) return state;
   if (jobService().foreignOwner !== null) return state;
@@ -238,6 +278,16 @@ export function startChannels(): State {
   const smtp = smtpConfigFrom(process.env);
   if (smtp.config) state.smtp = new SmtpChannel(smtp.config);
   else if (smtp.error) state.smtpError = smtp.error;
+
+  const wh = webhookConfigFrom(process.env);
+  if (wh.error) state.webhookError = wh.error;
+  else if (wh.config) {
+    state.webhook = new WebhookChannel({
+      ...wh.config,
+      onInbound: (event) => onWebhookInbound(state, event),
+    });
+    console.log(`[sable-webhook] inbound ready (outbound ${wh.config.outboundUrl ? "on" : "off"})`);
+  }
   wire(state);
   return state;
 }
@@ -266,6 +316,14 @@ export function channelStatus() {
       sent: state.smtp?.sent ?? 0,
       error: state.smtpError ?? (state.smtp?.lastError || undefined),
     },
+    webhook: {
+      configured: Boolean(state.webhook),
+      outbound: Boolean(state.webhook?.config.outboundUrl),
+      owner: state.webhook?.config.ownerPeerId,
+      sent: state.webhook?.sent ?? 0,
+      received: state.webhook?.received ?? 0,
+      error: state.webhookError ?? (state.webhook?.lastError || undefined),
+    },
   };
 }
 
@@ -275,6 +333,47 @@ export async function stopChannels() {
   scope()[KEY] = undefined;
   await state?.telegram?.stop();
   state?.smtp?.close();
+  // webhook is stateless HTTP — nothing to stop
+}
+
+
+async function onWebhookInbound(state: State, event: import("@/lib/agent/channels/webhook").WebhookEvent) {
+  if (event.type === "approval.response") {
+    const id = typeof event.payload.approvalId === "string" ? event.payload.approvalId : event.ref?.approvalId;
+    const decide = event.payload.approve === true || event.payload.decision === "approve";
+    if (!id) return makeEvent("pong", { ok: false, error: "missing approvalId" }, { peerId: event.peerId });
+    const ok = jobService().runner.decide(id, Boolean(decide));
+    return makeEvent("pong", { ok, decision: decide ? "approve" : "reject" }, { peerId: event.peerId, ref: { approvalId: id } });
+  }
+  if (event.type !== "message.in") return;
+  const text = typeof event.payload.text === "string" ? event.payload.text.trim() : "";
+  if (!text) return makeEvent("pong", { ok: false, error: "empty text" }, { peerId: event.peerId });
+  const peerId = event.peerId!;
+  const now = Date.now();
+  state.recent = state.recent.filter((at) => now - at < RATE_WINDOW_MS);
+  const limit = Number(process.env.SABLE_WEBHOOK_RATE) || 30;
+  if (state.recent.length >= limit) {
+    return makeEvent("message.out", { text: "Bạn đang gửi quá nhanh, chờ một chút rồi thử lại." }, { peerId });
+  }
+  const history = state.webhookHistory.get(peerId) ?? [];
+  const parsed = telegramRequest(text.slice(0, 8_000), history);
+  if (!parsed.ok) return makeEvent("message.out", { text: parsed.error }, { peerId });
+  const config = jobConfig();
+  if (!jobService().runner.enabled()) return makeEvent("message.out", { text: "Việc nền đang tắt trên máy chủ." }, { peerId });
+  state.recent.push(now);
+  const job = jobService().runner.enqueue({
+    title: `Webhook: ${text.slice(0, 60)}`,
+    request: parsed.request,
+    maxSteps: config.maxSteps,
+    timeoutMs: config.timeoutMs,
+    origin: { channel: "webhook", peerId },
+  });
+  state.webhookHistory.set(peerId, [...history, { role: "user" as const, content: text }].slice(-HISTORY));
+  return makeEvent("pong", { ok: true, jobId: job.id }, { peerId, ref: { jobId: job.id } });
+}
+
+export function getWebhookChannel() {
+  return startChannels().webhook;
 }
 
 export type { JobApproval };

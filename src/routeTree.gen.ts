@@ -23,6 +23,7 @@ import { Route as ApiRoutinesRouteImport } from './routes/api/routines'
 import { Route as ApiSkillsRouteImport } from './routes/api/skills'
 import { Route as ApiToolsRouteImport } from './routes/api/tools'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiChannelsWebhookRouteImport } from './routes/api/channels.webhook'
 import { Route as ApiRoutinesIdFireRouteImport } from './routes/api/routines_.$id.fire'
 
 const IndexRoute = IndexRouteImport.update({
@@ -95,6 +96,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiChannelsWebhookRoute = ApiChannelsWebhookRouteImport.update({
+  id: '/webhook',
+  path: '/webhook',
+  getParentRoute: () => ApiChannelsRoute,
+} as any)
 const ApiRoutinesIdFireRoute = ApiRoutinesIdFireRouteImport.update({
   id: '/api/routines_/$id/fire',
   path: '/api/routines/$id/fire',
@@ -104,7 +110,7 @@ const ApiRoutinesIdFireRoute = ApiRoutinesIdFireRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/api/channels': typeof ApiChannelsRoute
+  '/api/channels': typeof ApiChannelsRouteWithChildren
   '/api/chat': typeof ApiChatRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/inbox': typeof ApiInboxRoute
@@ -116,12 +122,13 @@ export interface FileRoutesByFullPath {
   '/api/skills': typeof ApiSkillsRoute
   '/api/tools': typeof ApiToolsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/channels/webhook': typeof ApiChannelsWebhookRoute
   '/api/routines/$id/fire': typeof ApiRoutinesIdFireRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/api/channels': typeof ApiChannelsRoute
+  '/api/channels': typeof ApiChannelsRouteWithChildren
   '/api/chat': typeof ApiChatRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/inbox': typeof ApiInboxRoute
@@ -133,13 +140,14 @@ export interface FileRoutesByTo {
   '/api/skills': typeof ApiSkillsRoute
   '/api/tools': typeof ApiToolsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/channels/webhook': typeof ApiChannelsWebhookRoute
   '/api/routines/$id/fire': typeof ApiRoutinesIdFireRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/api/channels': typeof ApiChannelsRoute
+  '/api/channels': typeof ApiChannelsRouteWithChildren
   '/api/chat': typeof ApiChatRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/inbox': typeof ApiInboxRoute
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   '/api/skills': typeof ApiSkillsRoute
   '/api/tools': typeof ApiToolsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/channels/webhook': typeof ApiChannelsWebhookRoute
   '/api/routines_/$id/fire': typeof ApiRoutinesIdFireRoute
 }
 export interface FileRouteTypes {
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
     | '/api/skills'
     | '/api/tools'
     | '/api/auth/$'
+    | '/api/channels/webhook'
     | '/api/routines/$id/fire'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/api/skills'
     | '/api/tools'
     | '/api/auth/$'
+    | '/api/channels/webhook'
     | '/api/routines/$id/fire'
   id:
     | '__root__'
@@ -204,13 +215,14 @@ export interface FileRouteTypes {
     | '/api/skills'
     | '/api/tools'
     | '/api/auth/$'
+    | '/api/channels/webhook'
     | '/api/routines_/$id/fire'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
-  ApiChannelsRoute: typeof ApiChannelsRoute
+  ApiChannelsRoute: typeof ApiChannelsRouteWithChildren
   ApiChatRoute: typeof ApiChatRoute
   ApiDeskRoute: typeof ApiDeskRoute
   ApiInboxRoute: typeof ApiInboxRoute
@@ -325,6 +337,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/channels/webhook': {
+      id: '/api/channels/webhook'
+      path: '/webhook'
+      fullPath: '/api/channels/webhook'
+      preLoaderRoute: typeof ApiChannelsWebhookRouteImport
+      parentRoute: typeof ApiChannelsRoute
+    }
     '/api/routines_/$id/fire': {
       id: '/api/routines_/$id/fire'
       path: '/api/routines/$id/fire'
@@ -335,10 +354,22 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface ApiChannelsRouteChildren {
+  ApiChannelsWebhookRoute: typeof ApiChannelsWebhookRoute
+}
+
+const ApiChannelsRouteChildren: ApiChannelsRouteChildren = {
+  ApiChannelsWebhookRoute: ApiChannelsWebhookRoute,
+}
+
+const ApiChannelsRouteWithChildren = ApiChannelsRoute._addFileChildren(
+  ApiChannelsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
-  ApiChannelsRoute: ApiChannelsRoute,
+  ApiChannelsRoute: ApiChannelsRouteWithChildren,
   ApiChatRoute: ApiChatRoute,
   ApiDeskRoute: ApiDeskRoute,
   ApiInboxRoute: ApiInboxRoute,
