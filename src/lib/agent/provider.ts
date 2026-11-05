@@ -8,7 +8,7 @@
  */
 
 export type ApiStyle = "responses" | "chat";
-export type ProviderId = "llm" | "xai" | "openai" | "deepseek";
+export type ProviderId = "llm" | "xai" | "openai" | "deepseek" | "ollama" | "local";
 
 export type Endpoint = {
   id: ProviderId;
@@ -123,6 +123,43 @@ export function resolveEndpoints(env: Env): Endpoint[] {
     });
   }
 
+
+  // Ollama (OpenAI-compatible /v1). Key optional — defaults to "ollama".
+  // Set OLLAMA_BASE_URL (default http://127.0.0.1:11434 when OLLAMA_MODELS or SABLE_OLLAMA=1)
+  // or just OLLAMA_MODELS. Models are listed as-is (e.g. llama3.2:1b). No auto-pull.
+  const ollamaOn = (env.SABLE_OLLAMA ?? "1").trim() !== "0";
+  const ollamaModels = list(env.OLLAMA_MODELS);
+  const ollamaBaseRaw = pick(env, "OLLAMA_BASE_URL") || (ollamaOn && ollamaModels.length ? "http://127.0.0.1:11434" : "");
+  if (ollamaOn && ollamaBaseRaw) {
+    const base = normalizeBase(ollamaBaseRaw);
+    out.push({
+      id: "ollama",
+      label: "Ollama",
+      base,
+      key: pick(env, "OLLAMA_API_KEY") || "ollama",
+      style: style(base, env.OLLAMA_API_STYLE || "chat"),
+      models: ollamaModels,
+      xai: false,
+    });
+  }
+
+  // Any other OpenAI-compatible local server (LM Studio, vLLM, llama.cpp server…).
+  // LOCAL_BASE_URL + LOCAL_MODELS; key optional (defaults to "local").
+  const localModels = list(env.LOCAL_MODELS);
+  const localBaseRaw = pick(env, "LOCAL_BASE_URL");
+  if (localBaseRaw) {
+    const base = normalizeBase(localBaseRaw);
+    out.push({
+      id: "local",
+      label: hostLabel(base) === "127.0.0.1" || hostLabel(base) === "localhost" ? "Local" : hostLabel(base),
+      base,
+      key: pick(env, "LOCAL_API_KEY") || "local",
+      style: style(base, env.LOCAL_API_STYLE || "chat"),
+      models: localModels,
+      xai: false,
+    });
+  }
+
   return out;
 }
 
@@ -147,6 +184,7 @@ const PREFIX: [RegExp, ProviderId][] = [
   [/^grok/i, "xai"],
   [/^deepseek/i, "deepseek"],
   [/^(gpt|o\d|chatgpt)/i, "openai"],
+  [/^(llama|mistral|qwen|phi|gemma|tinyllama|nomic)/i, "ollama"],
 ];
 
 /** Endpoint that serves `model`: owner list → name prefix → primary. */

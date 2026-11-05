@@ -57,3 +57,46 @@ test("normalizeBase strips /v1 and slashes", () => {
 test("no key → no endpoints", () => {
   assert.deepEqual(resolveEndpoints({}), []);
 });
+
+test("ollama endpoint from OLLAMA_BASE_URL + OLLAMA_MODELS (no key needed)", () => {
+  const list = resolveEndpoints({
+    OLLAMA_BASE_URL: "http://127.0.0.1:11434",
+    OLLAMA_MODELS: "llama3.2:1b,qwen2.5:0.5b",
+  });
+  const o = list.find((e) => e.id === "ollama");
+  assert.ok(o);
+  assert.equal(o!.base, "http://127.0.0.1:11434");
+  assert.equal(o!.key, "ollama");
+  assert.equal(o!.style, "chat");
+  assert.equal(o!.xai, false);
+  assert.deepEqual(o!.models, ["llama3.2:1b", "qwen2.5:0.5b"]);
+  assert.equal(endpointFor("llama3.2:1b", list)?.id, "ollama");
+});
+
+test("ollama from OLLAMA_MODELS alone uses default localhost base", () => {
+  const list = resolveEndpoints({ OLLAMA_MODELS: "tinyllama" });
+  assert.equal(list.find((e) => e.id === "ollama")?.base, "http://127.0.0.1:11434");
+});
+
+test("SABLE_OLLAMA=0 kills ollama even when configured", () => {
+  const list = resolveEndpoints({
+    SABLE_OLLAMA: "0",
+    OLLAMA_BASE_URL: "http://127.0.0.1:11434",
+    OLLAMA_MODELS: "llama3.2:1b",
+  });
+  assert.equal(list.find((e) => e.id === "ollama"), undefined);
+});
+
+test("LOCAL_BASE_URL adds a generic OpenAI-compatible local endpoint (LM Studio / vLLM)", () => {
+  const list = resolveEndpoints({
+    LOCAL_BASE_URL: "http://127.0.0.1:1234/v1",
+    LOCAL_MODELS: "local-model",
+    LOCAL_API_KEY: "lm-studio",
+  });
+  const loc = list.find((e) => e.id === "local");
+  assert.ok(loc);
+  assert.equal(loc!.base, "http://127.0.0.1:1234");
+  assert.equal(loc!.key, "lm-studio");
+  assert.deepEqual(loc!.models, ["local-model"]);
+  assert.equal(endpointFor("local-model", list)?.id, "local");
+});
