@@ -13,6 +13,8 @@ export async function textCall(opts: {
   maxTokens?: number;
   json?: boolean;
   fetchFn?: typeof fetch;
+  /** Multi-turn (W4 code agent): replaces system+user when given. */
+  messages?: { role: "system" | "user" | "assistant"; content: string }[];
 }): Promise<{ text: string } & Usage> {
   const f = opts.fetchFn ?? fetch;
   const r = await f(`${opts.base}/v1/chat/completions`, {
@@ -23,7 +25,7 @@ export async function textCall(opts: {
       max_tokens: opts.maxTokens ?? 1000,
       temperature: 0.1,
       ...(opts.json ? { response_format: { type: "json_object" } } : {}),
-      messages: [
+      messages: opts.messages ?? [
         { role: "system", content: opts.system },
         { role: "user", content: opts.user },
       ],

@@ -34,6 +34,8 @@ export type SandboxOpts = {
   timeoutMs?: number;
   network?: boolean;
   signal?: AbortSignal;
+  /** W4 code agent: extra bwrap args appended after the base jail (later mounts/env win). bwrap only. */
+  extraArgs?: string[];
   /** Injected for tests. */
   bwrapPath?: string | null;
   spawnImpl?: typeof spawn;
@@ -124,7 +126,7 @@ export function runSandboxed(opts: SandboxOpts): Promise<SandboxResult> {
   const spawnFn = opts.spawnImpl ?? spawn;
 
   const argv = bwrap
-    ? [bwrap, ...bwrapArgs(workspace, network), "--", "/bin/sh", "-c", cleaned.value]
+    ? [bwrap, ...bwrapArgs(workspace, network), ...(opts.extraArgs ?? []), "--", "/bin/sh", "-c", cleaned.value]
     : ["/bin/sh", "-c", cleaned.value];
 
   return new Promise((resolve) => {

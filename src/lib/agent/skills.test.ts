@@ -69,5 +69,5 @@ test("load_skill returns a loaded block, never grants tools, refuses when off", 
 
 test("shipped sample skills parse", () => {
   const store = skillStore(path.resolve("skills"));
-  assert.deepEqual(store.list().map((s) => s.name), ["code-review", "daily-briefing", "research-summary"]);
+  assert.deepEqual(store.list().map((s) => s.name), ["code-review", "daily-briefing", "research-deep", "research-summary"]);
 });

@@ -11,10 +11,18 @@ export type Decision = { ok: true } | { ok: false; reason: string };
 
 /** W3 (D2): desktop actions are approved only by the owner in the web UI (who sees the screenshot). */
 export const isDesktopTool = (tool?: string | null) => Boolean(tool && /^desktop[_.]/.test(tool));
+/** W4: actions only the owner (web UI) can approve: desktop input + applying agent code to a real repo. */
+export const isOwnerOnlyTool = (tool?: string | null) => isDesktopTool(tool) || tool === "code.apply";
 
 export function canDecide(decider: Initiator, askInitiator: Initiator | null, tool?: string | null): Decision {
   if (BACKGROUND_KINDS.includes(decider.kind))
     return { ok: false, reason: `${decider.kind} initiators can never approve (no auto-approve in the background)` };
+  if (isOwnerOnlyTool(tool) && !isDesktopTool(tool)) {
+    // W4: applying an agent's code change to a real repo — owner in the web UI only, never a background chain.
+    if (askInitiator && chainHasBackground(askInitiator)) return { ok: false, reason: `${tool} for work started by a background initiator can never be approved` };
+    if (decider.kind !== "user") return { ok: false, reason: `${tool} can only be approved by the owner in the Sable web UI` };
+    return { ok: true };
+  }
   if (isDesktopTool(tool)) {
     if (askInitiator && chainHasBackground(askInitiator))
       return { ok: false, reason: "desktop actions started by a background initiator can never be approved" };

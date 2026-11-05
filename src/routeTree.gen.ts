@@ -17,6 +17,7 @@ import { Route as ApiBudgetRouteImport } from './routes/api/budget'
 import { Route as ApiCanvasRouteImport } from './routes/api/canvas'
 import { Route as ApiChannelsRouteImport } from './routes/api/channels'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as ApiCodeRouteImport } from './routes/api/code'
 import { Route as ApiConnectorsRouteImport } from './routes/api/connectors'
 import { Route as ApiDeskRouteImport } from './routes/api/desk'
 import { Route as ApiDesktopRouteImport } from './routes/api/desktop'
@@ -91,6 +92,11 @@ const ApiChannelsRoute = ApiChannelsRouteImport.update({
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCodeRoute = ApiCodeRouteImport.update({
+  id: '/api/code',
+  path: '/api/code',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiConnectorsRoute = ApiConnectorsRouteImport.update({
@@ -278,6 +284,7 @@ export interface FileRoutesByFullPath {
   '/api/canvas': typeof ApiCanvasRoute
   '/api/channels': typeof ApiChannelsRouteWithChildren
   '/api/chat': typeof ApiChatRoute
+  '/api/code': typeof ApiCodeRoute
   '/api/connectors': typeof ApiConnectorsRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/desktop': typeof ApiDesktopRoute
@@ -323,6 +330,7 @@ export interface FileRoutesByTo {
   '/api/canvas': typeof ApiCanvasRoute
   '/api/channels': typeof ApiChannelsRouteWithChildren
   '/api/chat': typeof ApiChatRoute
+  '/api/code': typeof ApiCodeRoute
   '/api/connectors': typeof ApiConnectorsRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/desktop': typeof ApiDesktopRoute
@@ -369,6 +377,7 @@ export interface FileRoutesById {
   '/api/canvas': typeof ApiCanvasRoute
   '/api/channels': typeof ApiChannelsRouteWithChildren
   '/api/chat': typeof ApiChatRoute
+  '/api/code': typeof ApiCodeRoute
   '/api/connectors': typeof ApiConnectorsRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/desktop': typeof ApiDesktopRoute
@@ -416,6 +425,7 @@ export interface FileRouteTypes {
     | '/api/canvas'
     | '/api/channels'
     | '/api/chat'
+    | '/api/code'
     | '/api/connectors'
     | '/api/desk'
     | '/api/desktop'
@@ -461,6 +471,7 @@ export interface FileRouteTypes {
     | '/api/canvas'
     | '/api/channels'
     | '/api/chat'
+    | '/api/code'
     | '/api/connectors'
     | '/api/desk'
     | '/api/desktop'
@@ -506,6 +517,7 @@ export interface FileRouteTypes {
     | '/api/canvas'
     | '/api/channels'
     | '/api/chat'
+    | '/api/code'
     | '/api/connectors'
     | '/api/desk'
     | '/api/desktop'
@@ -552,6 +564,7 @@ export interface RootRouteChildren {
   ApiCanvasRoute: typeof ApiCanvasRoute
   ApiChannelsRoute: typeof ApiChannelsRouteWithChildren
   ApiChatRoute: typeof ApiChatRoute
+  ApiCodeRoute: typeof ApiCodeRoute
   ApiConnectorsRoute: typeof ApiConnectorsRoute
   ApiDeskRoute: typeof ApiDeskRoute
   ApiDesktopRoute: typeof ApiDesktopRoute
@@ -644,6 +657,13 @@ declare module '@tanstack/react-router' {
       path: '/api/chat'
       fullPath: '/api/chat'
       preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/code': {
+      id: '/api/code'
+      path: '/api/code'
+      fullPath: '/api/code'
+      preLoaderRoute: typeof ApiCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/connectors': {
@@ -915,6 +935,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCanvasRoute: ApiCanvasRoute,
   ApiChannelsRoute: ApiChannelsRouteWithChildren,
   ApiChatRoute: ApiChatRoute,
+  ApiCodeRoute: ApiCodeRoute,
   ApiConnectorsRoute: ApiConnectorsRoute,
   ApiDeskRoute: ApiDeskRoute,
   ApiDesktopRoute: ApiDesktopRoute,
