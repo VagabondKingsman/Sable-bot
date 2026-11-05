@@ -174,7 +174,7 @@ Checklist:
 - [x] 3. Morning brief as a real routine (no private timer)
 - [x] 4. Plan traces labelled by real initiator (owner vs agent)
 - [x] 5. Live HTTP test: routine-initiated approval rejected
-- [ ] 6. Pending OAuth sign-ins persisted across restart (encrypted, 10-min TTL)
+- [x] 6. Pending OAuth sign-ins persisted across restart (encrypted, 10-min TTL)
 - [ ] 7. Triage eval on a separate 60-item held-out set (honest score)
 - [ ] 8. Hardening: rate limits, body size limits, CSRF/origin checks, npm audit, memory footprint
 - [ ] 9. eval:w2c + all evals; tsc; npm test; restart; ngrok 401/200; package CLEAN

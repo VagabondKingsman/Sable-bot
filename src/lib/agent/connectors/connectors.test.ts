@@ -7,7 +7,7 @@ import path from "node:path";
 import { after, before, test } from "node:test";
 import type { Initiator } from "../audit/types.ts";
 import { redactSecrets } from "../memory/redact.ts";
-import { OAuthManager, tokenName } from "../oauth/manager.ts";
+import { OAuthManager, PENDING_SECRET, tokenName } from "../oauth/manager.ts";
 import { challengeOf } from "../oauth/pkce.ts";
 import { composeBrief } from "../proactive/brief.ts";
 import { triageOne } from "../proactive/triage.ts";
@@ -332,4 +332,25 @@ test("tokens are redacted from any text that could reach logs, traces or audit",
   // the meta file never holds a token
   const meta = fs.readFileSync(path.join(dir, "oauth.json"), "utf8");
   for (const t of [...access, ...refresh]) assert.ok(!meta.includes(t));
+});
+
+test("W2c: a pending sign-in survives a restart (encrypted in the vault), single-use, 10-min TTL", async () => {
+  const before = makeManager();
+  const { url, state } = before.begin("gcal");
+  const r = await fetch(new URL(url), { redirect: "manual" });
+  const back = new URL(r.headers.get("location")!);
+  // Encrypted at rest: the state and verifier never appear in plaintext on disk.
+  const onDisk = fs.readdirSync(dir).map((f) => fs.readFileSync(path.join(dir, f), "utf8")).join("\n");
+  assert.ok(!onDisk.includes(state), "state not in plaintext");
+  assert.ok(vault.get(PENDING_SECRET)!.includes(state), "vault holds the pending state");
+  const restarted = makeManager(); // new process: empty memory
+  assert.ok(restarted.pendingCount() >= 1);
+  assert.deepEqual(await restarted.complete({ state: back.searchParams.get("state"), code: back.searchParams.get("code") }), { connectorId: "gcal" });
+  await assert.rejects(makeManager().complete({ state, code: "x" }), /state/i, "single-use across restarts");
+  // TTL: begun 11 minutes "ago" → dropped on load after restart.
+  const old = makeManager().begin("gmail").state;
+  clock += 11 * 60_000;
+  await assert.rejects(makeManager().complete({ state: old, code: "x" }), /state|hết hạn/i);
+  assert.equal(makeManager().pendingCount(), 0);
+  assert.equal(vault.get(PENDING_SECRET), null, "nothing pending → secret removed");
 });

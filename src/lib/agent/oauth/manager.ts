@@ -45,6 +45,8 @@ const META_FILE = "oauth.json";
 
 export const tokenName = (connectorId: string) => `OAUTH_TOKEN_${connectorId.toUpperCase().replace(/[^A-Z0-9]/g, "_")}`;
 export const OAUTH_SECRET_PREFIX = "OAUTH_TOKEN_";
+/** W2c: pending sign-ins survive a restart — encrypted in the vault (same OAUTH_TOKEN_ prefix → not readable via /api/vault). */
+export const PENDING_SECRET = "OAUTH_TOKEN_PENDING_STATES";
 
 /** Only an RFC 6749 error code survives into messages/logs. */
 function codeOf(body: unknown): string {
@@ -55,6 +57,7 @@ function codeOf(body: unknown): string {
 export class OAuthManager {
   private readonly d: OAuthDeps;
   private readonly pending = new Map<string, Pending>();
+  private pendingLoaded = false;
   private refreshing = new Map<string, Promise<StoredToken>>();
 
   constructor(deps: OAuthDeps) {
@@ -63,6 +66,45 @@ export class OAuthManager {
 
   private now() {
     return this.d.now?.() ?? Date.now();
+  }
+
+  /** Load persisted pending states once (expired ones dropped). Best effort. */
+  private loadPending() {
+    if (this.pendingLoaded) return;
+    this.pendingLoaded = true;
+    try {
+      if (!this.d.secrets.configured()) return;
+      const raw = this.d.secrets.get(PENDING_SECRET);
+      if (!raw) return;
+      const list = JSON.parse(raw) as Array<[string, Pending]>;
+      const now = this.now();
+      let dropped = false;
+      for (const [k, v] of Array.isArray(list) ? list : []) {
+        if (typeof k !== "string" || !v || typeof v.connectorId !== "string" || typeof v.verifier !== "string" || typeof v.createdAt !== "number" || typeof v.redirectUri !== "string") continue;
+        if (now - v.createdAt > STATE_TTL_MS || v.createdAt > now + 60_000) {
+          dropped = true;
+          continue;
+        }
+        if (!this.pending.has(k)) this.pending.set(k, v);
+      }
+      while (this.pending.size > MAX_PENDING) this.pending.delete(this.pending.keys().next().value!);
+      if (dropped) this.savePending();
+    } catch {
+      // unreadable → start empty
+    }
+  }
+
+  /** Write pending states (encrypted vault). No vault key → memory only (as before W2c). */
+  private savePending() {
+    try {
+      if (!this.d.secrets.configured()) return;
+      const now = this.now();
+      for (const [k, v] of this.pending) if (now - v.createdAt > STATE_TTL_MS) this.pending.delete(k);
+      if (!this.pending.size) this.d.secrets.remove(PENDING_SECRET);
+      else this.d.secrets.put(PENDING_SECRET, JSON.stringify([...this.pending.entries()]));
+    } catch {
+      // best effort
+    }
   }
   private on() {
     return this.d.enabled?.() ?? true;
@@ -201,12 +243,14 @@ export class OAuthManager {
     const creds = this.d.creds(c.provider)!;
     const redirectUri = this.d.redirectUri()!;
     this.checkUrl(p.authUrl, [p.authUrl]);
+    this.loadPending();
     const now = this.now();
     for (const [k, v] of this.pending) if (now - v.createdAt > STATE_TTL_MS) this.pending.delete(k);
     while (this.pending.size >= MAX_PENDING) this.pending.delete(this.pending.keys().next().value!);
     const state = newState();
     const verifier = newVerifier();
     this.pending.set(state, { connectorId: id, verifier, createdAt: now, redirectUri });
+    this.savePending();
     const u = new URL(p.authUrl);
     const q = u.searchParams;
     q.set("response_type", "code");
@@ -224,9 +268,11 @@ export class OAuthManager {
   async complete(params: { state?: string | null; code?: string | null; error?: string | null }): Promise<{ connectorId: string }> {
     if (!this.on()) throw new OAuthError("disabled", "OAuth đang tắt (SABLE_OAUTH=0).");
     const state = params.state ?? "";
+    this.loadPending();
     const pend = state ? this.pending.get(state) : undefined;
     if (!pend) throw new OAuthError("invalid_state", "state không hợp lệ hoặc đã dùng.");
     this.pending.delete(state);
+    this.savePending();
     if (this.now() - pend.createdAt > STATE_TTL_MS) throw new OAuthError("expired_state", "Phiên cấp quyền đã hết hạn — thử lại.");
     const id = pend.connectorId;
     if (params.error) this.fail(id, /^[a-z_]{1,40}$/.test(params.error) ? params.error : "denied", "Người dùng từ chối hoặc provider báo lỗi.");
@@ -354,6 +400,7 @@ export class OAuthManager {
   }
 
   pendingCount() {
+    this.loadPending();
     return this.pending.size;
   }
 }
